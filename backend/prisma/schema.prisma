@@ -1,0 +1,118 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  name      String?
+  role      Role     @default(CUSTOMER)
+  storeId   String?
+  store     Store?   @relation(fields: [storeId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  movements StockMovement[]
+}
+
+enum Role {
+  OWNER
+  PARTNER
+  MANAGER
+  STAFF
+  DELIVERY
+  CUSTOMER
+}
+
+model Store {
+  id          String   @id @default(uuid())
+  name        String
+  location    String?
+  gstin       String?
+  isActive    Boolean  @default(true)
+  users       User[]
+  products    Product[]
+  inventory   Inventory[]
+  movements   StockMovement[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Product {
+  id             String   @id @default(uuid())
+  storeId        String
+  store          Store    @relation(fields: [storeId], references: [id])
+  barcode        String?
+  internalSku    String   @unique
+  name           String
+  description    String?
+  category       String?
+  mrp            Float
+  sellingPrice   Float
+  purchaseCost   Float?
+  gstRate        Float    @default(0)
+  imageUrl       String?
+  isActive       Boolean  @default(true)
+  inventory      Inventory[]
+  movements      StockMovement[]
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([storeId])
+}
+
+model Inventory {
+  id             String   @id @default(uuid())
+  storeId        String
+  store          Store    @relation(fields: [storeId], references: [id])
+  productId      String
+  product        Product  @relation(fields: [productId], references: [id])
+  batchNo        String?
+  expiryDate     DateTime?
+  onHandQty      Int      @default(0)
+  reservedQty    Int      @default(0)
+  blockedQty     Int      @default(0)
+  movements      StockMovement[]
+  
+  // Available Qty = onHandQty - reservedQty - blockedQty
+  
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@unique([storeId, productId, batchNo])
+}
+
+model StockMovement {
+  id             String   @id @default(uuid())
+  storeId        String
+  store          Store    @relation(fields: [storeId], references: [id])
+  productId      String
+  product        Product  @relation(fields: [productId], references: [id])
+  inventoryId    String
+  inventory      Inventory @relation(fields: [inventoryId], references: [id])
+  type           MovementType
+  quantityChange Int
+  sourceType     String?  // e.g., "ONLINE_ORDER", "POS_SALE", "SUPPLIER_DELIVERY"
+  sourceId       String?
+  reason         String?
+  staffId        String?
+  staff          User?    @relation(fields: [staffId], references: [id])
+  createdAt      DateTime @default(now())
+}
+
+enum MovementType {
+  STOCK_RECEIVED
+  POS_SALE
+  ONLINE_ORDER_RESERVED
+  ONLINE_ORDER_PICKED
+  ORDER_CANCELLED
+  RETURN_ACCEPTED
+  DAMAGED
+  EXPIRED
+  MANUAL_ADJUSTMENT
+  STOCK_COUNT_CORRECTION
+}
