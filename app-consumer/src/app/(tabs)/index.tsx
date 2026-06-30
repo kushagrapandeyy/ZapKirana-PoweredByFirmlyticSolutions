@@ -9,13 +9,13 @@ const WHITE = '#FFFFFF';
 
 const CATEGORIES = ['Offers', 'Dairy & Eggs', 'Bakery', 'Snacks', 'Beverages', 'Cleaning'];
 
-const MOCK_PRODUCTS = [
-  { id: '1', name: 'Amul Taaza Milk 1L', price: 68, time: '10 MINS', image: 'https://via.placeholder.com/300/e0f2fe/0369a1?text=Milk' },
-  { id: '2', name: 'Britannia Whole Wheat Bread', price: 45, time: '10 MINS', image: 'https://via.placeholder.com/300/fef3c7/b45309?text=Bread' },
-  { id: '3', name: 'Tata Salt 1kg', price: 28, time: '10 MINS', image: 'https://via.placeholder.com/300/f3f4f6/374151?text=Salt' },
-  { id: '4', name: 'Surf Excel Matic 1kg', price: 215, time: '10 MINS', image: 'https://via.placeholder.com/300/e0e7ff/4338ca?text=Detergent' },
-  { id: '5', name: 'Maggi 2-Minute Noodles', price: 14, time: '10 MINS', image: 'https://via.placeholder.com/300/fef08a/854d0e?text=Maggi' },
-  { id: '6', name: 'Tropicana Orange Juice', price: 110, time: '10 MINS', image: 'https://via.placeholder.com/300/fed7aa/c2410c?text=Juice' },
+export const MOCK_PRODUCTS = [
+  { id: '1', name: 'Amul Taaza Milk 1L', price: 68, time: '10 MINS', image: 'https://via.placeholder.com/300/e0f2fe/0369a1?text=Milk', description: 'Fresh standardized milk, fortified with Vitamin A & D. Ideal for daily consumption.' },
+  { id: '2', name: 'Britannia Whole Wheat Bread', price: 45, time: '10 MINS', image: 'https://via.placeholder.com/300/fef3c7/b45309?text=Bread', description: '100% whole wheat bread, baked to perfection for a healthy sandwich.' },
+  { id: '3', name: 'Tata Salt 1kg', price: 28, time: '10 MINS', image: 'https://via.placeholder.com/300/f3f4f6/374151?text=Salt', description: 'Vacuum evaporated iodised salt. Essential for a healthy diet.' },
+  { id: '4', name: 'Surf Excel Matic 1kg', price: 215, time: '10 MINS', image: 'https://via.placeholder.com/300/e0e7ff/4338ca?text=Detergent', description: 'Front load liquid detergent for tough stain removal.' },
+  { id: '5', name: 'Maggi 2-Minute Noodles', price: 14, time: '10 MINS', image: 'https://via.placeholder.com/300/fef08a/854d0e?text=Maggi', description: 'The classic 2-minute instant noodles, a favourite snack for all ages.' },
+  { id: '6', name: 'Tropicana Orange Juice', price: 110, time: '10 MINS', image: 'https://via.placeholder.com/300/fed7aa/c2410c?text=Juice', description: '100% juice, no added sugar. A refreshing and healthy start to your day.' },
 ];
 
 export default function HomeFeed() {
@@ -36,17 +36,17 @@ export default function HomeFeed() {
   };
 
   const renderProduct = ({ item }: { item: any }) => (
-    <View style={styles.productCard}>
+    <TouchableOpacity style={styles.productCard} activeOpacity={0.9} onPress={() => router.push(`/product/${item.id}`)}>
       <Image source={{ uri: item.image }} style={styles.productImage} />
       <Text style={styles.productTime}>{item.time}</Text>
       <Text style={styles.productName} numberOfLines={2}>{item.name}</Text>
       <View style={styles.productFooter}>
         <Text style={styles.productPrice}>₹{item.price}</Text>
-        <TouchableOpacity style={styles.addBtn} onPress={() => handleAddToCart(item)}>
+        <TouchableOpacity style={styles.addBtn} onPress={(e) => { e.stopPropagation(); handleAddToCart(item); }}>
           <Text style={styles.addBtnText}>+</Text>
         </TouchableOpacity>
       </View>
-    </View>
+    </TouchableOpacity>
   );
 
   const renderHeader = () => (

@@ -1,0 +1,68 @@
+import { InventoryService } from './inventory.service';
+export declare class InventoryController {
+    private readonly inventoryService;
+    constructor(inventoryService: InventoryService);
+    receiveStock(body: {
+        storeId: string;
+        productId: string;
+        quantity: number;
+        staffId?: string;
+        batchNo?: string;
+    }): Promise<{
+        id: string;
+        createdAt: Date;
+        updatedAt: Date;
+        storeId: string;
+        productId: string;
+        batchNo: string | null;
+        expiryDate: Date | null;
+        onHandQty: number;
+        reservedQty: number;
+        blockedQty: number;
+    }>;
+    manualAdjustment(body: {
+        storeId: string;
+        productId: string;
+        quantityChange: number;
+        reason: string;
+        staffId: string;
+    }): Promise<{
+        id: string;
+        createdAt: Date;
+        updatedAt: Date;
+        storeId: string;
+        productId: string;
+        batchNo: string | null;
+        expiryDate: Date | null;
+        onHandQty: number;
+        reservedQty: number;
+        blockedQty: number;
+    }>;
+    getAvailableStock(productId: string, storeId: string): Promise<{
+        available: number;
+        onHand: number;
+        reserved: number;
+        blocked: number;
+    }>;
+    getMovementHistory(storeId: string, productId?: string): Promise<({
+        product: {
+            name: string;
+        };
+        staff: {
+            name: string | null;
+            role: import(".prisma/client").$Enums.Role;
+        } | null;
+    } & {
+        id: string;
+        createdAt: Date;
+        storeId: string;
+        productId: string;
+        inventoryId: string;
+        type: import(".prisma/client").$Enums.MovementType;
+        quantityChange: number;
+        sourceType: string | null;
+        sourceId: string | null;
+        reason: string | null;
+        staffId: string | null;
+    })[]>;
+}

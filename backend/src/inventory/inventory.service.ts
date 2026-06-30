@@ -146,4 +146,36 @@ export class InventoryService {
       staffId,
     });
   }
+
+  async getAvailableStock(storeId: string, productId: string) {
+    const inventory = await this.prisma.inventory.findFirst({
+      where: { storeId, productId },
+    });
+    
+    if (!inventory) return { available: 0, onHand: 0, reserved: 0, blocked: 0 };
+    
+    const available = inventory.onHandQty - inventory.reservedQty - inventory.blockedQty;
+    
+    return {
+      available: Math.max(0, available),
+      onHand: inventory.onHandQty,
+      reserved: inventory.reservedQty,
+      blocked: inventory.blockedQty,
+    };
+  }
+
+  async getMovementHistory(storeId: string, productId?: string) {
+    return this.prisma.stockMovement.findMany({
+      where: {
+        storeId,
+        ...(productId ? { productId } : {}),
+      },
+      orderBy: { createdAt: 'desc' },
+      include: {
+        product: { select: { name: true } },
+        staff: { select: { name: true, role: true } },
+      },
+      take: 100,
+    });
+  }
 }
