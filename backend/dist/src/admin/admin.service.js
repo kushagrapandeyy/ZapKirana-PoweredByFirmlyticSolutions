@@ -64,6 +64,7 @@ let AdminService = class AdminService {
     }
     async getStores() {
         return this.prisma.store.findMany({
+            include: { _count: { select: { products: true, orders: true, users: true } } },
             orderBy: { createdAt: 'desc' }
         });
     }
@@ -77,10 +78,14 @@ let AdminService = class AdminService {
                 location: data.address || data.location,
                 latitude: parseFloat(data.latitude) || 0,
                 longitude: parseFloat(data.longitude) || 0,
-                operatingRadiusKm: parseFloat(data.operatingRadiusKm) || 5,
+                operatingRadiusKm: parseFloat(data.operatingRadiusKm) || 3,
                 bankAccountNumber: data.bankAccountNumber || null,
                 bankRoutingNumber: data.bankRoutingNumber || null,
                 taxId: data.taxId || null,
+                gstin: data.taxId || null,
+                imageUrl: data.imageUrl || null,
+                operatingHours: data.operatingHours || null,
+                description: data.description || null,
             }
         });
         await this.logAudit('STORE_CREATED', 'STORE', store.id, adminId, `Created store ${store.name}`);
@@ -88,7 +93,7 @@ let AdminService = class AdminService {
     }
     async getVendors() {
         return this.prisma.user.findMany({
-            where: { role: 'STAFF' },
+            where: { role: { in: ['STAFF', 'MANAGER', 'OWNER', 'DELIVERY'] } },
             include: { store: true },
             orderBy: { createdAt: 'desc' }
         });
@@ -112,19 +117,98 @@ let AdminService = class AdminService {
                 password: hashedPassword,
                 name: data.name,
                 phone: data.phone,
-                role: 'STAFF',
+                role: data.role || 'STAFF',
                 storeId: store.id
             }
         });
-        await this.logAudit('VENDOR_CREATED', 'USER', user.id, adminId, `Created vendor ${user.name} for store ${store.name}`);
+        await this.logAudit('VENDOR_CREATED', 'USER', user.id, adminId, `Created vendor ${user.name} (${data.role || 'STAFF'}) for store ${store.name}`);
         return user;
     }
-    async getAudits() {
+    async getSuppliers() {
+        return this.prisma.supplier.findMany({
+            include: {
+                _count: { select: { storeConnections: true, purchaseOrders: true, supplierProducts: true } },
+            },
+            orderBy: { createdAt: 'desc' }
+        });
+    }
+    async getSupplierById(id) {
+        const supplier = await this.prisma.supplier.findUnique({
+            where: { id },
+            include: {
+                storeConnections: { include: { store: true } },
+                purchaseOrders: { orderBy: { createdAt: 'desc' }, take: 10, include: { store: true } },
+                supplierProducts: { include: { product: true } },
+            },
+        });
+        if (!supplier)
+            throw new common_1.NotFoundException('Supplier not found');
+        return supplier;
+    }
+    async createSupplier(data, adminId) {
+        if (!data.name) {
+            throw new common_1.BadRequestException('Supplier name is required');
+        }
+        const supplier = await this.prisma.supplier.create({
+            data: {
+                name: data.name,
+                contactEmail: data.contactEmail || null,
+                contactPhone: data.contactPhone || null,
+                address: data.address || null,
+                categories: data.categories || null,
+                description: data.description || null,
+                paymentTerms: data.paymentTerms || null,
+                logoUrl: data.logoUrl || null,
+            },
+        });
+        await this.logAudit('SUPPLIER_CREATED', 'SUPPLIER', supplier.id, adminId, `Onboarded supplier ${supplier.name}`);
+        return supplier;
+    }
+    async updateSupplier(id, data, adminId) {
+        const supplier = await this.prisma.supplier.update({
+            where: { id },
+            data: {
+                name: data.name,
+                contactEmail: data.contactEmail,
+                contactPhone: data.contactPhone,
+                address: data.address,
+                categories: data.categories,
+                description: data.description,
+                paymentTerms: data.paymentTerms,
+                logoUrl: data.logoUrl,
+            },
+        });
+        await this.logAudit('SUPPLIER_UPDATED', 'SUPPLIER', supplier.id, adminId, `Updated supplier ${supplier.name}`);
+        return supplier;
+    }
+    async getAudits(limit) {
         return this.prisma.auditLog.findMany({
             include: { user: true },
             orderBy: { createdAt: 'desc' },
-            take: 100
+            take: limit || 100
         });
+    }
+    async getDashboardStats() {
+        const [totalStores, totalVendors, totalSuppliers, totalOrders, totalSubscriptions, recentOrders] = await Promise.all([
+            this.prisma.store.count({ where: { isActive: true } }),
+            this.prisma.user.count({ where: { role: { in: ['STAFF', 'MANAGER', 'OWNER'] } } }),
+            this.prisma.supplier.count({ where: { isActive: true } }),
+            this.prisma.order.count(),
+            this.prisma.subscription.count({ where: { status: 'ACTIVE' } }),
+            this.prisma.order.findMany({
+                orderBy: { createdAt: 'desc' },
+                take: 5,
+                include: { store: true, customer: true },
+            }),
+        ]);
+        return {
+            totalStores,
+            totalVendors,
+            totalSuppliers,
+            totalOrders,
+            totalSubscriptions,
+            recentOrders,
+        };
     }
 };
 exports.AdminService = AdminService;

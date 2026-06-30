@@ -5,23 +5,37 @@ export declare class SuppliersService {
     getAllSuppliers(): Promise<{
         id: string;
         name: string;
+        isActive: boolean;
+        rating: number;
+        description: string | null;
         createdAt: Date;
         updatedAt: Date;
+        address: string | null;
         contactEmail: string | null;
         contactPhone: string | null;
         categories: string | null;
-        rating: number;
+        logoUrl: string | null;
+        paymentTerms: string | null;
+        onTimeRate: number;
+        fillRate: number;
     }[]>;
     getStoreConnections(storeId: string): Promise<({
         supplier: {
             id: string;
             name: string;
+            isActive: boolean;
+            rating: number;
+            description: string | null;
             createdAt: Date;
             updatedAt: Date;
+            address: string | null;
             contactEmail: string | null;
             contactPhone: string | null;
             categories: string | null;
-            rating: number;
+            logoUrl: string | null;
+            paymentTerms: string | null;
+            onTimeRate: number;
+            fillRate: number;
         };
     } & {
         id: string;

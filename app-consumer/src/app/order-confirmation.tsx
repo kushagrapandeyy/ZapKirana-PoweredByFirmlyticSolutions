@@ -58,7 +58,7 @@ export default function OrderConfirmationScreen() {
       </View>
 
       <Animated.View style={[styles.footer, { opacity: opacityAnim }]}>
-        <TouchableOpacity style={styles.trackBtn} onPress={() => router.replace(`/delivery-tracking?orderId=${orderId.replace('#', '')}`)}>
+        <TouchableOpacity style={styles.trackBtn} onPress={() => { const displayOrderId = (Array.isArray(orderId) ? orderId[0] : orderId)?.replace(/-/g, '').substring(0, 8).toUpperCase() || '12345678'; router.replace(`/delivery-tracking?orderId=${displayOrderId.replace('#', '')}`) }}>
           <Text style={styles.trackBtnText}>Track Delivery</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.homeBtn} onPress={() => router.replace('/')}>

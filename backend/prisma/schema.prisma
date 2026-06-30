@@ -13,10 +13,13 @@ model User {
   email     String   @unique
   password  String?
   name      String?
-  phone     String?
+  phone     String?  @unique
   role      Role     @default(CUSTOMER)
   storeId   String?
   store     Store?   @relation(fields: [storeId], references: [id])
+  avatarUrl String?
+  isVerified Boolean @default(false)
+  pushToken  String?  // Expo push notification token
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
   movements      StockMovement[]
@@ -25,6 +28,9 @@ model User {
   staffOrders    Order[] @relation("StaffOrders")
   sentMessages   OrderMessage[] @relation("SentMessages")
   audits         AuditLog[] @relation("UserAudits")
+  savedAddresses SavedAddress[]
+  subscriptions  Subscription[]
+  otpCodes       OtpCode[]
 }
 
 enum Role {
@@ -36,6 +42,36 @@ enum Role {
   CUSTOMER
 }
 
+model OtpCode {
+  id        String   @id @default(uuid())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id])
+  phone     String?
+  email     String?
+  code      String
+  expiresAt DateTime
+  isUsed    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([phone])
+  @@index([email])
+}
+
+model SavedAddress {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  label     String   // e.g. "Home", "Office"
+  address   String
+  latitude  Float
+  longitude Float
+  isDefault Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+}
+
 model Store {
   id          String   @id @default(uuid())
   name        String
@@ -45,6 +81,10 @@ model Store {
   operatingRadiusKm Float @default(3.0)
   gstin       String?
   isActive    Boolean  @default(true)
+  imageUrl    String?
+  operatingHours String? // JSON: {"mon": {"open": "08:00", "close": "22:00"}, ...}
+  rating      Float    @default(4.5)
+  description String?
   users       User[]
   products    Product[]
   inventory   Inventory[]
@@ -52,6 +92,7 @@ model Store {
   posBills    PosBill[]
   orders      Order[]
   supplierConnections StoreSupplierConnection[]
+  subscriptions Subscription[]
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -61,6 +102,18 @@ model Store {
   taxId             String?
 
   purchaseOrders    PurchaseOrder[]
+}
+
+// -----------------------------------------------------
+// GST Classification System
+// -----------------------------------------------------
+
+enum GSTClass {
+  EXEMPT     // 0% - Essential items: milk, fresh vegetables, fruits, eggs
+  GST_5      // 5% - Packaged food, edible oil, sugar, spices, tea, coffee
+  GST_12     // 12% - Processed food, butter, cheese, ghee, fruit juices, namkeen
+  GST_18     // 18% - Biscuits, pasta, cornflakes, soups, ice cream, sauces
+  GST_28     // 28% - Aerated beverages, chewing gum, pan masala
 }
 
 model Product {
@@ -76,6 +129,7 @@ model Product {
   sellingPrice   Float
   purchaseCost   Float?
   gstRate        Float    @default(0)
+  gstClass       GSTClass @default(EXEMPT)
   imageUrl       String?
   isActive       Boolean  @default(true)
   inventory      Inventory[]
@@ -88,6 +142,7 @@ model Product {
   updatedAt      DateTime @updatedAt
 
   @@index([storeId])
+  @@index([category])
 }
 
 model Inventory {
@@ -101,6 +156,7 @@ model Inventory {
   onHandQty      Int      @default(0)
   reservedQty    Int      @default(0)
   blockedQty     Int      @default(0)
+  lowStockThreshold Int   @default(10)
   movements      StockMovement[]
   
   // Available Qty = onHandQty - reservedQty - blockedQty
@@ -196,7 +252,7 @@ model PosPayment {
 }
 
 // -----------------------------------------------------
-// Sprint 3: Consumer Orders & Supplier Network
+// Consumer Orders & Delivery
 // -----------------------------------------------------
 
 enum OrderStatus {
@@ -220,10 +276,16 @@ model Order {
   status      OrderStatus   @default(PAYMENT_PENDING)
   totalAmount Float         @default(0)
   deliveryFee Float         @default(0)
+  gstAmount   Float         @default(0)
+  tipAmount   Float         @default(0)
   deliveryAddress String?
   deliveryLat Float?
   deliveryLng Float?
+  deliverySlot String?      // e.g., "10:00-11:00"
+  deliveryInstructions String?
   requireOtp  Boolean       @default(false)
+  otp         String?       // Generated OTP code
+  subscriptionId String?    // If order was created from a subscription
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
 
@@ -239,15 +301,73 @@ model OrderItem {
   product      Product  @relation(fields: [productId], references: [id])
   quantity     Int
   priceAtOrder Float
+  gstAtOrder   Float    @default(0)
+  gstClass     GSTClass @default(EXEMPT)
 }
+
+// -----------------------------------------------------
+// Subscriptions (Recurring Orders)
+// -----------------------------------------------------
+
+enum SubscriptionFrequency {
+  DAILY
+  WEEKLY
+  BIWEEKLY
+  MONTHLY
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  PAUSED
+  CANCELLED
+}
+
+model Subscription {
+  id              String                @id @default(uuid())
+  customerId      String
+  customer        User                  @relation(fields: [customerId], references: [id])
+  storeId         String
+  store           Store                 @relation(fields: [storeId], references: [id])
+  frequency       SubscriptionFrequency
+  status          SubscriptionStatus    @default(ACTIVE)
+  deliverySlot    String?               // e.g., "07:00-08:00"
+  nextDeliveryDate DateTime?
+  items           SubscriptionItem[]
+  createdAt       DateTime              @default(now())
+  updatedAt       DateTime              @updatedAt
+
+  @@index([customerId])
+  @@index([storeId])
+}
+
+model SubscriptionItem {
+  id             String       @id @default(uuid())
+  subscriptionId String
+  subscription   Subscription @relation(fields: [subscriptionId], references: [id])
+  productId      String
+  productName    String       // Denormalized for display
+  quantity       Int
+  createdAt      DateTime     @default(now())
+}
+
+// -----------------------------------------------------
+// Supplier Network & Procurement
+// -----------------------------------------------------
 
 model Supplier {
   id           String   @id @default(uuid())
   name         String
   contactEmail String?
   contactPhone String?
+  address      String?
   categories   String?  // comma separated or JSON
   rating       Float    @default(5.0)
+  description  String?
+  logoUrl      String?
+  paymentTerms String?  // e.g., "Net 30", "COD"
+  onTimeRate   Float    @default(100.0) // percentage
+  fillRate     Float    @default(100.0) // percentage
+  isActive     Boolean  @default(true)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
@@ -315,6 +435,8 @@ model PurchaseOrder {
   expectedDeliveryDate DateTime?
   totalAmount          Float               @default(0)
   notes                String?
+  shareToken           String?   @unique   // For shareable link access
+  shareTokenExpiresAt  DateTime?           // Token expiry
   createdAt            DateTime            @default(now())
   updatedAt            DateTime            @updatedAt
   
@@ -346,4 +468,17 @@ model SupplierProduct {
   updatedAt  DateTime @updatedAt
 
   @@unique([supplierId, productId])
+}
+
+// -----------------------------------------------------
+// GST Category Auto-Classification Rules
+// -----------------------------------------------------
+
+model GSTCategoryRule {
+  id        String   @id @default(uuid())
+  category  String   @unique // Product category name
+  gstClass  GSTClass
+  gstRate   Float    // Numeric rate for calculation (0, 5, 12, 18, 28)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }

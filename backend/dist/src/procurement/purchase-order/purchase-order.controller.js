@@ -32,8 +32,17 @@ let PurchaseOrderController = class PurchaseOrderController {
     async getPO(id) {
         return this.poService.getPOById(id);
     }
+    async getPOByShareToken(token) {
+        return this.poService.getPOByShareToken(token);
+    }
+    async getPOPdf(id) {
+        return this.poService.generatePOPdfHtml(id);
+    }
     async acceptPO(id) {
         return this.poService.acceptPO(id);
+    }
+    async sendPO(id) {
+        return this.poService.sendPO(id);
     }
     async completeGRN(id, body) {
         return this.grnService.receiveGoods(id, body.receivedItems, body.staffId);
@@ -62,12 +71,34 @@ __decorate([
     __metadata("design:returntype", Promise)
 ], PurchaseOrderController.prototype, "getPO", null);
 __decorate([
+    (0, common_1.Get)('share/:token'),
+    __param(0, (0, common_1.Param)('token')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", Promise)
+], PurchaseOrderController.prototype, "getPOByShareToken", null);
+__decorate([
+    (0, common_1.Get)(':id/pdf'),
+    (0, common_1.Header)('Content-Type', 'text/html'),
+    __param(0, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", Promise)
+], PurchaseOrderController.prototype, "getPOPdf", null);
+__decorate([
     (0, common_1.Patch)(':id/accept'),
     __param(0, (0, common_1.Param)('id')),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [String]),
     __metadata("design:returntype", Promise)
 ], PurchaseOrderController.prototype, "acceptPO", null);
+__decorate([
+    (0, common_1.Patch)(':id/send'),
+    __param(0, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", Promise)
+], PurchaseOrderController.prototype, "sendPO", null);
 __decorate([
     (0, common_1.Post)(':id/grn'),
     __param(0, (0, common_1.Param)('id')),

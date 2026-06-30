@@ -1,6 +1,7 @@
-import { Controller, Post, Get, Param, Body, Patch } from '@nestjs/common';
+import { Controller, Post, Get, Param, Body, Patch, Res, Header } from '@nestjs/common';
 import { PurchaseOrderService } from './purchase-order.service';
 import { GrnService } from '../grn/grn.service';
+import { Response } from 'express';
 
 @Controller('purchase-orders')
 export class PurchaseOrderController {
@@ -24,9 +25,27 @@ export class PurchaseOrderController {
     return this.poService.getPOById(id);
   }
 
+  // Get PO via share token (no auth needed — for suppliers)
+  @Get('share/:token')
+  async getPOByShareToken(@Param('token') token: string) {
+    return this.poService.getPOByShareToken(token);
+  }
+
+  // Generate PO as HTML (ready for PDF rendering)
+  @Get(':id/pdf')
+  @Header('Content-Type', 'text/html')
+  async getPOPdf(@Param('id') id: string) {
+    return this.poService.generatePOPdfHtml(id);
+  }
+
   @Patch(':id/accept')
   async acceptPO(@Param('id') id: string) {
     return this.poService.acceptPO(id);
+  }
+
+  @Patch(':id/send')
+  async sendPO(@Param('id') id: string) {
+    return this.poService.sendPO(id);
   }
 
   @Post(':id/grn')

@@ -47,12 +47,36 @@ const common_1 = require("@nestjs/common");
 const jwt_1 = require("@nestjs/jwt");
 const prisma_service_1 = require("../prisma.service");
 const bcrypt = __importStar(require("bcryptjs"));
+const crypto = __importStar(require("crypto"));
 let AuthService = class AuthService {
     prisma;
     jwtService;
     constructor(prisma, jwtService) {
         this.prisma = prisma;
         this.jwtService = jwtService;
+    }
+    async register(data) {
+        const existing = await this.prisma.user.findUnique({ where: { email: data.email } });
+        if (existing)
+            throw new common_1.ConflictException('Email already registered');
+        if (data.phone) {
+            const phoneExists = await this.prisma.user.findFirst({ where: { phone: data.phone } });
+            if (phoneExists)
+                throw new common_1.ConflictException('Phone number already registered');
+        }
+        const hashedPassword = await bcrypt.hash(data.password, 12);
+        const user = await this.prisma.user.create({
+            data: {
+                email: data.email,
+                password: hashedPassword,
+                name: data.name,
+                phone: data.phone || null,
+                role: 'CUSTOMER',
+                isVerified: false,
+            },
+        });
+        const { password, ...result } = user;
+        return this.login(result);
     }
     async validateUser(identifier, pass) {
         const user = await this.prisma.user.findFirst({
@@ -73,6 +97,62 @@ let AuthService = class AuthService {
         }
         throw new common_1.UnauthorizedException('Invalid credentials');
     }
+    async requestOtp(phone) {
+        const code = crypto.randomInt(100000, 999999).toString();
+        const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
+        let user = await this.prisma.user.findFirst({ where: { phone } });
+        await this.prisma.otpCode.create({
+            data: {
+                userId: user?.id || null,
+                phone,
+                code,
+                expiresAt,
+            },
+        });
+        console.log(`📱 OTP for ${phone}: ${code}`);
+        return {
+            message: 'OTP sent successfully',
+            expiresIn: 300,
+            _devOtp: code,
+        };
+    }
+    async verifyOtp(phone, code) {
+        const otpRecord = await this.prisma.otpCode.findFirst({
+            where: {
+                phone,
+                code,
+                isUsed: false,
+                expiresAt: { gte: new Date() },
+            },
+            orderBy: { createdAt: 'desc' },
+        });
+        if (!otpRecord) {
+            throw new common_1.UnauthorizedException('Invalid or expired OTP');
+        }
+        await this.prisma.otpCode.update({
+            where: { id: otpRecord.id },
+            data: { isUsed: true },
+        });
+        let user = await this.prisma.user.findFirst({ where: { phone } });
+        if (!user) {
+            user = await this.prisma.user.create({
+                data: {
+                    email: `${phone}@phone.basko.app`,
+                    phone,
+                    role: 'CUSTOMER',
+                    isVerified: true,
+                },
+            });
+        }
+        else {
+            await this.prisma.user.update({
+                where: { id: user.id },
+                data: { isVerified: true },
+            });
+        }
+        const { password, ...result } = user;
+        return this.login(result);
+    }
     async login(user) {
         const payload = { email: user.email, sub: user.id, role: user.role, storeId: user.storeId };
         return {
@@ -81,10 +161,31 @@ let AuthService = class AuthService {
                 id: user.id,
                 name: user.name,
                 email: user.email,
+                phone: user.phone,
                 role: user.role,
-                storeId: user.storeId
+                storeId: user.storeId,
+                isVerified: user.isVerified,
+                avatarUrl: user.avatarUrl,
             }
         };
+    }
+    async updatePushToken(userId, pushToken) {
+        return this.prisma.user.update({
+            where: { id: userId },
+            data: { pushToken },
+        });
+    }
+    async getProfile(userId) {
+        const user = await this.prisma.user.findUnique({
+            where: { id: userId },
+            include: {
+                savedAddresses: { orderBy: { createdAt: 'desc' } },
+            },
+        });
+        if (!user)
+            throw new common_1.UnauthorizedException('User not found');
+        const { password, ...result } = user;
+        return result;
     }
 };
 exports.AuthService = AuthService;

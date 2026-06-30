@@ -1,216 +1,140 @@
-import React, { useEffect, useState } from 'react';
-import { StyleSheet, Text, View, ScrollView, SafeAreaView, TouchableOpacity, Dimensions, ActivityIndicator } from 'react-native';
+import { useState, useEffect } from 'react';
+import { StyleSheet, Text, View, SafeAreaView, TouchableOpacity, FlatList, ActivityIndicator, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
-import { API_BASE_URL, CURRENT_STORE_ID } from '@/constants/api';
-
-const ROYAL_BLUE = '#1D4ED8';
-const WHITE = '#FFFFFF';
-const { width } = Dimensions.get('window');
+import { Colors, Shadows, Radius } from '../../constants/theme';
+import { API_BASE_URL } from '../../constants/api';
+import Animated, { FadeInDown } from 'react-native-reanimated';
 
 export default function SuppliersScreen() {
-  const router = useRouter();
-  const [activeTab, setActiveTab] = useState<'DIRECTORY' | 'MY_SUPPLIERS'>('DIRECTORY');
   const [suppliers, setSuppliers] = useState<any[]>([]);
-  const [myConnections, setMyConnections] = useState<any[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchData();
-  }, [activeTab]);
+    fetchSuppliers();
+  }, []);
 
-  const fetchData = async () => {
-    setLoading(true);
+  const fetchSuppliers = async () => {
     try {
-      if (activeTab === 'DIRECTORY') {
-        const res = await fetch(`${API_BASE_URL}/suppliers`);
-        const data = await res.json();
-        if (Array.isArray(data)) setSuppliers(data);
-      } else {
-        const res = await fetch(`${API_BASE_URL}/suppliers/connections?storeId=${CURRENT_STORE_ID}`);
-        const data = await res.json();
-        if (Array.isArray(data)) setMyConnections(data);
+      const res = await fetch(`${API_BASE_URL}/admin/suppliers`); // Using global suppliers for now
+      if (res.ok) {
+        setSuppliers(await res.json());
       }
-    } catch (err) {
-      console.error('Error fetching suppliers:', err);
+    } catch (e) {
+      console.error(e);
     } finally {
       setLoading(false);
     }
   };
 
-  const connectToSupplier = async (supplierId: string) => {
-    try {
-      const res = await fetch(`${API_BASE_URL}/suppliers/connect`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ storeId: CURRENT_STORE_ID, supplierId }),
-      });
-      if (res.ok) {
-        alert('Connection request sent!');
-        fetchData(); // refresh to show updated status or if it moved to connected
-      } else {
-        alert('Failed to connect to supplier.');
-      }
-    } catch (err) {
-      alert('Network error.');
-    }
-  };
-
-  const renderDirectory = () => {
-    return suppliers.map(supplier => {
-      // Check if already connected/pending
-      const connection = myConnections.find(c => c.supplierId === supplier.id);
-      return (
-        <View key={supplier.id} style={styles.card}>
-          <View style={styles.cardHeader}>
-            <View>
-              <Text style={styles.cardTitle}>{supplier.name}</Text>
-              <Text style={styles.cardSubtitle}>{supplier.categories}</Text>
-            </View>
-            <View style={styles.ratingBadge}>
-              <Ionicons name="star" size={14} color="#eab308" />
-              <Text style={styles.ratingText}>{supplier.rating.toFixed(1)}</Text>
-            </View>
-          </View>
-          
-          <View style={styles.cardFooter}>
-            <View style={styles.contactInfo}>
-              <Ionicons name="call-outline" size={16} color="#64748b" />
-              <Text style={styles.contactText}>{supplier.contactPhone || 'N/A'}</Text>
-            </View>
-            {connection ? (
-              <View style={[styles.statusBadge, connection.status === 'CONNECTED' ? styles.statusConnected : styles.statusPending]}>
-                <Text style={[styles.statusText, connection.status === 'CONNECTED' ? styles.statusTextConnected : styles.statusTextPending]}>
-                  {connection.status}
-                </Text>
-              </View>
+  const renderSupplier = ({ item, index }: { item: any; index: number }) => (
+    <Animated.View entering={FadeInDown.delay(index * 50).springify()}>
+      <View style={styles.supplierCard}>
+        <View style={styles.cardHeader}>
+          <View style={styles.logoContainer}>
+            {item.logoUrl ? (
+              <Image source={{ uri: item.logoUrl }} style={styles.logo} />
             ) : (
-              <TouchableOpacity style={styles.connectBtn} onPress={() => connectToSupplier(supplier.id)}>
-                <Text style={styles.connectBtnText}>Connect</Text>
-              </TouchableOpacity>
+              <Ionicons name="business" size={24} color={Colors.primary} />
             )}
           </View>
-        </View>
-      );
-    });
-  };
-
-  const renderMySuppliers = () => {
-    if (myConnections.length === 0 && !loading) {
-      return (
-        <View style={styles.emptyState}>
-          <Ionicons name="business-outline" size={60} color="#cbd5e1" />
-          <Text style={styles.emptyText}>You haven't connected with any suppliers yet.</Text>
-          <TouchableOpacity style={styles.browseBtn} onPress={() => setActiveTab('DIRECTORY')}>
-            <Text style={styles.browseBtnText}>Browse Directory</Text>
+          <View style={styles.headerInfo}>
+            <Text style={styles.supplierName}>{item.name}</Text>
+            <Text style={styles.supplierCategories}>{item.categories || 'General Supplies'}</Text>
+          </View>
+          <TouchableOpacity style={styles.callBtn}>
+            <Ionicons name="call" size={20} color={Colors.success} />
           </TouchableOpacity>
         </View>
-      );
-    }
 
-    return myConnections.map(conn => (
-      <View key={conn.id} style={styles.card}>
-        <View style={styles.cardHeader}>
-          <View>
-            <Text style={styles.cardTitle}>{conn.supplier.name}</Text>
-            <Text style={styles.cardSubtitle}>{conn.supplier.categories}</Text>
+        <View style={styles.cardBody}>
+          <View style={styles.infoRow}>
+            <Ionicons name="mail-outline" size={16} color={Colors.textMuted} />
+            <Text style={styles.infoText}>{item.contactEmail || 'No email provided'}</Text>
           </View>
-          <View style={[styles.statusBadge, conn.status === 'CONNECTED' ? styles.statusConnected : styles.statusPending]}>
-            <Text style={[styles.statusText, conn.status === 'CONNECTED' ? styles.statusTextConnected : styles.statusTextPending]}>
-              {conn.status}
-            </Text>
+          <View style={styles.infoRow}>
+            <Ionicons name="location-outline" size={16} color={Colors.textMuted} />
+            <Text style={styles.infoText} numberOfLines={1}>{item.address || 'Address not listed'}</Text>
           </View>
+          {item.paymentTerms && (
+            <View style={styles.infoRow}>
+              <Ionicons name="card-outline" size={16} color={Colors.textMuted} />
+              <Text style={styles.infoText}>Terms: {item.paymentTerms}</Text>
+            </View>
+          )}
         </View>
-        
-        <View style={styles.actionRow}>
-          <TouchableOpacity style={styles.actionBtn} onPress={() => router.push({ pathname: '/create-po', params: { supplierId: conn.supplier.id } })}>
-            <Ionicons name="document-text-outline" size={18} color={ROYAL_BLUE} />
-            <Text style={styles.actionBtnText}>New Order</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.actionBtn}>
-            <Ionicons name="chatbubbles-outline" size={18} color={ROYAL_BLUE} />
-            <Text style={styles.actionBtnText}>Message</Text>
+
+        <View style={styles.cardFooter}>
+          <View style={styles.metric}>
+            <Text style={styles.metricValue}>{item._count?.purchaseOrders || 0}</Text>
+            <Text style={styles.metricLabel}>Total POs</Text>
+          </View>
+          <View style={styles.divider} />
+          <View style={styles.metric}>
+            <Text style={styles.metricValue}>{item._count?.supplierProducts || 0}</Text>
+            <Text style={styles.metricLabel}>Products</Text>
+          </View>
+          <TouchableOpacity style={styles.catalogBtn}>
+            <Text style={styles.catalogBtnText}>View Catalog</Text>
+            <Ionicons name="arrow-forward" size={14} color={Colors.primary} />
           </TouchableOpacity>
         </View>
       </View>
-    ));
-  };
+    </Animated.View>
+  );
 
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>Supplier Network</Text>
-        <TouchableOpacity style={styles.posBtn} onPress={() => router.push('/po-dashboard')}>
-          <Text style={styles.posBtnText}>View POs</Text>
-        </TouchableOpacity>
-      </View>
-      
-      <View style={styles.tabContainer}>
-        <TouchableOpacity 
-          style={[styles.tab, activeTab === 'DIRECTORY' && styles.activeTab]} 
-          onPress={() => setActiveTab('DIRECTORY')}
-        >
-          <Text style={[styles.tabText, activeTab === 'DIRECTORY' && styles.activeTabText]}>Directory</Text>
-        </TouchableOpacity>
-        <TouchableOpacity 
-          style={[styles.tab, activeTab === 'MY_SUPPLIERS' && styles.activeTab]} 
-          onPress={() => {
-            setActiveTab('MY_SUPPLIERS');
-            // Optimistic prefetch for UX
-            fetch(`${API_BASE_URL}/suppliers/connections?storeId=${CURRENT_STORE_ID}`)
-              .then(res => res.json())
-              .then(setMyConnections).catch(console.error);
-          }}
-        >
-          <Text style={[styles.tabText, activeTab === 'MY_SUPPLIERS' && styles.activeTabText]}>My Suppliers</Text>
+        <Text style={styles.headerTitle}>My Suppliers</Text>
+        <TouchableOpacity style={styles.addBtn}>
+          <Ionicons name="add" size={20} color="#fff" />
         </TouchableOpacity>
       </View>
 
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        {loading ? (
-          <ActivityIndicator size="large" color={ROYAL_BLUE} style={{ marginTop: 50 }} />
-        ) : (
-          activeTab === 'DIRECTORY' ? renderDirectory() : renderMySuppliers()
-        )}
-      </ScrollView>
+      {loading ? (
+        <View style={styles.centerContainer}>
+          <ActivityIndicator size="large" color={Colors.primary} />
+        </View>
+      ) : (
+        <FlatList
+          data={suppliers}
+          renderItem={renderSupplier}
+          keyExtractor={item => item.id}
+          contentContainerStyle={styles.list}
+          showsVerticalScrollIndicator={false}
+        />
+      )}
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f8fafc' },
-  header: { padding: 20, paddingTop: 40, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  title: { fontSize: 28, color: '#0f172a', fontFamily: 'PlayfairDisplay_700Bold' },
-  posBtn: { backgroundColor: '#e2e8f0', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8 },
-  posBtnText: { fontSize: 14, fontFamily: 'Inter_600SemiBold', color: '#0f172a' },
-  tabContainer: { flexDirection: 'row', paddingHorizontal: 20, marginBottom: 15 },
-  tab: { flex: 1, paddingVertical: 12, borderBottomWidth: 2, borderBottomColor: '#e2e8f0', alignItems: 'center' },
-  activeTab: { borderBottomColor: ROYAL_BLUE },
-  tabText: { fontSize: 16, fontFamily: 'Inter_600SemiBold', color: '#64748b' },
-  activeTabText: { color: ROYAL_BLUE },
-  scrollContent: { paddingHorizontal: 20, paddingBottom: 100 },
-  card: { backgroundColor: WHITE, padding: 18, borderRadius: 12, marginBottom: 15, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 5, elevation: 2 },
-  cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 15 },
-  cardTitle: { fontSize: 18, fontFamily: 'Inter_700Bold', color: '#1e293b', marginBottom: 4 },
-  cardSubtitle: { fontSize: 14, fontFamily: 'Inter_400Regular', color: '#64748b' },
-  ratingBadge: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fef3c7', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 12, gap: 4 },
-  ratingText: { fontSize: 12, fontFamily: 'Inter_700Bold', color: '#a16207' },
-  cardFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderTopWidth: 1, borderTopColor: '#f1f5f9', paddingTop: 15 },
-  contactInfo: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  contactText: { fontSize: 14, fontFamily: 'Inter_500Medium', color: '#475569' },
-  connectBtn: { backgroundColor: ROYAL_BLUE, paddingHorizontal: 16, paddingVertical: 8, borderRadius: 8 },
-  connectBtnText: { color: WHITE, fontSize: 14, fontFamily: 'Inter_600SemiBold' },
-  statusBadge: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8 },
-  statusPending: { backgroundColor: '#fef9c3' },
-  statusConnected: { backgroundColor: '#dcfce7' },
-  statusText: { fontSize: 12, fontFamily: 'Inter_700Bold' },
-  statusTextPending: { color: '#854d0e' },
-  statusTextConnected: { color: '#166534' },
-  actionRow: { flexDirection: 'row', gap: 10, borderTopWidth: 1, borderTopColor: '#f1f5f9', paddingTop: 15 },
-  actionBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, backgroundColor: '#eff6ff', paddingVertical: 10, borderRadius: 8 },
-  actionBtnText: { fontSize: 14, fontFamily: 'Inter_600SemiBold', color: ROYAL_BLUE },
-  emptyState: { alignItems: 'center', justifyContent: 'center', marginTop: 80, paddingHorizontal: 20 },
-  emptyText: { textAlign: 'center', fontSize: 16, color: '#64748b', fontFamily: 'Inter_400Regular', marginVertical: 20 },
-  browseBtn: { backgroundColor: ROYAL_BLUE, paddingHorizontal: 24, paddingVertical: 12, borderRadius: 8 },
-  browseBtnText: { color: WHITE, fontSize: 16, fontFamily: 'Inter_600SemiBold' },
+  container: { flex: 1, backgroundColor: Colors.bg },
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingTop: 10, paddingBottom: 16, backgroundColor: Colors.surface, borderBottomWidth: 1, borderBottomColor: Colors.borderLight },
+  headerTitle: { fontSize: 24, fontFamily: 'PlayfairDisplay_700Bold', color: Colors.textPrimary },
+  addBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: Colors.primary, justifyContent: 'center', alignItems: 'center', ...Shadows.sm },
+  
+  centerContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  
+  list: { padding: 20, gap: 16, paddingBottom: 40 },
+  supplierCard: { backgroundColor: Colors.surface, borderRadius: Radius.lg, padding: 16, ...Shadows.sm },
+  cardHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 16 },
+  logoContainer: { width: 48, height: 48, borderRadius: 24, backgroundColor: Colors.primaryGhost, justifyContent: 'center', alignItems: 'center', marginRight: 12 },
+  logo: { width: '100%', height: '100%', borderRadius: 24 },
+  headerInfo: { flex: 1 },
+  supplierName: { fontSize: 16, fontFamily: 'Inter_700Bold', color: Colors.textPrimary, marginBottom: 2 },
+  supplierCategories: { fontSize: 12, fontFamily: 'Inter_500Medium', color: Colors.textSecondary },
+  callBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: Colors.successLight, justifyContent: 'center', alignItems: 'center' },
+  
+  cardBody: { gap: 8, marginBottom: 16 },
+  infoRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  infoText: { flex: 1, fontSize: 13, fontFamily: 'Inter_400Regular', color: Colors.textSecondary },
+  
+  cardFooter: { flexDirection: 'row', alignItems: 'center', paddingTop: 16, borderTopWidth: 1, borderTopColor: Colors.borderLight },
+  metric: { flex: 1, alignItems: 'center' },
+  metricValue: { fontSize: 16, fontFamily: 'Inter_700Bold', color: Colors.textPrimary },
+  metricLabel: { fontSize: 11, fontFamily: 'Inter_500Medium', color: Colors.textMuted },
+  divider: { width: 1, height: 24, backgroundColor: Colors.borderLight },
+  catalogBtn: { flex: 2, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 4, paddingVertical: 8, backgroundColor: Colors.primaryGhost, borderRadius: Radius.full, marginLeft: 16 },
+  catalogBtnText: { fontSize: 13, fontFamily: 'Inter_600SemiBold', color: Colors.primary },
 });

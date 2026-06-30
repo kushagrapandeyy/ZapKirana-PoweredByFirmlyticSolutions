@@ -29,6 +29,35 @@ let AppController = class AppController {
     async getStore(id) {
         return this.prisma.store.findUnique({ where: { id } });
     }
+    async getNearbyStores(lat, lng, radiusKm) {
+        const userLat = parseFloat(lat);
+        const userLng = parseFloat(lng);
+        const radius = radiusKm ? parseFloat(radiusKm) : 3.0;
+        if (isNaN(userLat) || isNaN(userLng)) {
+            return { error: 'Valid lat and lng query parameters required' };
+        }
+        const stores = await this.prisma.store.findMany({
+            where: { isActive: true, latitude: { not: null }, longitude: { not: null } },
+        });
+        const nearbyStores = stores
+            .map(store => {
+            const distance = this.haversine(userLat, userLng, store.latitude, store.longitude);
+            return { ...store, distanceKm: Math.round(distance * 10) / 10 };
+        })
+            .filter(store => store.distanceKm <= radius)
+            .sort((a, b) => a.distanceKm - b.distanceKm);
+        return nearbyStores;
+    }
+    haversine(lat1, lon1, lat2, lon2) {
+        const R = 6371;
+        const dLat = (lat2 - lat1) * (Math.PI / 180);
+        const dLon = (lon2 - lon1) * (Math.PI / 180);
+        const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+            Math.cos(lat1 * (Math.PI / 180)) * Math.cos(lat2 * (Math.PI / 180)) *
+                Math.sin(dLon / 2) * Math.sin(dLon / 2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        return R * c;
+    }
 };
 exports.AppController = AppController;
 __decorate([
@@ -44,6 +73,15 @@ __decorate([
     __metadata("design:paramtypes", [String]),
     __metadata("design:returntype", Promise)
 ], AppController.prototype, "getStore", null);
+__decorate([
+    (0, common_1.Get)('stores/nearby/search'),
+    __param(0, (0, common_1.Query)('lat')),
+    __param(1, (0, common_1.Query)('lng')),
+    __param(2, (0, common_1.Query)('radiusKm')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, String, String]),
+    __metadata("design:returntype", Promise)
+], AppController.prototype, "getNearbyStores", null);
 exports.AppController = AppController = __decorate([
     (0, common_1.Controller)(),
     __metadata("design:paramtypes", [app_service_1.AppService, prisma_service_1.PrismaService])

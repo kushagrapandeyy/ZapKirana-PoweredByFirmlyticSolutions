@@ -23,7 +23,7 @@ export class GrnService {
 
     // Process each item
     for (const item of receivedItems) {
-      const poItem = po.items.find(i => i.id === item.poItemId);
+      const poItem = po.items.find((i: any) => i.id === item.poItemId);
       if (!poItem) throw new BadRequestException(`Item ${item.poItemId} not in PO`);
 
       await this.prisma.purchaseOrderItem.update({

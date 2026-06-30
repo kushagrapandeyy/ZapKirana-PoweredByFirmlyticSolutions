@@ -1,121 +1,236 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView, TextInput, ActivityIndicator } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useState, useEffect } from 'react';
+import { StyleSheet, Text, View, SafeAreaView, TouchableOpacity, ScrollView, TextInput, ActivityIndicator, Alert, FlatList } from 'react-native';
+import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { API_BASE_URL, CURRENT_STORE_ID } from '@/constants/api';
+import { Colors, Shadows, Radius } from '../constants/theme';
+import { API_BASE_URL } from '../constants/api';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import Animated, { FadeInDown } from 'react-native-reanimated';
+import Toast from 'react-native-toast-message';
 
-const ROYAL_BLUE = '#1D4ED8';
-const WHITE = '#FFFFFF';
-
-export default function CreatePOScreen() {
+export default function CreatePO() {
   const router = useRouter();
-  const { supplierId } = useLocalSearchParams();
+  const [suppliers, setSuppliers] = useState<any[]>([]);
   const [products, setProducts] = useState<any[]>([]);
-  const [quantities, setQuantities] = useState<Record<string, number>>({});
-  const [loading, setLoading] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
+  const [loading, setLoading] = useState(true);
+  
+  const [selectedSupplierId, setSelectedSupplierId] = useState<string | null>(null);
+  const [selectedItems, setSelectedItems] = useState<Record<string, { qty: number, price: number }>>({});
+  const [notes, setNotes] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
-    fetchProducts();
+    loadData();
   }, []);
 
-  const fetchProducts = async () => {
-    setLoading(true);
+  const loadData = async () => {
     try {
-      // In a real app, you'd fetch supplier-specific products.
-      // Here we fetch all store products as a mock catalog.
-      const res = await fetch(`${API_BASE_URL}/inventory/products?storeId=${CURRENT_STORE_ID}`);
-      const data = await res.json();
-      if (Array.isArray(data)) {
-        setProducts(data.slice(0, 5)); // Just take a few for MVP
+      const storeId = await AsyncStorage.getItem('@vendor_store_id') || 'f15b0af3-3667-429a-ae2e-9f85d25e9c2f';
+      
+      const [suppRes, prodRes] = await Promise.all([
+        fetch(`${API_BASE_URL}/admin/suppliers`), // Using admin endpoint for now or specific store supplier endpoint
+        fetch(`${API_BASE_URL}/inventory/products?storeId=${storeId}`)
+      ]);
+
+      if (suppRes.ok && prodRes.ok) {
+        setSuppliers(await suppRes.json());
+        setProducts(await prodRes.json());
       }
-    } catch (err) {
-      console.error(err);
+    } catch (e) {
+      console.error(e);
     } finally {
       setLoading(false);
     }
   };
 
-  const updateQuantity = (id: string, delta: number) => {
-    setQuantities(prev => {
-      const current = prev[id] || 0;
-      const next = Math.max(0, current + delta);
-      return { ...prev, [id]: next };
-    });
+  const handleQtyChange = (productId: string, qty: string, defaultPrice: number) => {
+    const numQty = parseInt(qty, 10);
+    if (isNaN(numQty) || numQty <= 0) {
+      const newItems = { ...selectedItems };
+      delete newItems[productId];
+      setSelectedItems(newItems);
+    } else {
+      setSelectedItems(prev => ({
+        ...prev,
+        [productId]: { qty: numQty, price: prev[productId]?.price || defaultPrice }
+      }));
+    }
+  };
+
+  const handlePriceChange = (productId: string, price: string, defaultQty: number) => {
+    const numPrice = parseFloat(price);
+    if (isNaN(numPrice) || numPrice < 0) return;
+    
+    setSelectedItems(prev => ({
+      ...prev,
+      [productId]: { qty: prev[productId]?.qty || defaultQty, price: numPrice }
+    }));
   };
 
   const submitPO = async () => {
-    const items = products
-      .filter(p => quantities[p.id] > 0)
-      .map(p => ({
-        productId: p.id,
-        quantity: quantities[p.id],
-        purchasePrice: p.purchaseCost || p.sellingPrice * 0.8 // Mock purchase price
-      }));
+    if (!selectedSupplierId) {
+      Toast.show({ type: 'error', text1: 'Validation Error', text2: 'Please select a supplier' });
+      return;
+    }
+    
+    const items = Object.keys(selectedItems).map(id => ({
+      productId: id,
+      quantity: selectedItems[id].qty,
+      purchasePrice: selectedItems[id].price
+    }));
 
-    if (items.length === 0) return alert('Add items to order');
+    if (items.length === 0) {
+      Toast.show({ type: 'error', text1: 'Validation Error', text2: 'Add at least one item' });
+      return;
+    }
 
-    setSubmitting(true);
+    setIsSubmitting(true);
     try {
+      const storeId = await AsyncStorage.getItem('@vendor_store_id') || 'f15b0af3-3667-429a-ae2e-9f85d25e9c2f';
+      
+      const expectedDate = new Date();
+      expectedDate.setDate(expectedDate.getDate() + 2); // default 2 days delivery
+
       const res = await fetch(`${API_BASE_URL}/purchase-orders`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          storeId: CURRENT_STORE_ID,
-          supplierId,
-          expectedDeliveryDate: new Date(Date.now() + 86400000 * 2).toISOString(),
+          storeId,
+          supplierId: selectedSupplierId,
+          expectedDeliveryDate: expectedDate.toISOString(),
           items,
-          notes: 'Standard replenishment'
+          notes
         })
       });
+
       if (res.ok) {
-        alert('Purchase Order created!');
+        Toast.show({ type: 'success', text1: 'PO Created', text2: 'Purchase order generated successfully' });
         router.back();
       } else {
-        alert('Failed to create PO');
+        Toast.show({ type: 'error', text1: 'Error', text2: 'Failed to create PO' });
       }
-    } catch (err) {
-      alert('Error creating PO');
+    } catch (e) {
+      Toast.show({ type: 'error', text1: 'Network Error', text2: 'Could not connect to server' });
     } finally {
-      setSubmitting(false);
+      setIsSubmitting(false);
     }
   };
+
+  const totalAmount = Object.values(selectedItems).reduce((acc, item) => acc + (item.qty * item.price), 0);
+  const itemCount = Object.keys(selectedItems).length;
+
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.centerContainer}>
+        <ActivityIndicator size="large" color={Colors.primary} />
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-          <Ionicons name="arrow-back" size={24} color="#0f172a" />
+          <Ionicons name="arrow-back" size={24} color={Colors.textPrimary} />
         </TouchableOpacity>
-        <Text style={styles.title}>New Purchase Order</Text>
+        <Text style={styles.headerTitle}>Create PO</Text>
+        <View style={{ width: 24 }} />
       </View>
 
-      <ScrollView contentContainerStyle={styles.scroll}>
-        {loading ? <ActivityIndicator size="large" color={ROYAL_BLUE} /> : products.map(product => {
-          const qty = quantities[product.id] || 0;
-          return (
-            <View key={product.id} style={styles.card}>
-              <View style={styles.info}>
-                <Text style={styles.name}>{product.name}</Text>
-                <Text style={styles.price}>Cost: ₹{product.purchaseCost || (product.sellingPrice * 0.8).toFixed(2)}</Text>
-              </View>
-              <View style={styles.controls}>
-                <TouchableOpacity style={styles.btn} onPress={() => updateQuantity(product.id, -1)}>
-                  <Ionicons name="remove" size={20} color="#64748b" />
-                </TouchableOpacity>
-                <Text style={styles.qty}>{qty}</Text>
-                <TouchableOpacity style={styles.btn} onPress={() => updateQuantity(product.id, 1)}>
-                  <Ionicons name="add" size={20} color="#64748b" />
-                </TouchableOpacity>
-              </View>
-            </View>
-          );
-        })}
+      <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
+        {/* Supplier Selection */}
+        <Animated.View entering={FadeInDown} style={styles.section}>
+          <Text style={styles.sectionTitle}>Select Supplier</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 8 }}>
+            {suppliers.map(sup => (
+              <TouchableOpacity 
+                key={sup.id}
+                style={[styles.supplierChip, selectedSupplierId === sup.id && styles.supplierChipActive]}
+                onPress={() => setSelectedSupplierId(sup.id)}
+              >
+                <Ionicons name="business" size={16} color={selectedSupplierId === sup.id ? Colors.primary : Colors.textMuted} />
+                <Text style={[styles.supplierName, selectedSupplierId === sup.id && styles.supplierNameActive]}>{sup.name}</Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </Animated.View>
+
+        {/* Product Selection */}
+        <Animated.View entering={FadeInDown.delay(100)} style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Add Items</Text>
+            <Text style={styles.itemCountText}>{itemCount} selected</Text>
+          </View>
+          
+          <View style={styles.productsContainer}>
+            {products.map((p, idx) => {
+              const isSelected = !!selectedItems[p.id];
+              return (
+                <View key={p.id} style={[styles.productRow, isSelected && styles.productRowSelected]}>
+                  <View style={styles.productInfo}>
+                    <Text style={styles.productName}>{p.name}</Text>
+                    <Text style={styles.stockLevel}>Current Stock: {p.stockLevel}</Text>
+                  </View>
+                  
+                  <View style={styles.inputControls}>
+                    <View style={styles.inputWrapper}>
+                      <Text style={styles.inputLabel}>Qty</Text>
+                      <TextInput 
+                        style={styles.numberInput}
+                        keyboardType="number-pad"
+                        placeholder="0"
+                        value={selectedItems[p.id]?.qty?.toString() || ''}
+                        onChangeText={(t) => handleQtyChange(p.id, t, p.sellingPrice * 0.7)} // default cost is 70% of selling price
+                      />
+                    </View>
+                    <View style={styles.inputWrapper}>
+                      <Text style={styles.inputLabel}>Cost (₹)</Text>
+                      <TextInput 
+                        style={styles.numberInput}
+                        keyboardType="decimal-pad"
+                        placeholder={(p.sellingPrice * 0.7).toFixed(2)}
+                        value={selectedItems[p.id]?.price?.toString() || ''}
+                        onChangeText={(t) => handlePriceChange(p.id, t, 10)}
+                      />
+                    </View>
+                  </View>
+                </View>
+              );
+            })}
+          </View>
+        </Animated.View>
+
+        <Animated.View entering={FadeInDown.delay(150)} style={styles.section}>
+          <Text style={styles.sectionTitle}>Notes</Text>
+          <TextInput
+            style={styles.notesInput}
+            multiline
+            numberOfLines={3}
+            placeholder="Delivery instructions, quality requirements..."
+            value={notes}
+            onChangeText={setNotes}
+            textAlignVertical="top"
+          />
+        </Animated.View>
+
       </ScrollView>
 
+      {/* Footer */}
       <View style={styles.footer}>
-        <TouchableOpacity style={styles.submitBtn} onPress={submitPO} disabled={submitting}>
-          {submitting ? <ActivityIndicator color={WHITE} /> : <Text style={styles.submitText}>Send Order</Text>}
+        <View style={styles.footerInfo}>
+          <Text style={styles.totalLabel}>Estimated Total</Text>
+          <Text style={styles.totalValue}>₹{totalAmount.toFixed(2)}</Text>
+        </View>
+        <TouchableOpacity 
+          style={[styles.submitBtn, (itemCount === 0 || isSubmitting) && styles.submitBtnDisabled]}
+          onPress={submitPO}
+          disabled={itemCount === 0 || isSubmitting}
+        >
+          {isSubmitting ? (
+            <ActivityIndicator color="#fff" size="small" />
+          ) : (
+            <Text style={styles.submitBtnText}>Create PO</Text>
+          )}
         </TouchableOpacity>
       </View>
     </SafeAreaView>
@@ -123,19 +238,44 @@ export default function CreatePOScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f8fafc' },
-  header: { flexDirection: 'row', alignItems: 'center', padding: 20, paddingTop: 40, borderBottomWidth: 1, borderBottomColor: '#e2e8f0', backgroundColor: WHITE },
-  backBtn: { marginRight: 15 },
-  title: { fontSize: 20, fontFamily: 'Inter_700Bold', color: '#0f172a' },
-  scroll: { padding: 20 },
-  card: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: WHITE, padding: 15, borderRadius: 12, marginBottom: 10 },
-  info: { flex: 1 },
-  name: { fontSize: 16, fontFamily: 'Inter_600SemiBold', color: '#1e293b' },
-  price: { fontSize: 14, fontFamily: 'Inter_400Regular', color: '#64748b', marginTop: 4 },
-  controls: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  btn: { width: 32, height: 32, borderRadius: 16, backgroundColor: '#f1f5f9', alignItems: 'center', justifyContent: 'center' },
-  qty: { fontSize: 16, fontFamily: 'Inter_600SemiBold', minWidth: 20, textAlign: 'center' },
-  footer: { padding: 20, backgroundColor: WHITE, borderTopWidth: 1, borderTopColor: '#e2e8f0' },
-  submitBtn: { backgroundColor: ROYAL_BLUE, padding: 16, borderRadius: 12, alignItems: 'center' },
-  submitText: { color: WHITE, fontSize: 16, fontFamily: 'Inter_700Bold' }
+  container: { flex: 1, backgroundColor: Colors.bg },
+  centerContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 16, backgroundColor: Colors.surface, borderBottomWidth: 1, borderBottomColor: Colors.borderLight },
+  backBtn: { padding: 4 },
+  headerTitle: { fontSize: 18, fontFamily: 'Inter_700Bold', color: Colors.textPrimary },
+  
+  scroll: { flex: 1 },
+  scrollContent: { padding: 20, paddingBottom: 40, gap: 24 },
+  
+  section: {},
+  sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
+  sectionTitle: { fontSize: 16, fontFamily: 'Inter_700Bold', color: Colors.textPrimary, marginBottom: 12 },
+  itemCountText: { fontSize: 13, fontFamily: 'Inter_600SemiBold', color: Colors.primary },
+  
+  supplierChip: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: Colors.surface, paddingHorizontal: 16, paddingVertical: 10, borderRadius: Radius.full, borderWidth: 1, borderColor: Colors.border, marginRight: 10 },
+  supplierChipActive: { backgroundColor: Colors.primaryGhost, borderColor: Colors.primary },
+  supplierName: { fontSize: 14, fontFamily: 'Inter_500Medium', color: Colors.textSecondary },
+  supplierNameActive: { color: Colors.primary, fontFamily: 'Inter_600SemiBold' },
+  
+  productsContainer: { backgroundColor: Colors.surface, borderRadius: Radius.lg, ...Shadows.sm, overflow: 'hidden' },
+  productRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 12, borderBottomWidth: 1, borderBottomColor: Colors.borderLight },
+  productRowSelected: { backgroundColor: Colors.primaryGhost + '30' },
+  productInfo: { flex: 1, paddingRight: 12 },
+  productName: { fontSize: 14, fontFamily: 'Inter_600SemiBold', color: Colors.textPrimary, marginBottom: 4 },
+  stockLevel: { fontSize: 12, fontFamily: 'Inter_500Medium', color: Colors.textMuted },
+  
+  inputControls: { flexDirection: 'row', gap: 8 },
+  inputWrapper: { width: 60 },
+  inputLabel: { fontSize: 10, fontFamily: 'Inter_500Medium', color: Colors.textMuted, marginBottom: 2, textAlign: 'center' },
+  numberInput: { backgroundColor: Colors.bg, borderWidth: 1, borderColor: Colors.border, borderRadius: Radius.md, padding: 8, fontSize: 14, fontFamily: 'Inter_600SemiBold', textAlign: 'center', color: Colors.textPrimary },
+  
+  notesInput: { backgroundColor: Colors.surface, borderWidth: 1, borderColor: Colors.border, borderRadius: Radius.lg, padding: 16, fontSize: 14, fontFamily: 'Inter_400Regular', color: Colors.textPrimary, minHeight: 100 },
+  
+  footer: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 16, backgroundColor: Colors.surface, borderTopWidth: 1, borderTopColor: Colors.border, ...Shadows.md },
+  footerInfo: {},
+  totalLabel: { fontSize: 12, fontFamily: 'Inter_500Medium', color: Colors.textSecondary, marginBottom: 2 },
+  totalValue: { fontSize: 20, fontFamily: 'Inter_700Bold', color: Colors.textPrimary },
+  submitBtn: { backgroundColor: Colors.primary, paddingHorizontal: 32, paddingVertical: 14, borderRadius: Radius.full, ...Shadows.glow },
+  submitBtnDisabled: { backgroundColor: Colors.border, shadowOpacity: 0 },
+  submitBtnText: { color: '#fff', fontSize: 16, fontFamily: 'Inter_700Bold' },
 });

@@ -18,6 +18,8 @@ export declare class InventoryService {
         staffId?: string;
     }): Promise<{
         id: string;
+        createdAt: Date;
+        updatedAt: Date;
         storeId: string;
         productId: string;
         batchNo: string | null;
@@ -25,11 +27,12 @@ export declare class InventoryService {
         onHandQty: number;
         reservedQty: number;
         blockedQty: number;
-        createdAt: Date;
-        updatedAt: Date;
+        lowStockThreshold: number;
     }>;
     receiveStock(storeId: string, productId: string, qty: number, staffId?: string, batchNo?: string): Promise<{
         id: string;
+        createdAt: Date;
+        updatedAt: Date;
         storeId: string;
         productId: string;
         batchNo: string | null;
@@ -37,11 +40,12 @@ export declare class InventoryService {
         onHandQty: number;
         reservedQty: number;
         blockedQty: number;
-        createdAt: Date;
-        updatedAt: Date;
+        lowStockThreshold: number;
     }>;
     reserveStockForOnlineOrder(storeId: string, productId: string, qty: number, orderId: string): Promise<{
         id: string;
+        createdAt: Date;
+        updatedAt: Date;
         storeId: string;
         productId: string;
         batchNo: string | null;
@@ -49,11 +53,12 @@ export declare class InventoryService {
         onHandQty: number;
         reservedQty: number;
         blockedQty: number;
-        createdAt: Date;
-        updatedAt: Date;
+        lowStockThreshold: number;
     }>;
     processPosSale(storeId: string, productId: string, qty: number, billId: string, staffId: string): Promise<{
         id: string;
+        createdAt: Date;
+        updatedAt: Date;
         storeId: string;
         productId: string;
         batchNo: string | null;
@@ -61,8 +66,7 @@ export declare class InventoryService {
         onHandQty: number;
         reservedQty: number;
         blockedQty: number;
-        createdAt: Date;
-        updatedAt: Date;
+        lowStockThreshold: number;
     }>;
     getAvailableStock(storeId: string, productId: string): Promise<{
         available: number;
@@ -72,20 +76,21 @@ export declare class InventoryService {
     }>;
     getProducts(storeId?: string): Promise<{
         id: string;
-        storeId: string;
+        name: string;
+        isActive: boolean;
+        imageUrl: string | null;
+        description: string | null;
         createdAt: Date;
         updatedAt: Date;
-        name: string;
+        storeId: string;
         barcode: string | null;
         internalSku: string;
-        description: string | null;
         category: string | null;
         mrp: number;
         sellingPrice: number;
         purchaseCost: number | null;
         gstRate: number;
-        imageUrl: string | null;
-        isActive: boolean;
+        gstClass: import(".prisma/client").$Enums.GSTClass;
     }[]>;
     getMovementHistory(storeId: string, productId?: string): Promise<({
         product: {
@@ -97,9 +102,9 @@ export declare class InventoryService {
         } | null;
     } & {
         id: string;
+        createdAt: Date;
         storeId: string;
         productId: string;
-        createdAt: Date;
         inventoryId: string;
         type: import(".prisma/client").$Enums.MovementType;
         quantityChange: number;

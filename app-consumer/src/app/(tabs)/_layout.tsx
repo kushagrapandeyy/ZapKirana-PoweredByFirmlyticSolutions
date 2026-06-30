@@ -1,177 +1,177 @@
 import { Tabs, useRouter } from 'expo-router';
-import { StyleSheet, View, Text, TouchableOpacity, Animated } from 'react-native';
-import { BlurView } from 'expo-blur';
+import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useCart } from '../../context/CartContext';
-import { useEffect, useRef } from 'react';
+import Animated, { useSharedValue, useAnimatedStyle, withSpring, withTiming, FadeIn } from 'react-native-reanimated';
+import { Colors, Shadows, Radius } from '../../constants/theme';
+import { useEffect } from 'react';
 
-const ROYAL_BLUE = '#1D4ED8';
-const WHITE = '#FFFFFF';
-
-export default function TabLayout() {
+// Custom Tab Bar
+function CustomTabBar({ state, descriptors, navigation }: any) {
   const { cartItemsCount, cartTotal } = useCart();
   const router = useRouter();
-  
-  const slideAnim = useRef(new Animated.Value(100)).current;
+  const cartBounce = useSharedValue(1);
 
   useEffect(() => {
     if (cartItemsCount > 0) {
-      Animated.spring(slideAnim, {
-        toValue: 0,
-        useNativeDriver: true,
-        tension: 40,
-        friction: 5,
-      }).start();
-    } else {
-      Animated.timing(slideAnim, {
-        toValue: 100,
-        duration: 200,
-        useNativeDriver: true,
-      }).start();
+      cartBounce.value = withSpring(1.15, { damping: 4 }, () => {
+        cartBounce.value = withSpring(1);
+      });
     }
-  }, [cartItemsCount, slideAnim]);
+  }, [cartItemsCount]);
+
+  const cartBarStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: cartBounce.value }],
+  }));
+
+  const tabs = [
+    { name: 'index', label: 'Home', icon: 'home' },
+    { name: 'search', label: 'Search', icon: 'search' },
+    { name: 'orders', label: 'Orders', icon: 'receipt' },
+    { name: 'profile', label: 'Profile', icon: 'person' },
+  ];
 
   return (
-    <View style={{ flex: 1 }}>
-      <Tabs
-        screenOptions={{
-          headerShown: false,
-          tabBarShowLabel: true,
-          tabBarActiveTintColor: ROYAL_BLUE,
-          tabBarInactiveTintColor: '#9ca3af',
-          tabBarBackground: () => (
-            <BlurView tint="light" intensity={80} style={StyleSheet.absoluteFill} />
-          ),
-          tabBarStyle: {
-            position: 'absolute',
-            bottom: 25,
-            left: 20,
-            right: 20,
-            elevation: 10,
-            shadowColor: '#000',
-            shadowOffset: { width: 0, height: 10 },
-            shadowOpacity: 0.1,
-            shadowRadius: 20,
-            borderRadius: 30,
-            height: 65,
-            paddingBottom: 10,
-            paddingTop: 10,
-            borderTopWidth: 0,
-            backgroundColor: 'rgba(255, 255, 255, 0.7)',
-          },
-        }}
-      >
-        <Tabs.Screen
-          name="index"
-          options={{
-            title: 'Home',
-            tabBarIcon: ({ color, size }) => (
-              <Ionicons name="home" size={size} color={color} />
-            ),
-          }}
-        />
-        <Tabs.Screen
-          name="search"
-          options={{
-            title: 'Search',
-            tabBarIcon: ({ color, size }) => (
-              <Ionicons name="search" size={size} color={color} />
-            ),
-          }}
-        />
-        <Tabs.Screen
-          name="orders"
-          options={{
-            title: 'Orders',
-            tabBarIcon: ({ color, size }) => (
-              <Ionicons name="receipt-outline" size={size} color={color} />
-            ),
-          }}
-        />
-        <Tabs.Screen
-          name="profile"
-          options={{
-            title: 'Profile',
-            tabBarIcon: ({ color, size }) => (
-              <Ionicons name="person" size={size} color={color} />
-            ),
-          }}
-        />
-      </Tabs>
-
+    <View style={styles.tabBarWrapper}>
       {/* Floating Cart Banner */}
-      <Animated.View style={[
-        styles.cartBanner, 
-        { 
-          transform: [{ translateY: slideAnim }],
-          opacity: slideAnim.interpolate({
-            inputRange: [0, 100],
-            outputRange: [1, 0]
-          })
-        }
-      ]}
-      pointerEvents={cartItemsCount > 0 ? 'auto' : 'none'}
-      >
-        <TouchableOpacity style={styles.cartContent} activeOpacity={0.9} onPress={() => router.push('/cart')}>
-          <View style={styles.cartInfo}>
-            <Ionicons name="cart" size={24} color={WHITE} style={{ marginRight: 10 }} />
-            <View>
-              <Text style={styles.cartItemsText}>{cartItemsCount} item{cartItemsCount !== 1 ? 's' : ''}</Text>
-              <Text style={styles.cartTotalText}>₹{cartTotal}</Text>
+      {cartItemsCount > 0 && (
+        <Animated.View entering={FadeIn} style={cartBarStyle}>
+          <TouchableOpacity 
+            style={styles.floatingCart} 
+            onPress={() => router.push('/cart')}
+            activeOpacity={0.9}
+          >
+            <View style={styles.cartLeftSection}>
+              <View style={styles.cartCountBadge}>
+                <Text style={styles.cartCountText}>{cartItemsCount}</Text>
+              </View>
+              <Text style={styles.cartLabel}>
+                {cartItemsCount} item{cartItemsCount > 1 ? 's' : ''}
+              </Text>
             </View>
-          </View>
-          <View style={styles.viewCartBtn}>
-            <Text style={styles.viewCartText}>View Cart</Text>
-            <Ionicons name="chevron-forward" size={18} color={WHITE} />
-          </View>
-        </TouchableOpacity>
-      </Animated.View>
+            <View style={styles.cartRightSection}>
+              <Text style={styles.cartTotalText}>₹{cartTotal}</Text>
+              <View style={styles.viewCartBtn}>
+                <Text style={styles.viewCartText}>View Cart</Text>
+                <Ionicons name="arrow-forward" size={14} color={Colors.primary} />
+              </View>
+            </View>
+          </TouchableOpacity>
+        </Animated.View>
+      )}
+
+      {/* Tab Bar */}
+      <View style={styles.tabBar}>
+        {tabs.map((tab, index) => {
+          const routeIndex = state.routes.findIndex((r: any) => r.name === tab.name);
+          const isFocused = state.index === routeIndex;
+
+          const onPress = () => {
+            const event = navigation.emit({ type: 'tabPress', target: state.routes[routeIndex]?.key, canPreventDefault: true });
+            if (!isFocused && !event.defaultPrevented) {
+              navigation.navigate(tab.name);
+            }
+          };
+
+          return (
+            <TouchableOpacity key={tab.name} style={styles.tabItem} onPress={onPress} activeOpacity={0.7}>
+              <View style={[styles.tabIconWrapper, isFocused && styles.tabIconWrapperActive]}>
+                <Ionicons
+                  name={(isFocused ? tab.icon : `${tab.icon}-outline`) as any}
+                  size={22}
+                  color={isFocused ? Colors.primary : Colors.textMuted}
+                />
+              </View>
+              <Text style={[styles.tabLabel, isFocused && styles.tabLabelActive]}>
+                {tab.label}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </View>
     </View>
   );
 }
 
+export default function TabLayout() {
+  return (
+    <Tabs
+      tabBar={(props) => <CustomTabBar {...props} />}
+      screenOptions={{ headerShown: false }}
+    >
+      <Tabs.Screen name="index" options={{ title: 'Home' }} />
+      <Tabs.Screen name="search" options={{ title: 'Search' }} />
+      <Tabs.Screen name="orders" options={{ title: 'Orders' }} />
+      <Tabs.Screen name="profile" options={{ title: 'Profile' }} />
+    </Tabs>
+  );
+}
+
 const styles = StyleSheet.create({
-  cartBanner: {
+  tabBarWrapper: {
     position: 'absolute',
-    bottom: 105, // Just above the tab bar
-    left: 20,
-    right: 20,
-    backgroundColor: ROYAL_BLUE,
-    borderRadius: 16,
-    elevation: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
+    bottom: 0,
+    left: 0,
+    right: 0,
+    paddingBottom: Platform.OS === 'ios' ? 20 : 12,
+    backgroundColor: 'transparent',
   },
-  cartContent: {
+  
+  // Floating Cart
+  floatingCart: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 16,
+    backgroundColor: Colors.textPrimary,
+    marginHorizontal: 16,
+    marginBottom: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderRadius: Radius.lg,
+    ...Shadows.lg,
   },
-  cartInfo: {
+  cartLeftSection: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  cartCountBadge: { backgroundColor: Colors.primary, width: 28, height: 28, borderRadius: 14, justifyContent: 'center', alignItems: 'center' },
+  cartCountText: { color: '#fff', fontSize: 12, fontFamily: 'Inter_700Bold' },
+  cartLabel: { color: '#fff', fontSize: 14, fontFamily: 'Inter_500Medium' },
+  cartRightSection: { alignItems: 'flex-end' },
+  cartTotalText: { color: '#fff', fontSize: 16, fontFamily: 'Inter_700Bold' },
+  viewCartBtn: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  viewCartText: { color: Colors.primaryLight, fontSize: 12, fontFamily: 'Inter_600SemiBold' },
+
+  // Tab Bar
+  tabBar: {
     flexDirection: 'row',
+    backgroundColor: Colors.surface,
+    borderTopWidth: 1,
+    borderTopColor: Colors.borderLight,
+    paddingTop: 8,
+    paddingBottom: 4,
+    paddingHorizontal: 8,
+  },
+  tabItem: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 2,
+  },
+  tabIconWrapper: {
+    width: 40,
+    height: 32,
+    borderRadius: 16,
+    justifyContent: 'center',
     alignItems: 'center',
   },
-  cartItemsText: {
-    color: '#dbeafe', // light blue
-    fontSize: 12,
-    fontFamily: 'Inter_600SemiBold',
+  tabIconWrapperActive: {
+    backgroundColor: Colors.primaryGhost,
   },
-  cartTotalText: {
-    color: WHITE,
-    fontSize: 16,
-    fontFamily: 'Inter_700Bold',
+  tabLabel: {
+    fontSize: 11,
+    fontFamily: 'Inter_500Medium',
+    color: Colors.textMuted,
   },
-  viewCartBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  viewCartText: {
-    color: WHITE,
-    fontSize: 14,
+  tabLabelActive: {
+    color: Colors.primary,
     fontFamily: 'Inter_600SemiBold',
   },
 });

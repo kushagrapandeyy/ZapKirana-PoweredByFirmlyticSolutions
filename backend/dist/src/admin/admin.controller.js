@@ -21,6 +21,9 @@ let AdminController = class AdminController {
     constructor(adminService) {
         this.adminService = adminService;
     }
+    getDashboard() {
+        return this.adminService.getDashboardStats();
+    }
     getStores() {
         return this.adminService.getStores();
     }
@@ -33,11 +36,29 @@ let AdminController = class AdminController {
     createVendor(body, req) {
         return this.adminService.createVendor(body, req.user.id);
     }
-    getAudits() {
-        return this.adminService.getAudits();
+    getSuppliers() {
+        return this.adminService.getSuppliers();
+    }
+    getSupplier(id) {
+        return this.adminService.getSupplierById(id);
+    }
+    createSupplier(body, req) {
+        return this.adminService.createSupplier(body, req.user.id);
+    }
+    updateSupplier(id, body, req) {
+        return this.adminService.updateSupplier(id, body, req.user.id);
+    }
+    getAudits(limit) {
+        return this.adminService.getAudits(limit ? parseInt(limit) : undefined);
     }
 };
 exports.AdminController = AdminController;
+__decorate([
+    (0, common_1.Get)('dashboard'),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", []),
+    __metadata("design:returntype", void 0)
+], AdminController.prototype, "getDashboard", null);
 __decorate([
     (0, common_1.Get)('stores'),
     __metadata("design:type", Function),
@@ -67,9 +88,40 @@ __decorate([
     __metadata("design:returntype", void 0)
 ], AdminController.prototype, "createVendor", null);
 __decorate([
-    (0, common_1.Get)('audits'),
+    (0, common_1.Get)('suppliers'),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", []),
+    __metadata("design:returntype", void 0)
+], AdminController.prototype, "getSuppliers", null);
+__decorate([
+    (0, common_1.Get)('suppliers/:id'),
+    __param(0, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", void 0)
+], AdminController.prototype, "getSupplier", null);
+__decorate([
+    (0, common_1.Post)('suppliers'),
+    __param(0, (0, common_1.Body)()),
+    __param(1, (0, common_1.Request)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, Object]),
+    __metadata("design:returntype", void 0)
+], AdminController.prototype, "createSupplier", null);
+__decorate([
+    (0, common_1.Patch)('suppliers/:id'),
+    __param(0, (0, common_1.Param)('id')),
+    __param(1, (0, common_1.Body)()),
+    __param(2, (0, common_1.Request)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, Object, Object]),
+    __metadata("design:returntype", void 0)
+], AdminController.prototype, "updateSupplier", null);
+__decorate([
+    (0, common_1.Get)('audits'),
+    __param(0, (0, common_1.Query)('limit')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
     __metadata("design:returntype", void 0)
 ], AdminController.prototype, "getAudits", null);
 exports.AdminController = AdminController = __decorate([

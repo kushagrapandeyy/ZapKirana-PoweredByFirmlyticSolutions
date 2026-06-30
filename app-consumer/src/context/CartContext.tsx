@@ -6,6 +6,7 @@ type Product = {
   price: number;
   time: string;
   image: string;
+  gstClass?: string;
 };
 
 type CartItem = {

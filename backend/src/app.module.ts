@@ -12,6 +12,8 @@ import { AuthModule } from './auth/auth.module';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { ProcurementModule } from './procurement/procurement.module';
 import { NotificationsModule } from './notifications/notifications.module';
+import { SubscriptionsModule } from './subscriptions/subscriptions.module';
+import { GstModule } from './gst/gst.module';
 
 @Module({
   imports: [
@@ -24,7 +26,9 @@ import { NotificationsModule } from './notifications/notifications.module';
     AdminModule,
     AuthModule,
     ProcurementModule,
-    NotificationsModule
+    NotificationsModule,
+    SubscriptionsModule,
+    GstModule,
   ],
   controllers: [AppController],
   providers: [AppService, PrismaService],

@@ -7,9 +7,9 @@ export declare class PosService {
     constructor(prisma: PrismaService, inventoryService: InventoryService);
     createDraftBill(storeId: string, staffId: string): Promise<{
         id: string;
-        storeId: string;
         createdAt: Date;
         updatedAt: Date;
+        storeId: string;
         staffId: string | null;
         status: import(".prisma/client").$Enums.BillStatus;
         subtotal: number;
@@ -18,8 +18,8 @@ export declare class PosService {
     }>;
     addItemToBill(billId: string, productId: string, quantity: number): Promise<{
         id: string;
-        productId: string;
         createdAt: Date;
+        productId: string;
         quantity: number;
         priceAtSale: number;
         gstAtSale: number;
@@ -27,9 +27,9 @@ export declare class PosService {
     }>;
     checkoutBill(billId: string, paymentMethod: PaymentMethod, amount: number, referenceId?: string): Promise<{
         id: string;
-        storeId: string;
         createdAt: Date;
         updatedAt: Date;
+        storeId: string;
         staffId: string | null;
         status: import(".prisma/client").$Enums.BillStatus;
         subtotal: number;

@@ -4,20 +4,21 @@ export declare class InventoryController {
     constructor(inventoryService: InventoryService);
     getProducts(storeId: string): Promise<{
         id: string;
-        storeId: string;
+        name: string;
+        isActive: boolean;
+        imageUrl: string | null;
+        description: string | null;
         createdAt: Date;
         updatedAt: Date;
-        name: string;
+        storeId: string;
         barcode: string | null;
         internalSku: string;
-        description: string | null;
         category: string | null;
         mrp: number;
         sellingPrice: number;
         purchaseCost: number | null;
         gstRate: number;
-        imageUrl: string | null;
-        isActive: boolean;
+        gstClass: import(".prisma/client").$Enums.GSTClass;
     }[]>;
     receiveStock(body: {
         storeId: string;
@@ -27,6 +28,8 @@ export declare class InventoryController {
         batchNo?: string;
     }): Promise<{
         id: string;
+        createdAt: Date;
+        updatedAt: Date;
         storeId: string;
         productId: string;
         batchNo: string | null;
@@ -34,8 +37,7 @@ export declare class InventoryController {
         onHandQty: number;
         reservedQty: number;
         blockedQty: number;
-        createdAt: Date;
-        updatedAt: Date;
+        lowStockThreshold: number;
     }>;
     manualAdjustment(body: {
         storeId: string;
@@ -45,6 +47,8 @@ export declare class InventoryController {
         staffId: string;
     }): Promise<{
         id: string;
+        createdAt: Date;
+        updatedAt: Date;
         storeId: string;
         productId: string;
         batchNo: string | null;
@@ -52,8 +56,7 @@ export declare class InventoryController {
         onHandQty: number;
         reservedQty: number;
         blockedQty: number;
-        createdAt: Date;
-        updatedAt: Date;
+        lowStockThreshold: number;
     }>;
     getAvailableStock(productId: string, storeId: string): Promise<{
         available: number;
@@ -71,9 +74,9 @@ export declare class InventoryController {
         } | null;
     } & {
         id: string;
+        createdAt: Date;
         storeId: string;
         productId: string;
-        createdAt: Date;
         inventoryId: string;
         type: import(".prisma/client").$Enums.MovementType;
         quantityChange: number;

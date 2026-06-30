@@ -2,14 +2,16 @@ import { Stack, useRouter, useSegments } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { CartProvider } from '../context/CartContext';
 import { useFonts, PlayfairDisplay_700Bold } from '@expo-google-fonts/playfair-display';
-import { Inter_400Regular, Inter_600SemiBold, Inter_700Bold } from '@expo-google-fonts/inter';
+import { Inter_400Regular, Inter_500Medium, Inter_600SemiBold, Inter_700Bold } from '@expo-google-fonts/inter';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Toast from 'react-native-toast-message';
+import { StatusBar } from 'react-native';
 
 export default function RootLayout() {
   const [fontsLoaded] = useFonts({
     PlayfairDisplay_700Bold,
     Inter_400Regular,
+    Inter_500Medium,
     Inter_600SemiBold,
     Inter_700Bold,
   });
@@ -43,14 +45,19 @@ export default function RootLayout() {
 
   return (
     <CartProvider>
+      <StatusBar barStyle="dark-content" />
       <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: '#f8fafc' } }}>
         <Stack.Screen name="onboarding" />
+        <Stack.Screen name="store-selector" />
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="product/[id]" />
         <Stack.Screen name="cart" options={{ presentation: 'modal' }} />
         <Stack.Screen name="checkout" options={{ presentation: 'modal' }} />
         <Stack.Screen name="order-confirmation" options={{ gestureEnabled: false }} />
         <Stack.Screen name="delivery-tracking" />
+        <Stack.Screen name="subscriptions" />
+        <Stack.Screen name="auth/login" options={{ presentation: 'modal' }} />
+        <Stack.Screen name="auth/register" options={{ presentation: 'modal' }} />
       </Stack>
       <Toast />
     </CartProvider>

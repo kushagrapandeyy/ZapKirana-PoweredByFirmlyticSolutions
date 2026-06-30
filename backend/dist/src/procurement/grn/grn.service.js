@@ -32,7 +32,7 @@ let GrnService = class GrnService {
             throw new common_1.BadRequestException(`Cannot receive goods for PO with status ${po.status}`);
         }
         for (const item of receivedItems) {
-            const poItem = po.items.find(i => i.id === item.poItemId);
+            const poItem = po.items.find((i) => i.id === item.poItemId);
             if (!poItem)
                 throw new common_1.BadRequestException(`Item ${item.poItemId} not in PO`);
             await this.prisma.purchaseOrderItem.update({

@@ -8,9 +8,9 @@ export declare class PosController {
         staffId: string;
     }): Promise<{
         id: string;
-        storeId: string;
         createdAt: Date;
         updatedAt: Date;
+        storeId: string;
         staffId: string | null;
         status: import(".prisma/client").$Enums.BillStatus;
         subtotal: number;
@@ -22,8 +22,8 @@ export declare class PosController {
         quantity: number;
     }): Promise<{
         id: string;
-        productId: string;
         createdAt: Date;
+        productId: string;
         quantity: number;
         priceAtSale: number;
         gstAtSale: number;
@@ -35,9 +35,9 @@ export declare class PosController {
         referenceId?: string;
     }): Promise<{
         id: string;
-        storeId: string;
         createdAt: Date;
         updatedAt: Date;
+        storeId: string;
         staffId: string | null;
         status: import(".prisma/client").$Enums.BillStatus;
         subtotal: number;

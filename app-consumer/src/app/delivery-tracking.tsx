@@ -1,441 +1,287 @@
-import React, { useEffect, useState } from 'react';
-import { StyleSheet, Text, View, SafeAreaView, TouchableOpacity, Image, Dimensions, ScrollView, Modal, TextInput } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { useRouter, useLocalSearchParams } from 'expo-router';
-import { API_BASE_URL, CURRENT_CUSTOMER_ID } from '@/constants/api';
-import Animated, { useSharedValue, useAnimatedStyle, withTiming, withRepeat, Easing, withSequence } from 'react-native-reanimated';
-
+import { useState, useEffect } from 'react';
+import { StyleSheet, Text, View, SafeAreaView, TouchableOpacity, ScrollView, Dimensions, ActivityIndicator } from 'react-native';
 const { width, height } = Dimensions.get('window');
-const MINT_GREEN = '#10b981';
-const ROYAL_BLUE = '#1D4ED8';
-const WHITE = '#FFFFFF';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
+import Animated, { FadeIn, FadeInDown, useSharedValue, useAnimatedStyle, withRepeat, withTiming, withSequence } from 'react-native-reanimated';
+import { Colors, Shadows, Radius } from '../constants/theme';
+import { API_BASE_URL } from '../constants/api';
+
+const MINUTE_MS = 60000;
+
+const STATUS_STEPS = [
+  { id: 'PAYMENT_PENDING', label: 'Order Placed', icon: 'receipt', color: Colors.primary },
+  { id: 'PAID', label: 'Confirmed', icon: 'checkmark-circle', color: Colors.success },
+  { id: 'PICKING', label: 'Packing', icon: 'cube', color: Colors.warning },
+  { id: 'OUT_FOR_DELIVERY', label: 'On the Way', icon: 'bicycle', color: Colors.accent },
+  { id: 'DELIVERED', label: 'Delivered', icon: 'home', color: Colors.success }
+];
 
 export default function DeliveryTrackingScreen() {
+  const { orderId } = useLocalSearchParams();
   const router = useRouter();
-  const params = useLocalSearchParams();
-  const activeOrderId = params.orderId || "mock-order-123";
-
   const [order, setOrder] = useState<any>(null);
-  const driverPosition = useSharedValue(0);
-  const pulseAnim = useSharedValue(1);
-
-  const [chatModalVisible, setChatModalVisible] = useState(false);
-  const [chatMessages, setChatMessages] = useState<any[]>([]);
-  const [chatInput, setChatInput] = useState('');
-
-  const [ratingModalVisible, setRatingModalVisible] = useState(false);
-  const [selectedRating, setSelectedRating] = useState(0);
-
-  const fetchChatMessages = async () => {
-    try {
-      const res = await fetch(`${API_BASE_URL}/orders/${activeOrderId}/messages`);
-      if (res.ok) {
-        const data = await res.json();
-        setChatMessages(data);
-      }
-    } catch(e) {
-      console.error(e);
-    }
-  };
-
-  const sendMessage = async () => {
-    if (!chatInput.trim()) return;
-    try {
-      const res = await fetch(`${API_BASE_URL}/orders/${activeOrderId}/messages`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ senderId: CURRENT_CUSTOMER_ID, text: chatInput.trim() })
-      });
-      if (res.ok) {
-        setChatInput('');
-        fetchChatMessages();
-      }
-    } catch(e) {
-      console.error(e);
-    }
-  };
+  
+  // Animation values
+  const pulseValue = useSharedValue(1);
 
   useEffect(() => {
-    // Fetch order initially and start polling
-    const fetchOrder = async () => {
-      try {
-        const res = await fetch(`${API_BASE_URL}/orders/${activeOrderId}`);
-        if (res.ok) setOrder(await res.json());
-      } catch (e) {
-        console.error(e);
-      }
-    };
-    fetchOrder();
-    const interval = setInterval(fetchOrder, 5000);
-
-    driverPosition.value = withRepeat(
-      withTiming(1, { duration: 4000, easing: Easing.inOut(Easing.ease) }),
+    // Pulse animation for active step
+    pulseValue.value = withRepeat(
+      withSequence(
+        withTiming(1.2, { duration: 1000 }),
+        withTiming(1, { duration: 1000 })
+      ),
       -1,
       true
     );
 
-    return () => clearInterval(interval);
-  }, []);
-
-  useEffect(() => {
-    if (order?.status === 'DELIVERED') {
-      pulseAnim.value = withRepeat(
-        withSequence(
-          withTiming(1.5, { duration: 500 }),
-          withTiming(1, { duration: 500 })
-        ),
-        -1,
-        true
-      );
-      setTimeout(() => {
-        setRatingModalVisible(true);
-      }, 1500); // Small delay before rating pops up
+    if (orderId) {
+      fetchOrder();
+      // Poll every 5s
+      const interval = setInterval(fetchOrder, 5000);
+      return () => clearInterval(interval);
     }
-  }, [order?.status]);
+  }, [orderId]);
 
-  const animatedDriverStyle = useAnimatedStyle(() => {
-    return {
-      transform: [
-        { translateX: driverPosition.value * 150 },
-        { translateY: driverPosition.value * -50 }
-      ]
-    };
-  });
+  const fetchOrder = async () => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/orders/${orderId}`);
+      if (res.ok) {
+        setOrder(await res.json());
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
 
-  const pulseStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: pulseAnim.value }],
-    opacity: pulseAnim.value === 1 ? 1 : 0.6
+  if (!order) {
+    return (
+      <SafeAreaView style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={Colors.primary} style={{ marginBottom: 20 }} />
+        <Text style={styles.loadingText}>Fetching order details...</Text>
+      </SafeAreaView>
+    );
+  }
+
+  const currentStepIndex = STATUS_STEPS.findIndex(s => s.id === order.status);
+  
+  // For 'READY_FOR_PICKUP' it maps to packing essentially for UI
+  let activeIndex = currentStepIndex;
+  if (order.status === 'READY_FOR_PICKUP') activeIndex = 2;
+
+  const activeStepStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: pulseValue.value }],
   }));
 
   return (
-    <View style={styles.container}>
-      {/* Background Map - Fixed Position */}
-      <View style={styles.mapContainer}>
-        <Image 
-          source={{ uri: 'https://i.imgur.com/QkRIfHh.png' }} 
-          style={styles.mockMap} 
-          resizeMode="cover"
-        />
-        
-        <View style={[styles.pin, styles.storePin]}>
-          <Ionicons name="storefront" size={20} color={WHITE} />
-        </View>
-
-        <View style={[styles.pin, styles.customerPin]}>
-          <Ionicons name="home" size={20} color={WHITE} />
-        </View>
-
-        {order?.status !== 'DELIVERED' && (
-          <Animated.View style={[styles.driverPinContainer, animatedDriverStyle]}>
-            <View style={styles.driverPin}>
-              <Ionicons name="bicycle" size={24} color={WHITE} />
-            </View>
-          </Animated.View>
-        )}
-
-        {order?.status === 'DELIVERED' && (
-          <Animated.View style={[styles.pin, styles.customerPin, pulseStyle]}>
-            <Ionicons name="checkmark-done" size={24} color={WHITE} />
-          </Animated.View>
-        )}
+    <SafeAreaView style={styles.container}>
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+          <Ionicons name="arrow-back" size={24} color={Colors.textPrimary} />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Order #{order.id.substring(0, 8).toUpperCase()}</Text>
+        <TouchableOpacity style={styles.helpBtn}>
+          <Text style={styles.helpText}>Help</Text>
+        </TouchableOpacity>
       </View>
 
-      {/* Header Overlay (Fixed) */}
-      <SafeAreaView style={styles.headerOverlay} pointerEvents="box-none">
-        <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
-          <Ionicons name="arrow-back" size={24} color="#1e293b" />
-        </TouchableOpacity>
-        {order?.status !== 'DELIVERED' && (
-          <View style={styles.etaBadge}>
-            <Text style={styles.etaText}>12 min</Text>
-          </View>
-        )}
-      </SafeAreaView>
+      <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false}>
+        {/* Animated Map Area (Mock for now) */}
+        <Animated.View entering={FadeIn} style={styles.mapContainer}>
+          <View style={styles.mockMapBackground}>
+            {/* Store Pin */}
+            <View style={[styles.mapPin, { top: '30%', left: '20%' }]}>
+              <Ionicons name="storefront" size={20} color="#fff" />
+            </View>
+            
+            {/* User Pin */}
+            <View style={[styles.mapPin, { bottom: '30%', right: '20%', backgroundColor: Colors.primary }]}>
+              <Ionicons name="home" size={20} color="#fff" />
+            </View>
 
-      {/* Expandable Scroll View */}
-      <ScrollView 
-        style={StyleSheet.absoluteFill} 
-        showsVerticalScrollIndicator={false}
-        bounces={false}
-      >
-        {/* Transparent Spacer to show the map */}
-        <View style={styles.scrollSpacer} pointerEvents="none" />
-        
-        {/* White Details Card that scrolls UP */}
-        <View style={styles.detailsCard}>
-          {/* Handle Bar */}
-          <View style={styles.handleBarContainer}>
-            <View style={styles.handleBar} />
-          </View>
-
-          <View style={styles.statusHeader}>
-            <Text style={styles.statusTitle}>
-              {order?.status === 'DELIVERED' ? 'Order Delivered!' : (order?.status === 'OUT_FOR_DELIVERY' ? 'Out for Delivery' : 'Preparing Order')}
-            </Text>
-            {order?.status !== 'DELIVERED' && <Text style={styles.statusTime}>Arriving at 10:45 AM</Text>}
+            {/* Delivery Partner Pin (Animated if out for delivery) */}
+            {activeIndex >= 3 && activeIndex < 4 && (
+              <Animated.View style={[styles.mapPin, styles.deliveryPin, activeStepStyle]}>
+                <Ionicons name="bicycle" size={24} color="#fff" />
+              </Animated.View>
+            )}
+            
+            {/* Route dashed line mock */}
+            <View style={styles.mockRouteLine} />
           </View>
           
-          <View style={styles.driverInfo}>
-            <Image source={{ uri: 'https://i.pravatar.cc/150?img=33' }} style={styles.driverAvatar} />
-            <View style={styles.driverText}>
-              <Text style={styles.driverName}>Vikram Singh</Text>
-              <Text style={styles.driverRating}>★ 4.9 (120+ deliveries)</Text>
+          {/* ETA Overlay */}
+          {order.status !== 'DELIVERED' && (
+            <View style={styles.etaOverlay}>
+              <Text style={styles.etaLabel}>Estimated Arrival</Text>
+              <Text style={styles.etaTime}>15-20 Mins</Text>
             </View>
-            <TouchableOpacity style={styles.callBtn}>
-              <Ionicons name="call" size={20} color={WHITE} />
-            </TouchableOpacity>
-          </View>
+          )}
+        </Animated.View>
 
-          <View style={styles.helpSection}>
-            <Text style={styles.helpTitle}>Need help?</Text>
-            <TouchableOpacity style={styles.helpBtn} onPress={() => { setChatModalVisible(true); fetchChatMessages(); }}>
-              <Ionicons name="chatbubble-ellipses-outline" size={20} color="#1e293b" />
-              <Text style={styles.helpBtnText}>Chat with Store / Driver</Text>
-            </TouchableOpacity>
-          </View>
+        {/* Tracking Stepper */}
+        <View style={styles.trackingCard}>
+          <Text style={styles.trackingTitle}>Track Order</Text>
+          
+          <View style={styles.stepperContainer}>
+            {STATUS_STEPS.map((step, index) => {
+              const isCompleted = index < activeIndex;
+              const isActive = index === activeIndex;
+              const isLast = index === STATUS_STEPS.length - 1;
 
-          <View style={styles.progressContainer}>
-            <View style={styles.progressTrack}>
-              <View style={[styles.progressFill, { width: '70%' }]} />
-            </View>
-            <View style={styles.progressLabels}>
-              <Text style={styles.progressLabel}>Picked</Text>
-              <Text style={styles.progressLabel}>On the way</Text>
-              <Text style={styles.progressLabel}>Delivered</Text>
-            </View>
-          </View>
-
-          <View style={styles.divider} />
-
-          <View style={styles.otpBanner}>
-            <View style={{flex: 1}}>
-              <Text style={styles.otpTitle}>Delivery OTP</Text>
-              <Text style={styles.otpSub}>Share this code with the driver to receive your order.</Text>
-            </View>
-            <View style={styles.otpBox}>
-              <Text style={styles.otpCode}>3210</Text>
-            </View>
-          </View>
-
-          <View style={styles.divider} />
-
-          {/* Order Details */}
-          <Text style={styles.sectionTitle}>Order Details</Text>
-          <View style={styles.orderItem}>
-            <View style={styles.qtyBadge}><Text style={styles.qtyBadgeText}>1</Text></View>
-            <Text style={styles.itemName}>Amul Taaza Milk 1L</Text>
-            <Text style={styles.itemPrice}>₹68</Text>
-          </View>
-          <View style={styles.orderItem}>
-            <View style={styles.qtyBadge}><Text style={styles.qtyBadgeText}>2</Text></View>
-            <Text style={styles.itemName}>Maggi 2-Minute Noodles</Text>
-            <Text style={styles.itemPrice}>₹28</Text>
-          </View>
-          <View style={styles.totalRow}>
-            <Text style={styles.totalLabel}>Total Paid</Text>
-            <Text style={styles.totalValue}>₹96</Text>
-          </View>
-
-          <View style={styles.divider} />
-
-          {/* Payment Method */}
-          <Text style={styles.sectionTitle}>Payment Method</Text>
-          <View style={styles.paymentMethod}>
-            <Ionicons name="checkmark-circle" size={24} color={MINT_GREEN} style={{marginRight: 10}} />
-            <Text style={styles.paymentText}>Paid via UPI</Text>
-          </View>
-
-          <View style={styles.divider} />
-
-          {/* Ads & Deals Banner */}
-          <Text style={styles.sectionTitle}>Special Offers for You</Text>
-          <TouchableOpacity style={styles.adBanner} activeOpacity={0.9}>
-            <View style={styles.adContent}>
-              <Text style={styles.adTitle}>Get 50% OFF!</Text>
-              <Text style={styles.adSubtitle}>On your next grocery order.</Text>
-            </View>
-            <Image source={{uri: 'https://via.placeholder.com/150/fbbf24/b45309?text=Deal'}} style={styles.adImage} />
-          </TouchableOpacity>
-
-          {/* Padding at the bottom for scroll clearance */}
-          <View style={{height: 100}} />
-        </View>
-      </ScrollView>
-
-      {/* Chat Modal */}
-      <Modal visible={chatModalVisible} animationType="slide">
-        <SafeAreaView style={styles.chatModalContainer}>
-          <View style={styles.chatHeader}>
-            <Text style={styles.chatTitle}>Chat with Store</Text>
-            <TouchableOpacity onPress={() => setChatModalVisible(false)}>
-              <Ionicons name="close-circle" size={28} color="#64748b" />
-            </TouchableOpacity>
-          </View>
-          <ScrollView style={styles.chatArea}>
-            {chatMessages.map(msg => {
-              const isMe = msg.senderId === CURRENT_CUSTOMER_ID;
               return (
-                <View key={msg.id} style={[styles.msgBubble, isMe ? styles.msgMe : styles.msgThem]}>
-                  <Text style={[styles.msgText, isMe ? styles.msgTextMe : styles.msgTextThem]}>{msg.text}</Text>
-                  <Text style={styles.msgTime}>{new Date(msg.createdAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</Text>
+                <View key={step.id} style={styles.stepRow}>
+                  {/* Icon & Line */}
+                  <View style={styles.stepIconColumn}>
+                    <Animated.View 
+                      style={[
+                        styles.stepIconBox,
+                        isCompleted && { backgroundColor: step.color },
+                        isActive && { backgroundColor: step.color, borderWidth: 4, borderColor: step.color + '40' },
+                        isActive && activeStepStyle
+                      ]}
+                    >
+                      <Ionicons 
+                        name={step.icon as any} 
+                        size={16} 
+                        color={(isCompleted || isActive) ? '#fff' : Colors.textMuted} 
+                      />
+                    </Animated.View>
+                    {!isLast && (
+                      <View style={[styles.stepLine, isCompleted && { backgroundColor: step.color }]} />
+                    )}
+                  </View>
+                  
+                  {/* Text Details */}
+                  <View style={styles.stepTextColumn}>
+                    <Text style={[
+                      styles.stepLabel, 
+                      (isCompleted || isActive) && { color: Colors.textPrimary, fontFamily: 'Inter_700Bold' }
+                    ]}>
+                      {step.label}
+                    </Text>
+                    {isActive && (
+                      <Text style={styles.stepSubLabel}>
+                        {index === 0 && 'We have received your order'}
+                        {index === 1 && 'Store has confirmed your order'}
+                        {index === 2 && 'Your items are being packed carefully'}
+                        {index === 3 && 'Delivery partner is on the way'}
+                        {index === 4 && 'Enjoy your groceries!'}
+                      </Text>
+                    )}
+                  </View>
                 </View>
               );
             })}
-          </ScrollView>
-          <View style={styles.chatInputArea}>
-            <TextInput 
-              style={styles.chatInput} 
-              placeholder="Type a message..." 
-              value={chatInput} 
-              onChangeText={setChatInput}
-            />
-            <TouchableOpacity style={styles.chatSendBtn} onPress={sendMessage}>
-              <Ionicons name="send" size={20} color={WHITE} />
-            </TouchableOpacity>
-          </View>
-        </SafeAreaView>
-      </Modal>
-
-      {/* Rating Modal */}
-      <Modal visible={ratingModalVisible} transparent animationType="fade">
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.ratingIconCircle}>
-              <Ionicons name="star" size={32} color="#f59e0b" />
-            </View>
-            <Text style={styles.modalTitle}>Rate Delivery</Text>
-            <Text style={styles.modalSub}>How was your experience with Vikram?</Text>
-            
-            <View style={styles.starsContainer}>
-              {[1, 2, 3, 4, 5].map(star => (
-                <TouchableOpacity key={star} onPress={() => setSelectedRating(star)}>
-                  <Ionicons 
-                    name={star <= selectedRating ? "star" : "star-outline"} 
-                    size={36} 
-                    color={star <= selectedRating ? "#f59e0b" : "#cbd5e1"} 
-                  />
-                </TouchableOpacity>
-              ))}
-            </View>
-
-            <View style={styles.modalActions}>
-              <TouchableOpacity style={styles.modalBtnCancel} onPress={() => {
-                setRatingModalVisible(false);
-                router.replace('/');
-              }}>
-                <Text style={styles.modalBtnCancelText}>Skip</Text>
-              </TouchableOpacity>
-              <TouchableOpacity 
-                style={[styles.modalBtnConfirm, selectedRating === 0 && { opacity: 0.5 }]} 
-                disabled={selectedRating === 0}
-                onPress={() => {
-                  setRatingModalVisible(false);
-                  router.replace('/');
-                }}
-              >
-                <Text style={styles.modalBtnConfirmText}>Submit</Text>
-              </TouchableOpacity>
-            </View>
           </View>
         </View>
-      </Modal>
-    </View>
+
+        {/* Delivery OTP details */}
+        {order.requireOtp && order.status !== 'DELIVERED' && (
+          <Animated.View entering={FadeInDown.delay(200)} style={styles.otpCard}>
+            <View style={styles.otpLeft}>
+              <Ionicons name="shield-checkmark" size={24} color={Colors.success} />
+              <View>
+                <Text style={styles.otpTitle}>Delivery OTP</Text>
+                <Text style={styles.otpDesc}>Share with partner</Text>
+              </View>
+            </View>
+            <View style={styles.otpCodeBox}>
+              <Text style={styles.otpCode}>{order.customer?.phone?.slice(-4) || '1234'}</Text>
+            </View>
+          </Animated.View>
+        )}
+
+        {/* Order Details Preview */}
+        <Animated.View entering={FadeInDown.delay(300)} style={styles.detailsCard}>
+          <View style={styles.detailsHeader}>
+            <Text style={styles.detailsTitle}>Order Items</Text>
+            <Text style={styles.detailsCount}>{order.items.length} items</Text>
+          </View>
+          
+          <View style={styles.itemsPreview}>
+            {order.items.slice(0, 3).map((item: any, idx: number) => (
+              <View key={item.id} style={styles.itemRow}>
+                <Text style={styles.itemQty}>{item.quantity}x</Text>
+                <Text style={styles.itemName} numberOfLines={1}>{item.product?.name}</Text>
+                <Text style={styles.itemPrice}>₹{(item.quantity * item.priceAtOrder).toFixed(2)}</Text>
+              </View>
+            ))}
+            {order.items.length > 3 && (
+              <Text style={styles.moreItemsText}>+ {order.items.length - 3} more items</Text>
+            )}
+          </View>
+          
+          <View style={styles.divider} />
+          
+          <View style={styles.totalRow}>
+            <Text style={styles.totalLabel}>Total Paid</Text>
+            <Text style={styles.totalValue}>₹{(order.totalAmount + order.deliveryFee).toFixed(2)}</Text>
+          </View>
+        </Animated.View>
+
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f3f4f6' },
-  mapContainer: { position: 'absolute', top: 0, left: 0, right: 0, height: height * 0.5 },
-  mockMap: { width: '100%', height: '100%', opacity: 0.8 },
-  headerOverlay: { position: 'absolute', top: 0, left: 0, right: 0, flexDirection: 'row', justifyContent: 'space-between', padding: 20, zIndex: 10 },
-  backBtn: { backgroundColor: WHITE, width: 44, height: 44, borderRadius: 22, justifyContent: 'center', alignItems: 'center', shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 10, elevation: 5 },
-  etaBadge: { backgroundColor: '#1e293b', paddingHorizontal: 15, paddingVertical: 10, borderRadius: 20, justifyContent: 'center' },
-  etaText: { color: WHITE, fontFamily: 'Inter_700Bold', fontSize: 16 },
-  pin: { position: 'absolute', width: 40, height: 40, borderRadius: 20, justifyContent: 'center', alignItems: 'center', shadowColor: '#000', shadowOpacity: 0.3, shadowRadius: 5, elevation: 5 },
-  storePin: { backgroundColor: ROYAL_BLUE, top: '40%', left: '20%' },
-  customerPin: { backgroundColor: MINT_GREEN, top: '25%', right: '20%' },
-  driverPinContainer: { position: 'absolute', top: '40%', left: '20%' },
-  driverPin: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#f59e0b', justifyContent: 'center', alignItems: 'center', shadowColor: '#000', shadowOpacity: 0.3, shadowRadius: 5, elevation: 5 },
+  container: { flex: 1, backgroundColor: Colors.bg },
+  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: Colors.bg },
+  loadingText: { marginTop: 20, fontSize: 16, fontFamily: 'Inter_500Medium', color: Colors.textSecondary },
   
-  scrollSpacer: { height: height * 0.4 }, // Expose the map
-  detailsCard: { backgroundColor: WHITE, borderTopLeftRadius: 30, borderTopRightRadius: 30, padding: 25, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 20, elevation: 15, minHeight: height * 0.7 },
-  handleBarContainer: { alignItems: 'center', marginBottom: 20, marginTop: -10 },
-  handleBar: { width: 40, height: 5, borderRadius: 3, backgroundColor: '#cbd5e1' },
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 16, backgroundColor: Colors.surface, borderBottomWidth: 1, borderBottomColor: Colors.borderLight },
+  backBtn: { padding: 4 },
+  headerTitle: { fontSize: 18, fontFamily: 'PlayfairDisplay_700Bold', color: Colors.textPrimary },
+  helpBtn: { padding: 4 },
+  helpText: { fontSize: 14, fontFamily: 'Inter_600SemiBold', color: Colors.primary },
   
-  statusHeader: { marginBottom: 20 },
-  statusTitle: { fontSize: 24, fontFamily: 'PlayfairDisplay_700Bold', color: '#0f172a' },
-  statusTime: { fontSize: 15, fontFamily: 'Inter_400Regular', color: '#64748b', marginTop: 4 },
+  scroll: { flex: 1 },
   
-  driverInfo: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#f8fafc', padding: 15, borderRadius: 16, marginBottom: 25 },
-  driverAvatar: { width: 50, height: 50, borderRadius: 25, marginRight: 15 },
-  driverText: { flex: 1 },
-  driverName: { fontSize: 16, fontFamily: 'Inter_600SemiBold', color: '#1e293b' },
-  driverRating: { fontSize: 13, fontFamily: 'Inter_500Medium', color: '#64748b', marginTop: 2 },
-  callBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: MINT_GREEN, justifyContent: 'center', alignItems: 'center' },
+  mapContainer: { height: height * 0.35, backgroundColor: '#e2e8f0', position: 'relative' },
+  mockMapBackground: { flex: 1, backgroundColor: '#cbd5e1' }, // Placeholder for actual map
+  mapPin: { position: 'absolute', width: 36, height: 36, borderRadius: 18, backgroundColor: Colors.textPrimary, justifyContent: 'center', alignItems: 'center', ...Shadows.md, zIndex: 10 },
+  deliveryPin: { width: 44, height: 44, borderRadius: 22, backgroundColor: Colors.accent, top: '45%', left: '45%', zIndex: 20 },
+  mockRouteLine: { position: 'absolute', top: '35%', left: '25%', right: '25%', height: 4, borderTopWidth: 4, borderColor: Colors.primary, borderStyle: 'dashed', opacity: 0.5, transform: [{ rotate: '15deg' }] },
   
-  helpSection: { marginBottom: 25 },
-  helpTitle: { fontSize: 14, fontFamily: 'Inter_600SemiBold', color: '#64748b', marginBottom: 8 },
-  helpBtn: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: '#f1f5f9', padding: 15, borderRadius: 12 },
-  helpBtnText: { fontSize: 16, fontFamily: 'Inter_600SemiBold', color: '#1e293b' },
-
-  progressContainer: { marginBottom: 20 },
-  progressTrack: { height: 6, backgroundColor: '#e2e8f0', borderRadius: 3, marginBottom: 10 },
-  progressFill: { height: '100%', backgroundColor: MINT_GREEN, borderRadius: 3 },
-  progressLabels: { flexDirection: 'row', justifyContent: 'space-between' },
-  progressLabel: { fontSize: 12, fontFamily: 'Inter_500Medium', color: '#64748b' },
-
-  otpBanner: { flexDirection: 'row', backgroundColor: '#eff6ff', padding: 20, borderRadius: 16, alignItems: 'center' },
-  otpTitle: { fontSize: 16, fontFamily: 'Inter_700Bold', color: ROYAL_BLUE, marginBottom: 4 },
-  otpSub: { fontSize: 13, fontFamily: 'Inter_500Medium', color: '#3b82f6', paddingRight: 20 },
-  otpBox: { backgroundColor: WHITE, paddingHorizontal: 15, paddingVertical: 10, borderRadius: 8, shadowColor: ROYAL_BLUE, shadowOpacity: 0.1, shadowRadius: 5, elevation: 2 },
-  otpCode: { fontSize: 22, fontFamily: 'Inter_700Bold', color: ROYAL_BLUE, letterSpacing: 2 },
-
-  divider: { height: 1, backgroundColor: '#e2e8f0', marginVertical: 20 },
+  etaOverlay: { position: 'absolute', bottom: -20, left: 20, right: 20, backgroundColor: Colors.surface, borderRadius: Radius.lg, padding: 16, alignItems: 'center', ...Shadows.lg },
+  etaLabel: { fontSize: 12, fontFamily: 'Inter_600SemiBold', color: Colors.textSecondary, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 4 },
+  etaTime: { fontSize: 24, fontFamily: 'Inter_700Bold', color: Colors.textPrimary },
   
-  sectionTitle: { fontSize: 18, fontFamily: 'Inter_700Bold', color: '#1e293b', marginBottom: 15 },
+  trackingCard: { backgroundColor: Colors.surface, marginTop: 40, marginHorizontal: 20, borderRadius: Radius.lg, padding: 20, ...Shadows.sm },
+  trackingTitle: { fontSize: 18, fontFamily: 'Inter_700Bold', color: Colors.textPrimary, marginBottom: 20 },
   
-  orderItem: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
-  qtyBadge: { width: 24, height: 24, borderRadius: 12, backgroundColor: '#f1f5f9', justifyContent: 'center', alignItems: 'center', marginRight: 12 },
-  qtyBadgeText: { fontSize: 12, fontFamily: 'Inter_700Bold', color: '#64748b' },
-  itemName: { flex: 1, fontSize: 15, fontFamily: 'Inter_500Medium', color: '#334155' },
-  itemPrice: { fontSize: 15, fontFamily: 'Inter_600SemiBold', color: '#1e293b' },
+  stepperContainer: {},
+  stepRow: { flexDirection: 'row', minHeight: 60 },
+  stepIconColumn: { alignItems: 'center', width: 40, marginRight: 16 },
+  stepIconBox: { width: 32, height: 32, borderRadius: 16, backgroundColor: Colors.surfaceAlt, justifyContent: 'center', alignItems: 'center', zIndex: 2 },
+  stepLine: { width: 2, flex: 1, backgroundColor: Colors.surfaceAlt, marginVertical: -4, zIndex: 1 },
+  stepTextColumn: { flex: 1, paddingBottom: 24 },
+  stepLabel: { fontSize: 16, fontFamily: 'Inter_500Medium', color: Colors.textSecondary, marginBottom: 4 },
+  stepSubLabel: { fontSize: 13, fontFamily: 'Inter_400Regular', color: Colors.textMuted, lineHeight: 18 },
   
-  totalRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 10, paddingTop: 10, borderTopWidth: 1, borderTopColor: '#f1f5f9' },
-  totalLabel: { fontSize: 16, fontFamily: 'Inter_600SemiBold', color: '#1e293b' },
-  totalValue: { fontSize: 18, fontFamily: 'Inter_700Bold', color: '#0f172a' },
+  otpCard: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: Colors.surface, marginHorizontal: 20, marginTop: 16, padding: 16, borderRadius: Radius.lg, ...Shadows.sm },
+  otpLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  otpTitle: { fontSize: 15, fontFamily: 'Inter_700Bold', color: Colors.textPrimary },
+  otpDesc: { fontSize: 12, fontFamily: 'Inter_500Medium', color: Colors.textSecondary },
+  otpCodeBox: { backgroundColor: Colors.successLight, paddingHorizontal: 16, paddingVertical: 8, borderRadius: Radius.md },
+  otpCode: { fontSize: 20, fontFamily: 'Inter_700Bold', color: Colors.successDark, letterSpacing: 2 },
   
-  paymentMethod: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#f8fafc', padding: 15, borderRadius: 12 },
-  paymentText: { fontSize: 15, fontFamily: 'Inter_500Medium', color: '#334155' },
-
-  adBanner: { flexDirection: 'row', backgroundColor: '#fef3c7', borderRadius: 16, padding: 20, alignItems: 'center', overflow: 'hidden' },
-  adContent: { flex: 1, marginRight: 15 },
-  adTitle: { fontSize: 20, fontFamily: 'PlayfairDisplay_700Bold', color: '#b45309', marginBottom: 5 },
-  adSubtitle: { fontSize: 13, fontFamily: 'Inter_500Medium', color: '#92400e', lineHeight: 18 },
-
-  chatModalContainer: { flex: 1, backgroundColor: '#f8fafc' },
-  chatHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 20, paddingTop: 60, backgroundColor: WHITE, borderBottomWidth: 1, borderBottomColor: '#e2e8f0' },
-  chatTitle: { fontSize: 18, fontFamily: 'Inter_700Bold', color: '#0f172a' },
-  chatArea: { flex: 1, padding: 15 },
-  msgBubble: { padding: 12, borderRadius: 16, maxWidth: '80%', marginBottom: 10 },
-  msgMe: { backgroundColor: ROYAL_BLUE, alignSelf: 'flex-end', borderBottomRightRadius: 4 },
-  msgThem: { backgroundColor: WHITE, alignSelf: 'flex-start', borderBottomLeftRadius: 4, borderWidth: 1, borderColor: '#e2e8f0' },
-  msgText: { fontSize: 14, fontFamily: 'Inter_400Regular' },
-  msgTextMe: { color: WHITE },
-  msgTextThem: { color: '#334155' },
-  msgTime: { fontSize: 10, fontFamily: 'Inter_500Medium', color: '#94a3b8', marginTop: 4, alignSelf: 'flex-end' },
-  chatInputArea: { flexDirection: 'row', padding: 15, backgroundColor: WHITE, borderTopWidth: 1, borderTopColor: '#e2e8f0', alignItems: 'center', gap: 10 },
-  chatInput: { flex: 1, backgroundColor: '#f1f5f9', borderRadius: 20, paddingHorizontal: 15, paddingVertical: 12, fontSize: 14, fontFamily: 'Inter_400Regular' },
-  chatSendBtn: { backgroundColor: ROYAL_BLUE, width: 44, height: 44, borderRadius: 22, justifyContent: 'center', alignItems: 'center' },
-
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', padding: 20 },
-  modalContent: { backgroundColor: WHITE, borderRadius: 24, padding: 30, alignItems: 'center', shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 20, elevation: 10 },
-  ratingIconCircle: { width: 64, height: 64, borderRadius: 32, backgroundColor: '#fef3c7', justifyContent: 'center', alignItems: 'center', marginBottom: 20 },
-  modalTitle: { fontSize: 22, fontFamily: 'Inter_700Bold', color: '#0f172a', marginBottom: 10, textAlign: 'center' },
-  modalSub: { fontSize: 15, fontFamily: 'Inter_400Regular', color: '#64748b', marginBottom: 25, textAlign: 'center' },
-  starsContainer: { flexDirection: 'row', gap: 10, marginBottom: 30 },
-  modalActions: { flexDirection: 'row', gap: 15, width: '100%' },
-  modalBtnCancel: { flex: 1, padding: 16, borderRadius: 12, backgroundColor: '#f1f5f9', alignItems: 'center' },
-  modalBtnCancelText: { color: '#64748b', fontSize: 16, fontFamily: 'Inter_600SemiBold' },
-  modalBtnConfirm: { flex: 1, padding: 16, borderRadius: 12, backgroundColor: MINT_GREEN, alignItems: 'center' },
-  modalBtnConfirmText: { color: WHITE, fontSize: 16, fontFamily: 'Inter_600SemiBold' },
+  detailsCard: { backgroundColor: Colors.surface, marginHorizontal: 20, marginTop: 16, marginBottom: 40, borderRadius: Radius.lg, padding: 20, ...Shadows.sm },
+  detailsHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
+  detailsTitle: { fontSize: 16, fontFamily: 'Inter_700Bold', color: Colors.textPrimary },
+  detailsCount: { fontSize: 13, fontFamily: 'Inter_500Medium', color: Colors.textSecondary },
+  
+  itemsPreview: { gap: 12 },
+  itemRow: { flexDirection: 'row', alignItems: 'center' },
+  itemQty: { width: 30, fontSize: 14, fontFamily: 'Inter_600SemiBold', color: Colors.primary },
+  itemName: { flex: 1, fontSize: 14, fontFamily: 'Inter_500Medium', color: Colors.textPrimary, paddingRight: 10 },
+  itemPrice: { fontSize: 14, fontFamily: 'Inter_600SemiBold', color: Colors.textPrimary },
+  moreItemsText: { fontSize: 13, fontFamily: 'Inter_500Medium', color: Colors.textMuted, marginTop: 4 },
+  
+  divider: { height: 1, backgroundColor: Colors.borderLight, marginVertical: 16, borderStyle: 'dashed' },
+  totalRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  totalLabel: { fontSize: 15, fontFamily: 'Inter_600SemiBold', color: Colors.textSecondary },
+  totalValue: { fontSize: 18, fontFamily: 'Inter_700Bold', color: Colors.textPrimary },
 });

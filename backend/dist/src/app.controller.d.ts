@@ -14,10 +14,37 @@ export declare class AppController {
         operatingRadiusKm: number;
         gstin: string | null;
         isActive: boolean;
+        imageUrl: string | null;
+        operatingHours: string | null;
+        rating: number;
+        description: string | null;
         createdAt: Date;
         updatedAt: Date;
         bankAccountNumber: string | null;
         bankRoutingNumber: string | null;
         taxId: string | null;
     } | null>;
+    getNearbyStores(lat: string, lng: string, radiusKm?: string): Promise<{
+        distanceKm: number;
+        id: string;
+        name: string;
+        location: string | null;
+        latitude: number | null;
+        longitude: number | null;
+        operatingRadiusKm: number;
+        gstin: string | null;
+        isActive: boolean;
+        imageUrl: string | null;
+        operatingHours: string | null;
+        rating: number;
+        description: string | null;
+        createdAt: Date;
+        updatedAt: Date;
+        bankAccountNumber: string | null;
+        bankRoutingNumber: string | null;
+        taxId: string | null;
+    }[] | {
+        error: string;
+    }>;
+    private haversine;
 }
