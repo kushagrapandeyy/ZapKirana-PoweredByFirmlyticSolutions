@@ -13,13 +13,15 @@ const app_service_1 = require("./app.service");
 const inventory_module_1 = require("./inventory/inventory.module");
 const products_module_1 = require("./products/products.module");
 const pos_module_1 = require("./pos/pos.module");
+const orders_module_1 = require("./orders/orders.module");
+const suppliers_module_1 = require("./suppliers/suppliers.module");
 const prisma_service_1 = require("./prisma.service");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
 exports.AppModule = AppModule = __decorate([
     (0, common_1.Module)({
-        imports: [inventory_module_1.InventoryModule, products_module_1.ProductsModule, pos_module_1.PosModule],
+        imports: [inventory_module_1.InventoryModule, products_module_1.ProductsModule, pos_module_1.PosModule, orders_module_1.OrdersModule, suppliers_module_1.SuppliersModule],
         controllers: [app_controller_1.AppController],
         providers: [app_service_1.AppService, prisma_service_1.PrismaService],
     })

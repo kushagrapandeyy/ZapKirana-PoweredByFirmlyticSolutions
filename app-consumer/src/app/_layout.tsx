@@ -4,6 +4,7 @@ import { CartProvider } from '../context/CartContext';
 import { useFonts, PlayfairDisplay_700Bold } from '@expo-google-fonts/playfair-display';
 import { Inter_400Regular, Inter_600SemiBold, Inter_700Bold } from '@expo-google-fonts/inter';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import Toast from 'react-native-toast-message';
 
 export default function RootLayout() {
   const [fontsLoaded] = useFonts({
@@ -42,7 +43,7 @@ export default function RootLayout() {
 
   return (
     <CartProvider>
-      <Stack screenOptions={{ headerShown: false }}>
+      <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: '#f8fafc' } }}>
         <Stack.Screen name="onboarding" />
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="product/[id]" />
@@ -51,6 +52,7 @@ export default function RootLayout() {
         <Stack.Screen name="order-confirmation" options={{ gestureEnabled: false }} />
         <Stack.Screen name="delivery-tracking" />
       </Stack>
+      <Toast />
     </CartProvider>
   );
 }

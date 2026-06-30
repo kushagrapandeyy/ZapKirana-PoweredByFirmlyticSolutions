@@ -23,7 +23,7 @@ export default function DashboardScreen() {
         const res = await fetch(`${API_BASE_URL}/inventory/ledger?storeId=${CURRENT_STORE_ID}`);
         if (res.ok) {
           const data = await res.json();
-          setLedger(data);
+          if (Array.isArray(data)) setLedger(data);
         }
       } catch (err) {
         console.error('Failed to fetch ledger:', err);

@@ -36,6 +36,11 @@ export default function InventoryScreen() {
       const res = await fetch(`${API_BASE_URL}/products?storeId=${CURRENT_STORE_ID}`);
       const products = await res.json();
       
+      if (!Array.isArray(products)) {
+        console.error('Invalid products response:', products);
+        return;
+      }
+      
       const inventoryData = await Promise.all(products.map(async (p: any) => {
         const stockRes = await fetch(`${API_BASE_URL}/inventory/${p.id}/available?storeId=${CURRENT_STORE_ID}`);
         const stockData = await stockRes.json();
@@ -43,7 +48,7 @@ export default function InventoryScreen() {
           id: p.id,
           name: p.name,
           price: p.sellingPrice,
-          stock: stockData.available,
+          stock: stockData.available || 0,
         };
       }));
       setInventory(inventoryData);

@@ -15,10 +15,12 @@ model User {
   role      Role     @default(CUSTOMER)
   storeId   String?
   store     Store?   @relation(fields: [storeId], references: [id])
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  movements StockMovement[]
-  posBills  PosBill[]
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  movements      StockMovement[]
+  posBills       PosBill[]
+  customerOrders Order[] @relation("CustomerOrders")
+  staffOrders    Order[] @relation("StaffOrders")
 }
 
 enum Role {
@@ -41,6 +43,8 @@ model Store {
   inventory   Inventory[]
   movements   StockMovement[]
   posBills    PosBill[]
+  orders      Order[]
+  supplierConnections StoreSupplierConnection[]
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }
@@ -63,6 +67,7 @@ model Product {
   inventory      Inventory[]
   movements      StockMovement[]
   posBillItems   PosBillItem[]
+  orderItems     OrderItem[]
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
@@ -172,4 +177,75 @@ model PosPayment {
   method        PaymentMethod
   referenceId   String?
   createdAt     DateTime      @default(now())
+}
+
+// -----------------------------------------------------
+// Sprint 3: Consumer Orders & Supplier Network
+// -----------------------------------------------------
+
+enum OrderStatus {
+  PAYMENT_PENDING
+  PAID
+  PICKING
+  READY_FOR_PICKUP
+  DELIVERED
+  CANCELLED
+}
+
+model Order {
+  id          String        @id @default(uuid())
+  storeId     String
+  store       Store         @relation(fields: [storeId], references: [id])
+  customerId  String
+  customer    User          @relation("CustomerOrders", fields: [customerId], references: [id])
+  staffId     String?       // Picker
+  staff       User?         @relation("StaffOrders", fields: [staffId], references: [id])
+  status      OrderStatus   @default(PAYMENT_PENDING)
+  totalAmount Float         @default(0)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  items       OrderItem[]
+}
+
+model OrderItem {
+  id           String   @id @default(uuid())
+  orderId      String
+  order        Order    @relation(fields: [orderId], references: [id])
+  productId    String
+  product      Product  @relation(fields: [productId], references: [id])
+  quantity     Int
+  priceAtOrder Float
+}
+
+model Supplier {
+  id           String   @id @default(uuid())
+  name         String
+  contactEmail String?
+  contactPhone String?
+  categories   String?  // comma separated or JSON
+  rating       Float    @default(5.0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  storeConnections StoreSupplierConnection[]
+}
+
+enum ConnectionStatus {
+  PENDING
+  CONNECTED
+  REJECTED
+}
+
+model StoreSupplierConnection {
+  id         String           @id @default(uuid())
+  storeId    String
+  store      Store            @relation(fields: [storeId], references: [id])
+  supplierId String
+  supplier   Supplier         @relation(fields: [supplierId], references: [id])
+  status     ConnectionStatus @default(PENDING)
+  createdAt  DateTime         @default(now())
+  updatedAt  DateTime         @updatedAt
+
+  @@unique([storeId, supplierId])
 }
