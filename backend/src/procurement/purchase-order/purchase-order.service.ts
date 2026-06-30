@@ -84,7 +84,7 @@ export class PurchaseOrderService {
     const po = await this.getPOById(id);
 
     let itemRows = '';
-    po.items.forEach((item, idx) => {
+    po.items.forEach((item: any, idx: number) => {
       itemRows += `
         <tr>
           <td>${idx + 1}</td>
