@@ -8,29 +8,68 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
+model Organization {
+  id          String   @id @default(uuid())
+  name        String
+  legalName   String?
+  gstin       String?
+  pan         String?
+  plan        String   @default("FREE")
+  status      String   @default("ACTIVE")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  users          User[]
+  stores         Store[]
+  userStoreRoles UserStoreRole[]
+}
+
+model UserStoreRole {
+  id             String   @id @default(uuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  storeId        String
+  store          Store    @relation(fields: [storeId], references: [id])
+  userId         String
+  user           User     @relation(fields: [userId], references: [id])
+  role           Role
+  permissionsJson Json?
+  status         String   @default("ACTIVE")
+  
+  @@unique([storeId, userId])
+}
+
 model User {
-  id        String   @id @default(uuid())
-  email     String   @unique
-  password  String?
-  name      String?
-  phone     String?  @unique
-  role      Role     @default(CUSTOMER)
-  storeId   String?
-  store     Store?   @relation(fields: [storeId], references: [id])
-  avatarUrl String?
-  isVerified Boolean @default(false)
-  pushToken  String?  // Expo push notification token
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-  movements      StockMovement[]
-  posBills       PosBill[]
-  customerOrders Order[] @relation("CustomerOrders")
-  staffOrders    Order[] @relation("StaffOrders")
-  sentMessages   OrderMessage[] @relation("SentMessages")
-  audits         AuditLog[] @relation("UserAudits")
-  savedAddresses SavedAddress[]
-  subscriptions  Subscription[]
-  otpCodes       OtpCode[]
+  id             String        @id @default(uuid())
+  organizationId String?
+  organization   Organization? @relation(fields: [organizationId], references: [id])
+  email          String        @unique
+  password       String?
+  name           String?
+  phone          String?       @unique
+  role           Role          @default(CUSTOMER)
+  storeId        String?
+  store          Store?        @relation(fields: [storeId], references: [id])
+  avatarUrl      String?
+  isVerified     Boolean       @default(false)
+  pushToken      String?  // Expo push notification token
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  
+  storeRoles            UserStoreRole[]
+  movements             StockMovement[]
+  posBills              PosBill[]
+  customerOrders        Order[]          @relation("CustomerOrders")
+  staffOrders           Order[]          @relation("StaffOrders")
+  sentMessages          OrderMessage[]   @relation("SentMessages")
+  audits                AuditLog[]       @relation("UserAudits")
+  savedAddresses        SavedAddress[]
+  subscriptions         Subscription[]
+  otpCodes              OtpCode[]
+  assignedDevices       ScannerDevice[]  @relation("AssignedDevices")
+  scannerEvents         ScannerEvent[]   @relation("ScannedByUser")
+  printJobs             PrintJob[]       @relation("PrintJobs")
+  pendingProductsCreated PendingProduct[] @relation("CreatedPendingProducts")
 }
 
 enum Role {
@@ -40,6 +79,9 @@ enum Role {
   STAFF
   DELIVERY
   CUSTOMER
+  SCANNER_STAFF
+  POS_CASHIER
+  ORG_ADMIN
 }
 
 model OtpCode {
@@ -73,26 +115,35 @@ model SavedAddress {
 }
 
 model Store {
-  id          String   @id @default(uuid())
-  name        String
-  location    String?
-  latitude    Float?
-  longitude   Float?
+  id                String   @id @default(uuid())
+  organizationId    String?
+  organization      Organization? @relation(fields: [organizationId], references: [id])
+  name              String
+  location          String?
+  latitude          Float?
+  longitude         Float?
   operatingRadiusKm Float @default(3.0)
-  gstin       String?
-  isActive    Boolean  @default(true)
-  imageUrl    String?
-  operatingHours String? // JSON: {"mon": {"open": "08:00", "close": "22:00"}, ...}
-  rating      Float    @default(4.5)
-  description String?
-  users       User[]
-  products    Product[]
-  inventory   Inventory[]
-  movements   StockMovement[]
-  posBills    PosBill[]
-  orders      Order[]
+  gstin             String?
+  isActive          Boolean  @default(true)
+  imageUrl          String?
+  operatingHours    String? // JSON: {"mon": {"open": "08:00", "close": "22:00"}, ...}
+  rating            Float    @default(4.5)
+  description       String?
+  users               User[]
+  userRoles           UserStoreRole[]
+  products            Product[]
+  inventory           Inventory[]
+  movements           StockMovement[]
+  posBills            PosBill[]
+  orders              Order[]
   supplierConnections StoreSupplierConnection[]
-  subscriptions Subscription[]
+  subscriptions       Subscription[]
+  scannerDevices      ScannerDevice[]
+  scannerEvents       ScannerEvent[]
+  payments            Payment[]
+  barcodeRegistry     BarcodeRegistry[]
+  printJobs           PrintJob[]
+  pendingProducts     PendingProduct[]
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -132,12 +183,13 @@ model Product {
   gstClass       GSTClass @default(EXEMPT)
   imageUrl       String?
   isActive       Boolean  @default(true)
-  inventory      Inventory[]
-  movements      StockMovement[]
-  posBillItems   PosBillItem[]
-  orderItems     OrderItem[]
+  inventory          Inventory[]
+  movements          StockMovement[]
+  posBillItems       PosBillItem[]
+  orderItems         OrderItem[]
   purchaseOrderItems PurchaseOrderItem[]
-  supplierProducts SupplierProduct[]
+  supplierProducts   SupplierProduct[]
+  barcodeRegistry    BarcodeRegistry[]
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
@@ -502,3 +554,231 @@ model GSTCategoryRule {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
+
+// -----------------------------------------------------
+// Scanner Engine
+// -----------------------------------------------------
+
+enum DeviceType {
+  ANDROID_PHONE
+  BLUETOOTH_SCANNER
+  USB_HID_SCANNER
+  POS_TERMINAL
+  WEB_SCANNER
+}
+
+enum DeviceStatus {
+  ACTIVE
+  INACTIVE
+  DECOMMISSIONED
+}
+
+model ScannerDevice {
+  id           String       @id @default(uuid())
+  storeId      String
+  store        Store        @relation(fields: [storeId], references: [id])
+  deviceName   String
+  deviceType   DeviceType   @default(ANDROID_PHONE)
+  assignedToId String?
+  assignedTo   User?        @relation("AssignedDevices", fields: [assignedToId], references: [id])
+  lastSeenAt   DateTime?
+  status       DeviceStatus @default(ACTIVE)
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+  events       ScannerEvent[]
+
+  @@index([storeId, status])
+}
+
+enum ScannerWorkflow {
+  GOODS_RECEIVING
+  STOCK_AUDIT
+  PRODUCT_INTAKE
+  LOOSE_ITEM_PACKING
+  ORDER_PICKING
+  SHELF_REFILL
+  DAMAGED_EXPIRED
+  LABEL_REPRINT
+  POS_BILLING
+}
+
+enum ScanResolutionStatus {
+  FOUND
+  UNKNOWN_BARCODE
+  INTERNAL_BARCODE
+  OPERATIONAL_BARCODE
+  ERROR
+}
+
+model ScannerEvent {
+  id               String               @id @default(uuid())
+  storeId          String
+  store            Store                @relation(fields: [storeId], references: [id])
+  deviceId         String?
+  device           ScannerDevice?       @relation(fields: [deviceId], references: [id])
+  scannedById      String?
+  scannedBy        User?                @relation("ScannedByUser", fields: [scannedById], references: [id])
+  workflow         ScannerWorkflow
+  rawValue         String
+  symbology        String?
+  parsedJson       Json?
+  resolutionStatus ScanResolutionStatus @default(FOUND)
+  idempotencyKey   String               @unique
+  quantity         Int?
+  metadata         Json?
+  createdAt        DateTime             @default(now())
+
+  @@index([storeId, workflow, createdAt])
+  @@index([storeId, createdAt])
+}
+
+// -----------------------------------------------------
+// Razorpay Payments
+// -----------------------------------------------------
+
+enum PaymentProvider {
+  RAZORPAY
+  CASH
+  MANUAL
+}
+
+enum PaymentStatus {
+  PENDING
+  SUCCESS
+  FAILED
+  REFUNDED
+  CANCELLED
+}
+
+enum PaymentSource {
+  POS_BILL
+  ONLINE_ORDER
+}
+
+model Payment {
+  id                String          @id @default(uuid())
+  storeId           String
+  store             Store           @relation(fields: [storeId], references: [id])
+  source            PaymentSource
+  billId            String?         // PosBill reference (for POS payments)
+  orderId           String?         // Order reference (for online orders)
+  provider          PaymentProvider @default(RAZORPAY)
+  providerOrderId   String?         // razorpay_order_id
+  providerPaymentId String?         // razorpay_payment_id
+  providerQrId      String?         // razorpay_qr_id
+  amount            Float
+  currency          String          @default("INR")
+  method            String?         // upi, card, netbanking, etc.
+  status            PaymentStatus   @default(PENDING)
+  paidAt            DateTime?
+  createdAt         DateTime        @default(now())
+  events            PaymentEvent[]
+
+  @@index([storeId, status, createdAt])
+  @@index([billId])
+  @@index([orderId])
+  @@index([providerOrderId])
+}
+
+model PaymentEvent {
+  id             String   @id @default(uuid())
+  paymentId      String
+  payment        Payment  @relation(fields: [paymentId], references: [id])
+  provider       String
+  eventType      String
+  payloadJson    Json
+  signatureValid Boolean  @default(false)
+  processedAt    DateTime?
+  receivedAt     DateTime @default(now())
+
+  @@index([paymentId])
+}
+
+// -----------------------------------------------------
+// Barcode Registry & Label Service
+// -----------------------------------------------------
+
+enum BarcodeScope {
+  GS1_EXTERNAL_PRODUCT   // EAN-13 / GTIN — manufacturer barcode
+  INTERNAL_FIXED_PACK    // e.g. BK01DALT1000 — internal fixed-weight
+  INTERNAL_VARIABLE_WEIGHT // e.g. 29PPPPPWWWWWC — internal weighed item
+  INTERNAL_OPERATIONAL   // PO barcode, BIN barcode, Order QR
+  UNKNOWN
+}
+
+model BarcodeRegistry {
+  id           String       @id @default(uuid())
+  storeId      String?
+  store        Store?       @relation(fields: [storeId], references: [id])
+  productId    String?
+  product      Product?     @relation(fields: [productId], references: [id])
+  barcodeValue String
+  symbology    String       @default("EAN_13")
+  barcodeScope BarcodeScope @default(GS1_EXTERNAL_PRODUCT)
+  isInternal   Boolean      @default(false)
+  isPrimary    Boolean      @default(true)
+  isActive     Boolean      @default(true)
+  createdAt    DateTime     @default(now())
+
+  @@unique([barcodeValue, storeId])
+  @@index([barcodeValue])
+  @@index([storeId, barcodeScope])
+}
+
+enum PrintJobStatus {
+  PENDING
+  READY
+  PRINTED
+  FAILED
+}
+
+model PrintJob {
+  id              String         @id @default(uuid())
+  storeId         String
+  store           Store          @relation(fields: [storeId], references: [id])
+  requestedById   String?
+  requestedBy     User?          @relation("PrintJobs", fields: [requestedById], references: [id])
+  templateType    String         // LOOSE_ITEM_LABEL, SHELF_TAG, PO_LABEL, etc.
+  labelDataJson   Json           // items + metadata for label rendering
+  status          PrintJobStatus @default(PENDING)
+  r2PdfPath       String?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  @@index([storeId, status])
+}
+
+// -----------------------------------------------------
+// Pending Product Intake (Unknown barcode → approval flow)
+// -----------------------------------------------------
+
+enum PendingProductStatus {
+  PENDING_REVIEW
+  APPROVED
+  REJECTED
+}
+
+model PendingProduct {
+  id                String               @id @default(uuid())
+  storeId           String
+  store             Store                @relation(fields: [storeId], references: [id])
+  barcode           String?
+  suggestedName     String?
+  suggestedBrand    String?
+  suggestedCategory String?
+  mrp               Float?
+  sellingPrice      Float?
+  purchasePrice     Float?
+  gstRate           Float                @default(0)
+  imageUrl          String?
+  status            PendingProductStatus @default(PENDING_REVIEW)
+  createdById       String?
+  createdBy         User?                @relation("CreatedPendingProducts", fields: [createdById], references: [id])
+  approvedProductId String?              // populated after approval
+  notes             String?
+  createdAt         DateTime             @default(now())
+  updatedAt         DateTime             @updatedAt
+
+  @@index([storeId, status])
+}
+

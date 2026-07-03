@@ -109,11 +109,28 @@ let AuthService = class AuthService {
                 expiresAt,
             },
         });
-        console.log(`📱 OTP for ${phone}: ${code}`);
+        if (process.env.MSG91_AUTH_KEY && process.env.MSG91_TEMPLATE_ID) {
+            try {
+                const msg91Url = `https://control.msg91.com/api/v5/otp?template_id=${process.env.MSG91_TEMPLATE_ID}&mobile=${phone.replace('+', '')}&authkey=${process.env.MSG91_AUTH_KEY}&otp=${code}`;
+                const res = await fetch(msg91Url, {
+                    method: 'GET',
+                    headers: { 'Content-Type': 'application/json' },
+                });
+                const json = await res.json();
+                if (json.type === 'error') {
+                    console.error(`MSG91 Error: ${json.message}`);
+                }
+            }
+            catch (err) {
+                console.error(`Failed to send OTP via MSG91:`, err);
+            }
+        }
+        else {
+            console.log(`📱 [DEV MODE] OTP for ${phone}: ${code}`);
+        }
         return {
             message: 'OTP sent successfully',
             expiresIn: 300,
-            _devOtp: code,
         };
     }
     async verifyOtp(phone, code) {

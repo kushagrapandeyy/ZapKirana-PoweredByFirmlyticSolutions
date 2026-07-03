@@ -11,10 +11,11 @@ import { Server, Socket } from 'socket.io';
 import { Logger } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
 import { DeliveryService } from './delivery.service';
+import { JwtService } from '@nestjs/jwt';
 
 @WebSocketGateway({
   namespace: 'delivery',
-  cors: { origin: '*' },
+  cors: { origin: process.env.NODE_ENV === 'production' ? ['https://consumer.basko.app', 'https://vendor.basko.app'] : '*' },
 })
 export class DeliveryGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
@@ -22,10 +23,26 @@ export class DeliveryGateway implements OnGatewayConnection, OnGatewayDisconnect
 
   private readonly logger = new Logger(DeliveryGateway.name);
 
-  constructor(private deliveryService: DeliveryService) {}
+  constructor(
+    private deliveryService: DeliveryService,
+    private jwtService: JwtService
+  ) {}
 
   handleConnection(client: Socket) {
-    this.logger.log(`Client connected: ${client.id}`);
+    const token = client.handshake.auth?.token ?? client.handshake.headers?.authorization;
+    if (!token) {
+      this.logger.warn(`Rejected unauthenticated WS connection: ${client.id}`);
+      client.disconnect();
+      return;
+    }
+    try {
+      const payload = this.jwtService.verify(token.replace('Bearer ', ''));
+      client.data.user = payload;
+      this.logger.log(`Client authenticated & connected: ${client.id} (User: ${payload.sub})`);
+    } catch (e) {
+      this.logger.warn(`Invalid WS token: ${client.id}`);
+      client.disconnect();
+    }
   }
 
   handleDisconnect(client: Socket) {

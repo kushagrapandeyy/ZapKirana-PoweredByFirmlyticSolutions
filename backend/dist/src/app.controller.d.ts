@@ -7,7 +7,10 @@ export declare class AppController {
     getHello(): string;
     getStore(id: string): Promise<{
         id: string;
+        organizationId: string | null;
         name: string;
+        createdAt: Date;
+        updatedAt: Date;
         location: string | null;
         latitude: number | null;
         longitude: number | null;
@@ -18,8 +21,6 @@ export declare class AppController {
         operatingHours: string | null;
         rating: number;
         description: string | null;
-        createdAt: Date;
-        updatedAt: Date;
         bankAccountNumber: string | null;
         bankRoutingNumber: string | null;
         taxId: string | null;
@@ -27,7 +28,10 @@ export declare class AppController {
     getNearbyStores(lat: string, lng: string, radiusKm?: string): Promise<{
         distanceKm: number;
         id: string;
+        organizationId: string | null;
         name: string;
+        createdAt: Date;
+        updatedAt: Date;
         location: string | null;
         latitude: number | null;
         longitude: number | null;
@@ -38,8 +42,6 @@ export declare class AppController {
         operatingHours: string | null;
         rating: number;
         description: string | null;
-        createdAt: Date;
-        updatedAt: Date;
         bankAccountNumber: string | null;
         bankRoutingNumber: string | null;
         taxId: string | null;

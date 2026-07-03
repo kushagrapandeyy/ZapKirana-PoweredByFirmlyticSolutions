@@ -16,6 +16,7 @@ exports.AppController = void 0;
 const common_1 = require("@nestjs/common");
 const app_service_1 = require("./app.service");
 const prisma_service_1 = require("./prisma.service");
+const public_decorator_1 = require("./common/decorators/public.decorator");
 let AppController = class AppController {
     appService;
     prisma;
@@ -65,12 +66,14 @@ let AppController = class AppController {
 };
 exports.AppController = AppController;
 __decorate([
+    (0, public_decorator_1.Public)(),
     (0, common_1.Get)(),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", []),
     __metadata("design:returntype", String)
 ], AppController.prototype, "getHello", null);
 __decorate([
+    (0, public_decorator_1.Public)(),
     (0, common_1.Get)('stores/:id'),
     __param(0, (0, common_1.Param)('id')),
     __metadata("design:type", Function),
@@ -78,6 +81,7 @@ __decorate([
     __metadata("design:returntype", Promise)
 ], AppController.prototype, "getStore", null);
 __decorate([
+    (0, public_decorator_1.Public)(),
     (0, common_1.Get)('stores/nearby/search'),
     __param(0, (0, common_1.Query)('lat')),
     __param(1, (0, common_1.Query)('lng')),

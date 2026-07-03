@@ -115,4 +115,54 @@ export class PosService {
       data: { subtotal, gst, total },
     });
   }
+
+  /**
+   * Get a POS bill with all items and current totals.
+   */
+  async getBill(billId: string) {
+    const bill = await this.prisma.posBill.findUnique({
+      where: { id: billId },
+      include: {
+        items: {
+          include: { product: { select: { id: true, name: true, barcode: true, imageUrl: true, category: true } } },
+        },
+        payments: true,
+        staff: { select: { id: true, name: true, role: true } },
+      },
+    });
+    if (!bill) throw new NotFoundException('Bill not found');
+    return bill;
+  }
+
+  /**
+   * Add an item to a POS bill by scanning its barcode.
+   * Resolves product from store catalog, then calls addItemToBill.
+   */
+  async addItemByBarcode(billId: string, storeId: string, barcode: string, quantity: number) {
+    const bill = await this.prisma.posBill.findUnique({ where: { id: billId } });
+    if (!bill || bill.status !== BillStatus.DRAFT) {
+      throw new BadRequestException('Bill not found or not in DRAFT state');
+    }
+
+    // Resolve product from barcode (BarcodeRegistry → Product table)
+    const registryEntry = await this.prisma.barcodeRegistry.findFirst({
+      where: { barcodeValue: barcode, isActive: true, OR: [{ storeId }, { storeId: null }] },
+      include: { product: true },
+    });
+
+    let product = registryEntry?.product ?? null;
+
+    if (!product) {
+      product = await this.prisma.product.findFirst({
+        where: { barcode, storeId, isActive: true },
+      });
+    }
+
+    if (!product) {
+      throw new NotFoundException(`No product found for barcode ${barcode} in this store`);
+    }
+
+    return this.addItemToBill(billId, product.id, quantity);
+  }
 }
+

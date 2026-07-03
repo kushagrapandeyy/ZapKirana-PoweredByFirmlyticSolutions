@@ -1,11 +1,13 @@
 import { OnGatewayConnection, OnGatewayDisconnect } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import { DeliveryService } from './delivery.service';
+import { JwtService } from '@nestjs/jwt';
 export declare class DeliveryGateway implements OnGatewayConnection, OnGatewayDisconnect {
     private deliveryService;
+    private jwtService;
     server: Server;
     private readonly logger;
-    constructor(deliveryService: DeliveryService);
+    constructor(deliveryService: DeliveryService, jwtService: JwtService);
     handleConnection(client: Socket): void;
     handleDisconnect(client: Socket): void;
     handleJoinOrder(client: Socket, data: {

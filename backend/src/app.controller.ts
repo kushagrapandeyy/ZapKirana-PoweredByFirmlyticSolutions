@@ -1,16 +1,19 @@
 import { Controller, Get, NotFoundException, Param, Query } from '@nestjs/common';
 import { AppService } from './app.service';
 import { PrismaService } from './prisma.service';
+import { Public } from './common/decorators/public.decorator';
 
 @Controller()
 export class AppController {
   constructor(private readonly appService: AppService, private prisma: PrismaService) {}
 
+  @Public()
   @Get()
   getHello(): string {
     return this.appService.getHello();
   }
 
+  @Public()
   @Get('stores/:id')
   async getStore(@Param('id') id: string) {
     const store = await this.prisma.store.findUnique({ where: { id } });
@@ -21,6 +24,7 @@ export class AppController {
   }
 
   // Nearby stores endpoint using Haversine formula
+  @Public()
   @Get('stores/nearby/search')
   async getNearbyStores(
     @Query('lat') lat: string,

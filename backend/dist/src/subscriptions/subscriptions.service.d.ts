@@ -64,6 +64,7 @@ export declare class SubscriptionsService {
     getSubscriptionById(id: string): Promise<{
         store: {
             id: string;
+            organizationId: string | null;
             name: string;
             createdAt: Date;
             updatedAt: Date;

@@ -15,7 +15,9 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.AdminController = void 0;
 const common_1 = require("@nestjs/common");
 const admin_service_1 = require("./admin.service");
-const jwt_auth_guard_1 = require("../auth/jwt-auth.guard");
+const roles_decorator_1 = require("../common/decorators/roles.decorator");
+const human_approval_decorator_1 = require("../common/decorators/human-approval.decorator");
+const client_1 = require("@prisma/client");
 let AdminController = class AdminController {
     adminService;
     constructor(adminService) {
@@ -29,6 +31,9 @@ let AdminController = class AdminController {
     }
     createStore(body, req) {
         return this.adminService.createStore(body, req.user.id);
+    }
+    approveStoreOnboarding(id, req) {
+        return { message: 'Store approved and active', storeId: id };
     }
     updateStore(id, body, req) {
         return this.adminService.updateStore(id, body, req.user.id);
@@ -75,6 +80,7 @@ __decorate([
     __metadata("design:returntype", void 0)
 ], AdminController.prototype, "getStores", null);
 __decorate([
+    (0, human_approval_decorator_1.HumanApprovalRequired)('New store creation requires human validation of location, GST, and owner identity.'),
     (0, common_1.Post)('stores'),
     __param(0, (0, common_1.Body)()),
     __param(1, (0, common_1.Request)()),
@@ -82,6 +88,15 @@ __decorate([
     __metadata("design:paramtypes", [Object, Object]),
     __metadata("design:returntype", void 0)
 ], AdminController.prototype, "createStore", null);
+__decorate([
+    (0, human_approval_decorator_1.HumanApprovalRequired)('Going live requires human verification of catalog size, payments setup, and FSSAI.'),
+    (0, common_1.Post)('stores/:id/go-live'),
+    __param(0, (0, common_1.Param)('id')),
+    __param(1, (0, common_1.Request)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, Object]),
+    __metadata("design:returntype", void 0)
+], AdminController.prototype, "approveStoreOnboarding", null);
 __decorate([
     (0, common_1.Patch)('stores/:id'),
     __param(0, (0, common_1.Param)('id')),
@@ -160,7 +175,7 @@ __decorate([
 ], AdminController.prototype, "getAudits", null);
 exports.AdminController = AdminController = __decorate([
     (0, common_1.Controller)('admin'),
-    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
+    (0, roles_decorator_1.Roles)(client_1.Role.ORG_ADMIN),
     __metadata("design:paramtypes", [admin_service_1.AdminService])
 ], AdminController);
 //# sourceMappingURL=admin.controller.js.map

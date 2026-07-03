@@ -35,6 +35,7 @@ export declare class OrdersController {
             id: string;
             email: string;
             phone: string | null;
+            organizationId: string | null;
             password: string | null;
             name: string | null;
             role: import(".prisma/client").$Enums.Role;
@@ -99,6 +100,7 @@ export declare class OrdersController {
             id: string;
             email: string;
             phone: string | null;
+            organizationId: string | null;
             password: string | null;
             name: string | null;
             role: import(".prisma/client").$Enums.Role;
@@ -253,6 +255,7 @@ export declare class OrdersController {
             id: string;
             email: string;
             phone: string | null;
+            organizationId: string | null;
             password: string | null;
             name: string | null;
             role: import(".prisma/client").$Enums.Role;
@@ -275,6 +278,7 @@ export declare class OrdersController {
             id: string;
             email: string;
             phone: string | null;
+            organizationId: string | null;
             password: string | null;
             name: string | null;
             role: import(".prisma/client").$Enums.Role;

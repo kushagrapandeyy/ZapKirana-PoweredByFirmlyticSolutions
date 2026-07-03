@@ -1,5 +1,6 @@
 import { Injectable, UnauthorizedException, BadRequestException, ConflictException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
+import { Cron, CronExpression } from '@nestjs/schedule';
 import { PrismaService } from '../prisma.service';
 import * as bcrypt from 'bcryptjs';
 import * as crypto from 'crypto';
@@ -76,15 +77,30 @@ export class AuthService {
       },
     });
 
-    // In production: Send OTP via SMS (Twilio, MSG91, etc.)
-    // For now, return it in response for testing
-    console.log(`📱 OTP for ${phone}: ${code}`);
+    // In production: Send OTP via SMS using MSG91
+    if (process.env.MSG91_AUTH_KEY && process.env.MSG91_TEMPLATE_ID) {
+      try {
+        const msg91Url = `https://control.msg91.com/api/v5/otp?template_id=${process.env.MSG91_TEMPLATE_ID}&mobile=${phone.replace('+', '')}&authkey=${process.env.MSG91_AUTH_KEY}&otp=${code}`;
+        const res = await fetch(msg91Url, {
+          method: 'GET',
+          headers: { 'Content-Type': 'application/json' },
+        });
+        const json = await res.json() as any;
+        if (json.type === 'error') {
+          console.error(`MSG91 Error: ${json.message}`);
+        }
+      } catch (err) {
+        console.error(`Failed to send OTP via MSG91:`, err);
+      }
+    } else {
+      // In dev environment where keys aren't set, just log it.
+      // NEVER return the OTP in the JSON response.
+      console.log(`📱 [DEV MODE] OTP for ${phone}: ${code}`);
+    }
 
     return {
       message: 'OTP sent successfully',
       expiresIn: 300, // seconds
-      // Remove this in production:
-      _devOtp: code,
     };
   }
 

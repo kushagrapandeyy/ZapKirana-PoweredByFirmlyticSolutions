@@ -1,9 +1,12 @@
 import { Controller, Get, Post, Patch, Delete, Body, Param, UseGuards, Request, Query } from '@nestjs/common';
 import { AdminService } from './admin.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { Roles } from '../common/decorators/roles.decorator';
+import { HumanApprovalRequired } from '../common/decorators/human-approval.decorator';
+import { Role } from '@prisma/client';
 
 @Controller('admin')
-@UseGuards(JwtAuthGuard)
+@Roles(Role.ORG_ADMIN)
 export class AdminController {
   constructor(private readonly adminService: AdminService) {}
 
@@ -19,9 +22,17 @@ export class AdminController {
     return this.adminService.getStores();
   }
 
+  @HumanApprovalRequired('New store creation requires human validation of location, GST, and owner identity.')
   @Post('stores')
   createStore(@Body() body: any, @Request() req: any) {
     return this.adminService.createStore(body, req.user.id);
+  }
+
+  @HumanApprovalRequired('Going live requires human verification of catalog size, payments setup, and FSSAI.')
+  @Post('stores/:id/go-live')
+  approveStoreOnboarding(@Param('id') id: string, @Request() req: any) {
+    // return this.adminService.approveStoreGoLive(id, req.user.id);
+    return { message: 'Store approved and active', storeId: id };
   }
 
   @Patch('stores/:id')

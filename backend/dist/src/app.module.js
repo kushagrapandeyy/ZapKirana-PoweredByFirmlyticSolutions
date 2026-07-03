@@ -9,6 +9,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.AppModule = void 0;
 const common_1 = require("@nestjs/common");
 const schedule_1 = require("@nestjs/schedule");
+const core_1 = require("@nestjs/core");
+const throttler_1 = require("@nestjs/throttler");
 const app_controller_1 = require("./app.controller");
 const app_service_1 = require("./app.service");
 const inventory_module_1 = require("./inventory/inventory.module");
@@ -28,12 +30,25 @@ const analytics_module_1 = require("./analytics/analytics.module");
 const delivery_module_1 = require("./delivery/delivery.module");
 const platform_module_1 = require("./platform/platform.module");
 const storage_module_1 = require("./storage/storage.module");
+const scanner_module_1 = require("./scanner/scanner.module");
+const payments_module_1 = require("./payments/payments.module");
+const labels_module_1 = require("./labels/labels.module");
+const catalog_module_1 = require("./catalog/catalog.module");
+const jwt_auth_guard_1 = require("./auth/jwt-auth.guard");
+const roles_guard_1 = require("./common/guards/roles.guard");
+const store_scope_guard_1 = require("./common/guards/store-scope.guard");
+const audit_interceptor_1 = require("./common/audit/audit.interceptor");
+const global_exception_filter_1 = require("./common/filters/global-exception.filter");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
 exports.AppModule = AppModule = __decorate([
     (0, common_1.Module)({
         imports: [
+            throttler_1.ThrottlerModule.forRoot([{
+                    ttl: 60000,
+                    limit: 100,
+                }]),
             event_emitter_1.EventEmitterModule.forRoot(),
             schedule_1.ScheduleModule.forRoot(),
             inventory_module_1.InventoryModule,
@@ -51,9 +66,40 @@ exports.AppModule = AppModule = __decorate([
             delivery_module_1.DeliveryModule,
             platform_module_1.PlatformModule,
             storage_module_1.StorageModule,
+            scanner_module_1.ScannerModule,
+            payments_module_1.PaymentsModule,
+            labels_module_1.LabelsModule,
+            catalog_module_1.CatalogModule,
         ],
         controllers: [app_controller_1.AppController],
-        providers: [app_service_1.AppService, prisma_service_1.PrismaService],
+        providers: [
+            app_service_1.AppService,
+            prisma_service_1.PrismaService,
+            {
+                provide: core_1.APP_FILTER,
+                useClass: global_exception_filter_1.GlobalExceptionFilter,
+            },
+            {
+                provide: core_1.APP_INTERCEPTOR,
+                useClass: audit_interceptor_1.AuditInterceptor,
+            },
+            {
+                provide: core_1.APP_GUARD,
+                useClass: throttler_1.ThrottlerGuard,
+            },
+            {
+                provide: core_1.APP_GUARD,
+                useClass: jwt_auth_guard_1.JwtAuthGuard,
+            },
+            {
+                provide: core_1.APP_GUARD,
+                useClass: roles_guard_1.RolesGuard,
+            },
+            {
+                provide: core_1.APP_GUARD,
+                useClass: store_scope_guard_1.StoreScopeGuard,
+            },
+        ],
     })
 ], AppModule);
 //# sourceMappingURL=app.module.js.map

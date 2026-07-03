@@ -26,7 +26,6 @@ export declare class AuthService {
     requestOtp(phone: string): Promise<{
         message: string;
         expiresIn: number;
-        _devOtp: string;
     }>;
     verifyOtp(phone: string, code: string): Promise<{
         access_token: string;
@@ -58,6 +57,7 @@ export declare class AuthService {
         id: string;
         email: string;
         phone: string | null;
+        organizationId: string | null;
         password: string | null;
         name: string | null;
         role: import(".prisma/client").$Enums.Role;
@@ -83,6 +83,7 @@ export declare class AuthService {
         id: string;
         email: string;
         phone: string | null;
+        organizationId: string | null;
         name: string | null;
         role: import(".prisma/client").$Enums.Role;
         storeId: string | null;

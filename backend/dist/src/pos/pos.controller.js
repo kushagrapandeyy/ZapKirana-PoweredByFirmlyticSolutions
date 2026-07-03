@@ -15,16 +15,18 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.PosController = void 0;
 const common_1 = require("@nestjs/common");
 const pos_service_1 = require("./pos.service");
+const roles_decorator_1 = require("../common/decorators/roles.decorator");
 let PosController = class PosController {
     posService;
     constructor(posService) {
         this.posService = posService;
     }
-    createDraftBill(body) {
-        if (!body.storeId || !body.staffId) {
-            throw new common_1.BadRequestException('storeId and staffId are required');
+    createDraftBill(req, body) {
+        if (!body.storeId) {
+            throw new common_1.BadRequestException('storeId is required');
         }
-        return this.posService.createDraftBill(body.storeId, body.staffId);
+        const staffId = req.user.id;
+        return this.posService.createDraftBill(body.storeId, staffId);
     }
     addItemToBill(billId, body) {
         if (!body.productId || body.quantity == null || body.quantity <= 0) {
@@ -38,13 +40,23 @@ let PosController = class PosController {
         }
         return this.posService.checkoutBill(billId, body.paymentMethod, body.amount, body.referenceId);
     }
+    getBill(billId) {
+        return this.posService.getBill(billId);
+    }
+    addItemByBarcode(billId, body) {
+        if (!body.barcode || !body.storeId) {
+            throw new common_1.BadRequestException('barcode and storeId are required');
+        }
+        return this.posService.addItemByBarcode(billId, body.storeId, body.barcode, body.quantity ?? 1);
+    }
 };
 exports.PosController = PosController;
 __decorate([
     (0, common_1.Post)('bill'),
-    __param(0, (0, common_1.Body)()),
+    __param(0, (0, common_1.Req)()),
+    __param(1, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object]),
+    __metadata("design:paramtypes", [Object, Object]),
     __metadata("design:returntype", void 0)
 ], PosController.prototype, "createDraftBill", null);
 __decorate([
@@ -63,8 +75,24 @@ __decorate([
     __metadata("design:paramtypes", [String, Object]),
     __metadata("design:returntype", void 0)
 ], PosController.prototype, "checkoutBill", null);
+__decorate([
+    (0, common_1.Get)('bill/:id'),
+    __param(0, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", void 0)
+], PosController.prototype, "getBill", null);
+__decorate([
+    (0, common_1.Post)('bill/:id/items-by-barcode'),
+    __param(0, (0, common_1.Param)('id')),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, Object]),
+    __metadata("design:returntype", void 0)
+], PosController.prototype, "addItemByBarcode", null);
 exports.PosController = PosController = __decorate([
     (0, common_1.Controller)('pos'),
+    (0, roles_decorator_1.Roles)('ORG_ADMIN', 'STORE_MANAGER', 'CASHIER'),
     __metadata("design:paramtypes", [pos_service_1.PosService])
 ], PosController);
 //# sourceMappingURL=pos.controller.js.map

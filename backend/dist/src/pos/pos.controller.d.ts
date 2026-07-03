@@ -3,9 +3,8 @@ import { PaymentMethod } from '@prisma/client';
 export declare class PosController {
     private readonly posService;
     constructor(posService: PosService);
-    createDraftBill(body: {
+    createDraftBill(req: any, body: {
         storeId: string;
-        staffId: string;
     }): Promise<{
         id: string;
         storeId: string;
@@ -43,5 +42,60 @@ export declare class PosController {
         subtotal: number;
         gst: number;
         total: number;
+    }>;
+    getBill(billId: string): Promise<{
+        payments: {
+            id: string;
+            createdAt: Date;
+            billId: string;
+            amount: number;
+            method: import(".prisma/client").$Enums.PaymentMethod;
+            referenceId: string | null;
+        }[];
+        staff: {
+            id: string;
+            name: string | null;
+            role: import(".prisma/client").$Enums.Role;
+        } | null;
+        items: ({
+            product: {
+                id: string;
+                name: string;
+                imageUrl: string | null;
+                barcode: string | null;
+                category: string | null;
+            };
+        } & {
+            id: string;
+            createdAt: Date;
+            productId: string;
+            quantity: number;
+            priceAtSale: number;
+            gstAtSale: number;
+            billId: string;
+        })[];
+    } & {
+        id: string;
+        storeId: string;
+        createdAt: Date;
+        updatedAt: Date;
+        staffId: string | null;
+        status: import(".prisma/client").$Enums.BillStatus;
+        subtotal: number;
+        gst: number;
+        total: number;
+    }>;
+    addItemByBarcode(billId: string, body: {
+        barcode: string;
+        storeId: string;
+        quantity?: number;
+    }): Promise<{
+        id: string;
+        createdAt: Date;
+        productId: string;
+        quantity: number;
+        priceAtSale: number;
+        gstAtSale: number;
+        billId: string;
     }>;
 }

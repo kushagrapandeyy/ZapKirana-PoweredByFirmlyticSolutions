@@ -19,15 +19,32 @@ const socket_io_1 = require("socket.io");
 const common_1 = require("@nestjs/common");
 const event_emitter_1 = require("@nestjs/event-emitter");
 const delivery_service_1 = require("./delivery.service");
+const jwt_1 = require("@nestjs/jwt");
 let DeliveryGateway = DeliveryGateway_1 = class DeliveryGateway {
     deliveryService;
+    jwtService;
     server;
     logger = new common_1.Logger(DeliveryGateway_1.name);
-    constructor(deliveryService) {
+    constructor(deliveryService, jwtService) {
         this.deliveryService = deliveryService;
+        this.jwtService = jwtService;
     }
     handleConnection(client) {
-        this.logger.log(`Client connected: ${client.id}`);
+        const token = client.handshake.auth?.token ?? client.handshake.headers?.authorization;
+        if (!token) {
+            this.logger.warn(`Rejected unauthenticated WS connection: ${client.id}`);
+            client.disconnect();
+            return;
+        }
+        try {
+            const payload = this.jwtService.verify(token.replace('Bearer ', ''));
+            client.data.user = payload;
+            this.logger.log(`Client authenticated & connected: ${client.id} (User: ${payload.sub})`);
+        }
+        catch (e) {
+            this.logger.warn(`Invalid WS token: ${client.id}`);
+            client.disconnect();
+        }
     }
     handleDisconnect(client) {
         this.logger.log(`Client disconnected: ${client.id}`);
@@ -87,8 +104,9 @@ __decorate([
 exports.DeliveryGateway = DeliveryGateway = DeliveryGateway_1 = __decorate([
     (0, websockets_1.WebSocketGateway)({
         namespace: 'delivery',
-        cors: { origin: '*' },
+        cors: { origin: process.env.NODE_ENV === 'production' ? ['https://consumer.basko.app', 'https://vendor.basko.app'] : '*' },
     }),
-    __metadata("design:paramtypes", [delivery_service_1.DeliveryService])
+    __metadata("design:paramtypes", [delivery_service_1.DeliveryService,
+        jwt_1.JwtService])
 ], DeliveryGateway);
 //# sourceMappingURL=delivery.gateway.js.map

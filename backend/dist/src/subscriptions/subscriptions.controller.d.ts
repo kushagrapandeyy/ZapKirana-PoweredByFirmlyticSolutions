@@ -50,6 +50,7 @@ export declare class SubscriptionsController {
     getOne(id: string): Promise<{
         store: {
             id: string;
+            organizationId: string | null;
             name: string;
             createdAt: Date;
             updatedAt: Date;

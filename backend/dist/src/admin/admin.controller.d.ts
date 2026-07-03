@@ -11,6 +11,7 @@ export declare class AdminController {
         recentOrders: ({
             store: {
                 id: string;
+                organizationId: string | null;
                 name: string;
                 createdAt: Date;
                 updatedAt: Date;
@@ -32,6 +33,7 @@ export declare class AdminController {
                 id: string;
                 email: string;
                 phone: string | null;
+                organizationId: string | null;
                 password: string | null;
                 name: string | null;
                 role: import(".prisma/client").$Enums.Role;
@@ -72,6 +74,7 @@ export declare class AdminController {
         };
     } & {
         id: string;
+        organizationId: string | null;
         name: string;
         createdAt: Date;
         updatedAt: Date;
@@ -91,6 +94,7 @@ export declare class AdminController {
     })[]>;
     createStore(body: any, req: any): Promise<{
         id: string;
+        organizationId: string | null;
         name: string;
         createdAt: Date;
         updatedAt: Date;
@@ -108,8 +112,13 @@ export declare class AdminController {
         bankRoutingNumber: string | null;
         taxId: string | null;
     }>;
+    approveStoreOnboarding(id: string, req: any): {
+        message: string;
+        storeId: string;
+    };
     updateStore(id: string, body: any, req: any): Promise<{
         id: string;
+        organizationId: string | null;
         name: string;
         createdAt: Date;
         updatedAt: Date;
@@ -138,6 +147,7 @@ export declare class AdminController {
     getVendors(): Promise<({
         store: {
             id: string;
+            organizationId: string | null;
             name: string;
             createdAt: Date;
             updatedAt: Date;
@@ -159,6 +169,7 @@ export declare class AdminController {
         id: string;
         email: string;
         phone: string | null;
+        organizationId: string | null;
         password: string | null;
         name: string | null;
         role: import(".prisma/client").$Enums.Role;
@@ -173,6 +184,7 @@ export declare class AdminController {
         id: string;
         email: string;
         phone: string | null;
+        organizationId: string | null;
         password: string | null;
         name: string | null;
         role: import(".prisma/client").$Enums.Role;
@@ -210,6 +222,7 @@ export declare class AdminController {
         purchaseOrders: ({
             store: {
                 id: string;
+                organizationId: string | null;
                 name: string;
                 createdAt: Date;
                 updatedAt: Date;
@@ -270,6 +283,7 @@ export declare class AdminController {
         storeConnections: ({
             store: {
                 id: string;
+                organizationId: string | null;
                 name: string;
                 createdAt: Date;
                 updatedAt: Date;
@@ -351,6 +365,7 @@ export declare class AdminController {
             id: string;
             email: string;
             phone: string | null;
+            organizationId: string | null;
             password: string | null;
             name: string | null;
             role: import(".prisma/client").$Enums.Role;

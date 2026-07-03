@@ -11,6 +11,7 @@ export declare class PurchaseOrderService {
     }[], notes?: string): Promise<{
         store: {
             id: string;
+            organizationId: string | null;
             name: string;
             createdAt: Date;
             updatedAt: Date;
@@ -152,6 +153,7 @@ export declare class PurchaseOrderService {
     getPOById(id: string): Promise<{
         store: {
             id: string;
+            organizationId: string | null;
             name: string;
             createdAt: Date;
             updatedAt: Date;
@@ -232,6 +234,7 @@ export declare class PurchaseOrderService {
     getPOByShareToken(token: string): Promise<{
         store: {
             id: string;
+            organizationId: string | null;
             name: string;
             createdAt: Date;
             updatedAt: Date;

@@ -42,7 +42,6 @@ export declare class AuthController {
     }): Promise<{
         message: string;
         expiresIn: number;
-        _devOtp: string;
     }>;
     verifyOtp(body: {
         phone: string;
@@ -75,6 +74,7 @@ export declare class AuthController {
         id: string;
         email: string;
         phone: string | null;
+        organizationId: string | null;
         name: string | null;
         role: import(".prisma/client").$Enums.Role;
         storeId: string | null;
@@ -90,6 +90,7 @@ export declare class AuthController {
         id: string;
         email: string;
         phone: string | null;
+        organizationId: string | null;
         password: string | null;
         name: string | null;
         role: import(".prisma/client").$Enums.Role;
