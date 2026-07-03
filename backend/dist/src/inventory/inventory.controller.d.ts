@@ -5,12 +5,12 @@ export declare class InventoryController {
     getProducts(storeId: string): Promise<{
         id: string;
         name: string;
-        storeId: string;
         createdAt: Date;
         updatedAt: Date;
         isActive: boolean;
         imageUrl: string | null;
         description: string | null;
+        storeId: string;
         barcode: string | null;
         internalSku: string;
         category: string | null;
@@ -28,9 +28,9 @@ export declare class InventoryController {
         batchNo?: string;
     }): Promise<{
         id: string;
-        storeId: string;
         createdAt: Date;
         updatedAt: Date;
+        storeId: string;
         productId: string;
         batchNo: string | null;
         expiryDate: Date | null;
@@ -47,9 +47,9 @@ export declare class InventoryController {
         staffId: string;
     }): Promise<{
         id: string;
-        storeId: string;
         createdAt: Date;
         updatedAt: Date;
+        storeId: string;
         productId: string;
         batchNo: string | null;
         expiryDate: Date | null;
@@ -74,8 +74,8 @@ export declare class InventoryController {
         } | null;
     } & {
         id: string;
-        storeId: string;
         createdAt: Date;
+        storeId: string;
         productId: string;
         inventoryId: string;
         type: import(".prisma/client").$Enums.MovementType;

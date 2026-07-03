@@ -26,6 +26,20 @@ export class AuthController {
     return this.authService.register(body);
   }
 
+  // Scanner Login
+  @Public()
+  @Post('scanner/login')
+  async scannerLogin(@Body() body: { deviceCode: string; pin: string }) {
+    return this.authService.scannerLogin(body.deviceCode, body.pin);
+  }
+
+  // Scanner Logout
+  @UseGuards(JwtAuthGuard)
+  @Post('scanner/logout')
+  async scannerLogout(@Request() req: any) {
+    return this.authService.scannerLogout(req.user.sessionId, req.user.id);
+  }
+
   // Phone OTP - Request
   @Public()
   @Post('otp/request')

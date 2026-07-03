@@ -57,15 +57,15 @@ export declare class CatalogController {
         notes?: string;
     }): Promise<{
         id: string;
-        storeId: string;
+        status: import(".prisma/client").$Enums.PendingProductStatus;
         createdAt: Date;
         updatedAt: Date;
         imageUrl: string | null;
+        storeId: string;
         barcode: string | null;
         mrp: number | null;
         sellingPrice: number | null;
         gstRate: number;
-        status: import(".prisma/client").$Enums.PendingProductStatus;
         notes: string | null;
         purchasePrice: number | null;
         suggestedName: string | null;
@@ -76,15 +76,15 @@ export declare class CatalogController {
     } | {
         alreadyPending: boolean;
         id: string;
-        storeId: string;
+        status: import(".prisma/client").$Enums.PendingProductStatus;
         createdAt: Date;
         updatedAt: Date;
         imageUrl: string | null;
+        storeId: string;
         barcode: string | null;
         mrp: number | null;
         sellingPrice: number | null;
         gstRate: number;
-        status: import(".prisma/client").$Enums.PendingProductStatus;
         notes: string | null;
         purchasePrice: number | null;
         suggestedName: string | null;
@@ -101,15 +101,15 @@ export declare class CatalogController {
         } | null;
     } & {
         id: string;
-        storeId: string;
+        status: import(".prisma/client").$Enums.PendingProductStatus;
         createdAt: Date;
         updatedAt: Date;
         imageUrl: string | null;
+        storeId: string;
         barcode: string | null;
         mrp: number | null;
         sellingPrice: number | null;
         gstRate: number;
-        status: import(".prisma/client").$Enums.PendingProductStatus;
         notes: string | null;
         purchasePrice: number | null;
         suggestedName: string | null;
@@ -137,15 +137,15 @@ export declare class CatalogController {
         reason?: string;
     }): Promise<{
         id: string;
-        storeId: string;
+        status: import(".prisma/client").$Enums.PendingProductStatus;
         createdAt: Date;
         updatedAt: Date;
         imageUrl: string | null;
+        storeId: string;
         barcode: string | null;
         mrp: number | null;
         sellingPrice: number | null;
         gstRate: number;
-        status: import(".prisma/client").$Enums.PendingProductStatus;
         notes: string | null;
         purchasePrice: number | null;
         suggestedName: string | null;

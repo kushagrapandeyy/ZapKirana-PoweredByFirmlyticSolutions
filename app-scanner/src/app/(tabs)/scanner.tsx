@@ -60,12 +60,19 @@ export default function ScannerScreen() {
       
       // If found, route to action screen
       if (result.status === 'FOUND' || result.status === 'INTERNAL_BARCODE') {
-        Alert.alert(
-          'Product Found', 
-          `${result.product.name}\nMRP: ₹${result.product.mrp}`,
-          [{ text: 'OK', onPress: () => setScanned(false) }]
-        );
-        // Ideally router.push to the specific action screen (e.g. Enter Quantity)
+        router.push({
+          pathname: '/(tabs)/action',
+          params: {
+            workflow,
+            rawValue: data,
+            symbology: type,
+            productId: result.product?.productId,
+            productName: result.product?.name,
+            productMrp: result.product?.mrp,
+            actionLabel: result.workflow?.action || 'Enter Quantity',
+            idempotencyKey: `${Date.now()}-${data}`
+          }
+        });
       } else {
         Alert.alert(
           'Unknown Barcode', 
@@ -73,7 +80,16 @@ export default function ScannerScreen() {
           [
             { text: 'Cancel', style: 'cancel', onPress: () => setScanned(false) },
             { text: 'Intake', onPress: () => {
-              // router.push to product intake screen
+              router.push({
+                pathname: '/(tabs)/action',
+                params: {
+                  workflow: 'PRODUCT_INTAKE',
+                  rawValue: data,
+                  symbology: type,
+                  actionLabel: 'CREATE_PENDING_PRODUCT',
+                  idempotencyKey: `${Date.now()}-${data}`
+                }
+              });
               setScanned(false);
             }}
           ]

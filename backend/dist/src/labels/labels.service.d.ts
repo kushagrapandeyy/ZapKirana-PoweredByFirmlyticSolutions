@@ -32,9 +32,9 @@ export declare class LabelsService {
         isPrimary?: boolean;
     }): Promise<{
         id: string;
-        storeId: string | null;
         createdAt: Date;
         isActive: boolean;
+        storeId: string | null;
         productId: string | null;
         barcodeValue: string;
         symbology: string;
@@ -44,9 +44,9 @@ export declare class LabelsService {
     }>;
     getBarcodesForProduct(productId: string): Promise<{
         id: string;
-        storeId: string | null;
         createdAt: Date;
         isActive: boolean;
+        storeId: string | null;
         productId: string | null;
         barcodeValue: string;
         symbology: string;
@@ -87,10 +87,10 @@ export declare class LabelsService {
         } | null;
     } & {
         id: string;
-        storeId: string;
+        status: import(".prisma/client").$Enums.PrintJobStatus;
         createdAt: Date;
         updatedAt: Date;
-        status: import(".prisma/client").$Enums.PrintJobStatus;
+        storeId: string;
         templateType: string;
         labelDataJson: import("@prisma/client/runtime/library").JsonValue;
         r2PdfPath: string | null;
@@ -103,10 +103,10 @@ export declare class LabelsService {
         } | null;
     } & {
         id: string;
-        storeId: string;
+        status: import(".prisma/client").$Enums.PrintJobStatus;
         createdAt: Date;
         updatedAt: Date;
-        status: import(".prisma/client").$Enums.PrintJobStatus;
+        storeId: string;
         templateType: string;
         labelDataJson: import("@prisma/client/runtime/library").JsonValue;
         r2PdfPath: string | null;

@@ -13,6 +13,7 @@ exports.ScannerService = void 0;
 exports.classifyBarcode = classifyBarcode;
 const common_1 = require("@nestjs/common");
 const prisma_service_1 = require("../prisma.service");
+const uuid_1 = require("uuid");
 function classifyBarcode(rawValue) {
     const v = rawValue.trim();
     if (/^29\d{11}$/.test(v)) {
@@ -241,6 +242,7 @@ let ScannerService = class ScannerService {
     async registerDevice(data) {
         return this.prisma.scannerDevice.create({
             data: {
+                deviceCode: (0, uuid_1.v4)(),
                 storeId: data.storeId,
                 deviceName: data.deviceName,
                 deviceType: data.deviceType ?? 'ANDROID_PHONE',

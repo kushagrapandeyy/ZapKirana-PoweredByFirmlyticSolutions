@@ -192,6 +192,75 @@ let AuthService = class AuthService {
             data: { pushToken },
         });
     }
+    async scannerLogin(deviceCode, pin) {
+        const device = await this.prisma.scannerDevice.findUnique({ where: { deviceCode } });
+        if (!device)
+            throw new common_1.UnauthorizedException('Invalid device code');
+        if (device.status !== 'ACTIVE')
+            throw new common_1.UnauthorizedException('Device inactive');
+        const user = await this.prisma.user.findFirst({
+            where: {
+                pin,
+                OR: [
+                    { storeId: device.storeId },
+                    { storeRoles: { some: { storeId: device.storeId } } }
+                ]
+            }
+        });
+        if (!user)
+            throw new common_1.UnauthorizedException('Invalid PIN');
+        const activeDeviceSessions = await this.prisma.scannerSession.findMany({
+            where: { deviceId: device.id, endedAt: null }
+        });
+        for (const s of activeDeviceSessions) {
+            const durationSeconds = Math.floor((Date.now() - s.startedAt.getTime()) / 1000);
+            await this.prisma.scannerSession.update({
+                where: { id: s.id },
+                data: { endedAt: new Date(), durationSeconds }
+            });
+        }
+        const activeUserSessions = await this.prisma.scannerSession.findMany({
+            where: { staffId: user.id, endedAt: null }
+        });
+        for (const s of activeUserSessions) {
+            const durationSeconds = Math.floor((Date.now() - s.startedAt.getTime()) / 1000);
+            await this.prisma.scannerSession.update({
+                where: { id: s.id },
+                data: { endedAt: new Date(), durationSeconds }
+            });
+        }
+        const session = await this.prisma.scannerSession.create({
+            data: {
+                storeId: device.storeId,
+                deviceId: device.id,
+                staffId: user.id,
+            }
+        });
+        const payload = { email: user.email, sub: user.id, role: user.role, storeId: device.storeId, sessionId: session.id };
+        return {
+            token: this.jwtService.sign(payload),
+            storeId: device.storeId,
+            deviceId: device.id,
+            staffId: user.id,
+            sessionId: session.id,
+            user: {
+                id: user.id,
+                name: user.name,
+            }
+        };
+    }
+    async scannerLogout(sessionId, userId) {
+        const session = await this.prisma.scannerSession.findUnique({ where: { id: sessionId } });
+        if (!session || session.staffId !== userId || session.endedAt) {
+            return { success: true };
+        }
+        const durationSeconds = Math.floor((Date.now() - session.startedAt.getTime()) / 1000);
+        await this.prisma.scannerSession.update({
+            where: { id: sessionId },
+            data: { endedAt: new Date(), durationSeconds }
+        });
+        return { success: true };
+    }
     async getProfile(userId) {
         const user = await this.prisma.user.findUnique({
             where: { id: userId },

@@ -42,9 +42,9 @@ export declare class PaymentsService {
         }[];
     } & {
         id: string;
-        storeId: string;
-        createdAt: Date;
         status: import(".prisma/client").$Enums.PaymentStatus;
+        createdAt: Date;
+        storeId: string;
         billId: string | null;
         amount: number;
         method: string | null;

@@ -111,14 +111,15 @@ export declare class ScannerService {
         assignedToId?: string;
     }): Promise<{
         id: string;
-        storeId: string;
+        status: import(".prisma/client").$Enums.DeviceStatus;
         createdAt: Date;
         updatedAt: Date;
-        status: import(".prisma/client").$Enums.DeviceStatus;
+        storeId: string;
+        deviceCode: string;
         deviceName: string;
         deviceType: import(".prisma/client").$Enums.DeviceType;
-        lastSeenAt: Date | null;
         assignedToId: string | null;
+        lastSeenAt: Date | null;
     }>;
     getScannerActivity(storeId: string, limit?: number): Promise<({
         device: {
@@ -133,18 +134,18 @@ export declare class ScannerService {
         } | null;
     } & {
         id: string;
-        storeId: string;
         createdAt: Date;
+        storeId: string;
         quantity: number | null;
         symbology: string | null;
-        idempotencyKey: string;
         deviceId: string | null;
+        metadata: import("@prisma/client/runtime/library").JsonValue | null;
+        idempotencyKey: string;
         scannedById: string | null;
         workflow: import(".prisma/client").$Enums.ScannerWorkflow;
         rawValue: string;
         parsedJson: import("@prisma/client/runtime/library").JsonValue | null;
         resolutionStatus: import(".prisma/client").$Enums.ScanResolutionStatus;
-        metadata: import("@prisma/client/runtime/library").JsonValue | null;
     })[]>;
     getDevices(storeId: string): Promise<({
         assignedTo: {
@@ -154,24 +155,26 @@ export declare class ScannerService {
         } | null;
     } & {
         id: string;
-        storeId: string;
+        status: import(".prisma/client").$Enums.DeviceStatus;
         createdAt: Date;
         updatedAt: Date;
-        status: import(".prisma/client").$Enums.DeviceStatus;
+        storeId: string;
+        deviceCode: string;
         deviceName: string;
         deviceType: import(".prisma/client").$Enums.DeviceType;
-        lastSeenAt: Date | null;
         assignedToId: string | null;
+        lastSeenAt: Date | null;
     })[]>;
     deviceHeartbeat(deviceId: string): Promise<{
         id: string;
-        storeId: string;
+        status: import(".prisma/client").$Enums.DeviceStatus;
         createdAt: Date;
         updatedAt: Date;
-        status: import(".prisma/client").$Enums.DeviceStatus;
+        storeId: string;
+        deviceCode: string;
         deviceName: string;
         deviceType: import(".prisma/client").$Enums.DeviceType;
-        lastSeenAt: Date | null;
         assignedToId: string | null;
+        lastSeenAt: Date | null;
     }>;
 }

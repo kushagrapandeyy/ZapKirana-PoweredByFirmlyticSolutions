@@ -37,6 +37,23 @@ export declare class AuthController {
             avatarUrl: any;
         };
     }>;
+    scannerLogin(body: {
+        deviceCode: string;
+        pin: string;
+    }): Promise<{
+        token: string;
+        storeId: string;
+        deviceId: string;
+        staffId: string;
+        sessionId: string;
+        user: {
+            id: string;
+            name: string | null;
+        };
+    }>;
+    scannerLogout(req: any): Promise<{
+        success: boolean;
+    }>;
     requestOtp(body: {
         phone: string;
     }): Promise<{
@@ -66,39 +83,41 @@ export declare class AuthController {
             updatedAt: Date;
             latitude: number;
             longitude: number;
-            address: string;
             userId: string;
+            address: string;
             label: string;
             isDefault: boolean;
         }[];
         id: string;
+        name: string | null;
+        createdAt: Date;
+        updatedAt: Date;
+        organizationId: string | null;
         email: string;
         phone: string | null;
-        organizationId: string | null;
-        name: string | null;
+        pin: string | null;
         role: import(".prisma/client").$Enums.Role;
         storeId: string | null;
         avatarUrl: string | null;
         isVerified: boolean;
         pushToken: string | null;
-        createdAt: Date;
-        updatedAt: Date;
     }>;
     updatePushToken(req: any, body: {
         pushToken: string;
     }): Promise<{
         id: string;
+        name: string | null;
+        createdAt: Date;
+        updatedAt: Date;
+        organizationId: string | null;
         email: string;
         phone: string | null;
-        organizationId: string | null;
         password: string | null;
-        name: string | null;
+        pin: string | null;
         role: import(".prisma/client").$Enums.Role;
         storeId: string | null;
         avatarUrl: string | null;
         isVerified: boolean;
         pushToken: string | null;
-        createdAt: Date;
-        updatedAt: Date;
     }>;
 }

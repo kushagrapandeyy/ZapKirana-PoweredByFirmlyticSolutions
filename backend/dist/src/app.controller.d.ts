@@ -7,15 +7,15 @@ export declare class AppController {
     getHello(): string;
     getStore(id: string): Promise<{
         id: string;
-        organizationId: string | null;
         name: string;
+        gstin: string | null;
         createdAt: Date;
         updatedAt: Date;
+        organizationId: string | null;
         location: string | null;
         latitude: number | null;
         longitude: number | null;
         operatingRadiusKm: number;
-        gstin: string | null;
         isActive: boolean;
         imageUrl: string | null;
         operatingHours: string | null;
@@ -28,15 +28,15 @@ export declare class AppController {
     getNearbyStores(lat: string, lng: string, radiusKm?: string): Promise<{
         distanceKm: number;
         id: string;
-        organizationId: string | null;
         name: string;
+        gstin: string | null;
         createdAt: Date;
         updatedAt: Date;
+        organizationId: string | null;
         location: string | null;
         latitude: number | null;
         longitude: number | null;
         operatingRadiusKm: number;
-        gstin: string | null;
         isActive: boolean;
         imageUrl: string | null;
         operatingHours: string | null;

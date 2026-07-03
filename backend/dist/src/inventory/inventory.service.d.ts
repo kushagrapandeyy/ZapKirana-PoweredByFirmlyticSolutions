@@ -18,9 +18,9 @@ export declare class InventoryService {
         staffId?: string;
     }): Promise<{
         id: string;
-        storeId: string;
         createdAt: Date;
         updatedAt: Date;
+        storeId: string;
         productId: string;
         batchNo: string | null;
         expiryDate: Date | null;
@@ -31,9 +31,9 @@ export declare class InventoryService {
     }>;
     receiveStock(storeId: string, productId: string, qty: number, staffId?: string, batchNo?: string): Promise<{
         id: string;
-        storeId: string;
         createdAt: Date;
         updatedAt: Date;
+        storeId: string;
         productId: string;
         batchNo: string | null;
         expiryDate: Date | null;
@@ -44,9 +44,9 @@ export declare class InventoryService {
     }>;
     reserveStockForOnlineOrder(storeId: string, productId: string, qty: number, orderId: string): Promise<{
         id: string;
-        storeId: string;
         createdAt: Date;
         updatedAt: Date;
+        storeId: string;
         productId: string;
         batchNo: string | null;
         expiryDate: Date | null;
@@ -57,9 +57,9 @@ export declare class InventoryService {
     }>;
     processPosSale(storeId: string, productId: string, qty: number, billId: string, staffId: string): Promise<{
         id: string;
-        storeId: string;
         createdAt: Date;
         updatedAt: Date;
+        storeId: string;
         productId: string;
         batchNo: string | null;
         expiryDate: Date | null;
@@ -77,12 +77,12 @@ export declare class InventoryService {
     getProducts(storeId?: string): Promise<{
         id: string;
         name: string;
-        storeId: string;
         createdAt: Date;
         updatedAt: Date;
         isActive: boolean;
         imageUrl: string | null;
         description: string | null;
+        storeId: string;
         barcode: string | null;
         internalSku: string;
         category: string | null;
@@ -102,8 +102,8 @@ export declare class InventoryService {
         } | null;
     } & {
         id: string;
-        storeId: string;
         createdAt: Date;
+        storeId: string;
         productId: string;
         inventoryId: string;
         type: import(".prisma/client").$Enums.MovementType;

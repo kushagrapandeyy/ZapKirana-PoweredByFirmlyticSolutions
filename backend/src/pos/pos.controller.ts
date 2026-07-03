@@ -4,7 +4,7 @@ import { PaymentMethod } from '@prisma/client';
 import { Roles } from '../common/decorators/roles.decorator';
 
 @Controller('pos')
-@Roles('ORG_ADMIN', 'STORE_MANAGER', 'CASHIER')
+@Roles('ORG_ADMIN', 'MANAGER', 'POS_CASHIER')
 export class PosController {
   constructor(private readonly posService: PosService) {}
 

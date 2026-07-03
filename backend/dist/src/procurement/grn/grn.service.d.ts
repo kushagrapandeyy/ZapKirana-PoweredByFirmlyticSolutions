@@ -21,10 +21,10 @@ export declare class GrnService {
         }[];
     } & {
         id: string;
-        storeId: string;
+        status: import(".prisma/client").$Enums.POStatus;
         createdAt: Date;
         updatedAt: Date;
-        status: import(".prisma/client").$Enums.POStatus;
+        storeId: string;
         totalAmount: number;
         supplierId: string;
         expectedDeliveryDate: Date | null;

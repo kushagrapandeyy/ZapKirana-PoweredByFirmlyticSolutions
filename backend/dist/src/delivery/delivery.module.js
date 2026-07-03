@@ -12,11 +12,13 @@ const delivery_gateway_1 = require("./delivery.gateway");
 const delivery_service_1 = require("./delivery.service");
 const delivery_controller_1 = require("./delivery.controller");
 const prisma_service_1 = require("../prisma.service");
+const auth_module_1 = require("../auth/auth.module");
 let DeliveryModule = class DeliveryModule {
 };
 exports.DeliveryModule = DeliveryModule;
 exports.DeliveryModule = DeliveryModule = __decorate([
     (0, common_1.Module)({
+        imports: [auth_module_1.AuthModule],
         providers: [delivery_gateway_1.DeliveryGateway, delivery_service_1.DeliveryService, prisma_service_1.PrismaService],
         controllers: [delivery_controller_1.DeliveryController],
         exports: [delivery_gateway_1.DeliveryGateway],

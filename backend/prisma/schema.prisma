@@ -3,21 +3,21 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
   directUrl = env("DIRECT_URL")
 }
 
 model Organization {
-  id          String   @id @default(uuid())
-  name        String
-  legalName   String?
-  gstin       String?
-  pan         String?
-  plan        String   @default("FREE")
-  status      String   @default("ACTIVE")
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id        String   @id @default(uuid())
+  name      String
+  legalName String?
+  gstin     String?
+  pan       String?
+  plan      String   @default("FREE")
+  status    String   @default("ACTIVE")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   users          User[]
   stores         Store[]
@@ -25,17 +25,17 @@ model Organization {
 }
 
 model UserStoreRole {
-  id             String   @id @default(uuid())
-  organizationId String
-  organization   Organization @relation(fields: [organizationId], references: [id])
-  storeId        String
-  store          Store    @relation(fields: [storeId], references: [id])
-  userId         String
-  user           User     @relation(fields: [userId], references: [id])
-  role           Role
+  id              String       @id @default(uuid())
+  organizationId  String
+  organization    Organization @relation(fields: [organizationId], references: [id])
+  storeId         String
+  store           Store        @relation(fields: [storeId], references: [id])
+  userId          String
+  user            User         @relation(fields: [userId], references: [id])
+  role            Role
   permissionsJson Json?
-  status         String   @default("ACTIVE")
-  
+  status          String       @default("ACTIVE")
+
   @@unique([storeId, userId])
 }
 
@@ -45,6 +45,7 @@ model User {
   organization   Organization? @relation(fields: [organizationId], references: [id])
   email          String        @unique
   password       String?
+  pin            String?
   name           String?
   phone          String?       @unique
   role           Role          @default(CUSTOMER)
@@ -52,24 +53,25 @@ model User {
   store          Store?        @relation(fields: [storeId], references: [id])
   avatarUrl      String?
   isVerified     Boolean       @default(false)
-  pushToken      String?  // Expo push notification token
+  pushToken      String? // Expo push notification token
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
-  
-  storeRoles            UserStoreRole[]
-  movements             StockMovement[]
-  posBills              PosBill[]
-  customerOrders        Order[]          @relation("CustomerOrders")
-  staffOrders           Order[]          @relation("StaffOrders")
-  sentMessages          OrderMessage[]   @relation("SentMessages")
-  audits                AuditLog[]       @relation("UserAudits")
-  savedAddresses        SavedAddress[]
-  subscriptions         Subscription[]
-  otpCodes              OtpCode[]
-  assignedDevices       ScannerDevice[]  @relation("AssignedDevices")
-  scannerEvents         ScannerEvent[]   @relation("ScannedByUser")
-  printJobs             PrintJob[]       @relation("PrintJobs")
+
+  storeRoles             UserStoreRole[]
+  movements              StockMovement[]
+  posBills               PosBill[]
+  customerOrders         Order[]          @relation("CustomerOrders")
+  staffOrders            Order[]          @relation("StaffOrders")
+  sentMessages           OrderMessage[]   @relation("SentMessages")
+  audits                 AuditLog[]       @relation("UserAudits")
+  savedAddresses         SavedAddress[]
+  subscriptions          Subscription[]
+  otpCodes               OtpCode[]
+  assignedDevices        ScannerDevice[]  @relation("AssignedDevices")
+  scannerEvents          ScannerEvent[]   @relation("ScannedByUser")
+  printJobs              PrintJob[]       @relation("PrintJobs")
   pendingProductsCreated PendingProduct[] @relation("CreatedPendingProducts")
+  ScannerSession         ScannerSession[]
 }
 
 enum Role {
@@ -103,7 +105,7 @@ model SavedAddress {
   id        String   @id @default(uuid())
   userId    String
   user      User     @relation(fields: [userId], references: [id])
-  label     String   // e.g. "Home", "Office"
+  label     String // e.g. "Home", "Office"
   address   String
   latitude  Float
   longitude Float
@@ -115,20 +117,20 @@ model SavedAddress {
 }
 
 model Store {
-  id                String   @id @default(uuid())
-  organizationId    String?
-  organization      Organization? @relation(fields: [organizationId], references: [id])
-  name              String
-  location          String?
-  latitude          Float?
-  longitude         Float?
-  operatingRadiusKm Float @default(3.0)
-  gstin             String?
-  isActive          Boolean  @default(true)
-  imageUrl          String?
-  operatingHours    String? // JSON: {"mon": {"open": "08:00", "close": "22:00"}, ...}
-  rating            Float    @default(4.5)
-  description       String?
+  id                  String                    @id @default(uuid())
+  organizationId      String?
+  organization        Organization?             @relation(fields: [organizationId], references: [id])
+  name                String
+  location            String?
+  latitude            Float?
+  longitude           Float?
+  operatingRadiusKm   Float                     @default(3.0)
+  gstin               String?
+  isActive            Boolean                   @default(true)
+  imageUrl            String?
+  operatingHours      String? // JSON: {"mon": {"open": "08:00", "close": "22:00"}, ...}
+  rating              Float                     @default(4.5)
+  description         String?
   users               User[]
   userRoles           UserStoreRole[]
   products            Product[]
@@ -144,15 +146,16 @@ model Store {
   barcodeRegistry     BarcodeRegistry[]
   printJobs           PrintJob[]
   pendingProducts     PendingProduct[]
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt           DateTime                  @default(now())
+  updatedAt           DateTime                  @updatedAt
 
   // Onboarding & Payment Details
   bankAccountNumber String?
   bankRoutingNumber String?
   taxId             String?
 
-  purchaseOrders    PurchaseOrder[]
+  purchaseOrders PurchaseOrder[]
+  ScannerSession ScannerSession[]
 }
 
 // -----------------------------------------------------
@@ -160,29 +163,29 @@ model Store {
 // -----------------------------------------------------
 
 enum GSTClass {
-  EXEMPT     // 0% - Essential items: milk, fresh vegetables, fruits, eggs
-  GST_5      // 5% - Packaged food, edible oil, sugar, spices, tea, coffee
-  GST_12     // 12% - Processed food, butter, cheese, ghee, fruit juices, namkeen
-  GST_18     // 18% - Biscuits, pasta, cornflakes, soups, ice cream, sauces
-  GST_28     // 28% - Aerated beverages, chewing gum, pan masala
+  EXEMPT // 0% - Essential items: milk, fresh vegetables, fruits, eggs
+  GST_5 // 5% - Packaged food, edible oil, sugar, spices, tea, coffee
+  GST_12 // 12% - Processed food, butter, cheese, ghee, fruit juices, namkeen
+  GST_18 // 18% - Biscuits, pasta, cornflakes, soups, ice cream, sauces
+  GST_28 // 28% - Aerated beverages, chewing gum, pan masala
 }
 
 model Product {
-  id             String   @id @default(uuid())
-  storeId        String
-  store          Store    @relation(fields: [storeId], references: [id])
-  barcode        String?
-  internalSku    String   @unique
-  name           String
-  description    String?
-  category       String?
-  mrp            Float
-  sellingPrice   Float
-  purchaseCost   Float?
-  gstRate        Float    @default(0)
-  gstClass       GSTClass @default(EXEMPT)
-  imageUrl       String?
-  isActive       Boolean  @default(true)
+  id                 String              @id @default(uuid())
+  storeId            String
+  store              Store               @relation(fields: [storeId], references: [id])
+  barcode            String?
+  internalSku        String              @unique
+  name               String
+  description        String?
+  category           String?
+  mrp                Float
+  sellingPrice       Float
+  purchaseCost       Float?
+  gstRate            Float               @default(0)
+  gstClass           GSTClass            @default(EXEMPT)
+  imageUrl           String?
+  isActive           Boolean             @default(true)
   inventory          Inventory[]
   movements          StockMovement[]
   posBillItems       PosBillItem[]
@@ -190,61 +193,61 @@ model Product {
   purchaseOrderItems PurchaseOrderItem[]
   supplierProducts   SupplierProduct[]
   barcodeRegistry    BarcodeRegistry[]
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
 
   @@index([storeId])
   @@index([category])
-  @@index([barcode])                    // barcode lookup — HID scanner + platform search
-  @@index([storeId, isActive])          // product catalog queries
-  @@index([storeId, category])          // category browsing + analytics
+  @@index([barcode]) // barcode lookup — HID scanner + platform search
+  @@index([storeId, isActive]) // product catalog queries
+  @@index([storeId, category]) // category browsing + analytics
 }
 
 model Inventory {
-  id             String   @id @default(uuid())
-  storeId        String
-  store          Store    @relation(fields: [storeId], references: [id])
-  productId      String
-  product        Product  @relation(fields: [productId], references: [id])
-  batchNo        String?
-  expiryDate     DateTime?
-  onHandQty      Int      @default(0)
-  reservedQty    Int      @default(0)
-  blockedQty     Int      @default(0)
-  lowStockThreshold Int   @default(10)
-  movements      StockMovement[]
-  
+  id                String          @id @default(uuid())
+  storeId           String
+  store             Store           @relation(fields: [storeId], references: [id])
+  productId         String
+  product           Product         @relation(fields: [productId], references: [id])
+  batchNo           String?
+  expiryDate        DateTime?
+  onHandQty         Int             @default(0)
+  reservedQty       Int             @default(0)
+  blockedQty        Int             @default(0)
+  lowStockThreshold Int             @default(10)
+  movements         StockMovement[]
+
   // Available Qty = onHandQty - reservedQty - blockedQty
-  
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@unique([storeId, productId, batchNo])
-  @@index([storeId, productId])         // available stock lookups
-  @@index([onHandQty])                  // low stock alerts
-  @@index([expiryDate])                 // expiry queries
+  @@index([storeId, productId]) // available stock lookups
+  @@index([onHandQty]) // low stock alerts
+  @@index([expiryDate]) // expiry queries
 }
 
 model StockMovement {
-  id             String   @id @default(uuid())
+  id             String       @id @default(uuid())
   storeId        String
-  store          Store    @relation(fields: [storeId], references: [id])
+  store          Store        @relation(fields: [storeId], references: [id])
   productId      String
-  product        Product  @relation(fields: [productId], references: [id])
+  product        Product      @relation(fields: [productId], references: [id])
   inventoryId    String
-  inventory      Inventory @relation(fields: [inventoryId], references: [id])
+  inventory      Inventory    @relation(fields: [inventoryId], references: [id])
   type           MovementType
   quantityChange Int
-  sourceType     String?  // e.g., "ONLINE_ORDER", "POS_SALE", "SUPPLIER_DELIVERY"
+  sourceType     String? // e.g., "ONLINE_ORDER", "POS_SALE", "SUPPLIER_DELIVERY"
   sourceId       String?
   reason         String?
   staffId        String?
-  staff          User?    @relation(fields: [staffId], references: [id])
-  createdAt      DateTime @default(now())
+  staff          User?        @relation(fields: [staffId], references: [id])
+  createdAt      DateTime     @default(now())
 
-  @@index([storeId, createdAt])         // analytics time-series queries
-  @@index([productId, type])            // per-product movement history
-  @@index([sourceId])                   // trace by order/bill ID
+  @@index([storeId, createdAt]) // analytics time-series queries
+  @@index([productId, type]) // per-product movement history
+  @@index([sourceId]) // trace by order/bill ID
 }
 
 enum MovementType {
@@ -275,23 +278,23 @@ enum PaymentMethod {
 }
 
 model PosBill {
-  id        String        @id @default(uuid())
+  id        String     @id @default(uuid())
   storeId   String
-  store     Store         @relation(fields: [storeId], references: [id])
+  store     Store      @relation(fields: [storeId], references: [id])
   staffId   String?
-  staff     User?         @relation(fields: [staffId], references: [id])
-  status    BillStatus    @default(DRAFT)
-  subtotal  Float         @default(0)
-  gst       Float         @default(0)
-  total     Float         @default(0)
-  createdAt DateTime      @default(now())
-  updatedAt DateTime      @updatedAt
+  staff     User?      @relation(fields: [staffId], references: [id])
+  status    BillStatus @default(DRAFT)
+  subtotal  Float      @default(0)
+  gst       Float      @default(0)
+  total     Float      @default(0)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
 
-  items     PosBillItem[]
-  payments  PosPayment[]
+  items    PosBillItem[]
+  payments PosPayment[]
 
-  @@index([storeId, status])            // POS revenue queries
-  @@index([storeId, createdAt])         // daily/hourly heatmap analytics
+  @@index([storeId, status]) // POS revenue queries
+  @@index([storeId, createdAt]) // daily/hourly heatmap analytics
 }
 
 model PosBillItem {
@@ -307,13 +310,13 @@ model PosBillItem {
 }
 
 model PosPayment {
-  id            String        @id @default(uuid())
-  billId        String
-  bill          PosBill       @relation(fields: [billId], references: [id])
-  amount        Float
-  method        PaymentMethod
-  referenceId   String?
-  createdAt     DateTime      @default(now())
+  id          String        @id @default(uuid())
+  billId      String
+  bill        PosBill       @relation(fields: [billId], references: [id])
+  amount      Float
+  method      PaymentMethod
+  referenceId String?
+  createdAt   DateTime      @default(now())
 }
 
 // -----------------------------------------------------
@@ -331,35 +334,35 @@ enum OrderStatus {
 }
 
 model Order {
-  id          String        @id @default(uuid())
-  storeId     String
-  store       Store         @relation(fields: [storeId], references: [id])
-  customerId  String
-  customer    User          @relation("CustomerOrders", fields: [customerId], references: [id])
-  staffId     String?       // Picker
-  staff       User?         @relation("StaffOrders", fields: [staffId], references: [id])
-  status      OrderStatus   @default(PAYMENT_PENDING)
-  totalAmount Float         @default(0)
-  deliveryFee Float         @default(0)
-  gstAmount   Float         @default(0)
-  tipAmount   Float         @default(0)
-  deliveryAddress String?
-  deliveryLat Float?
-  deliveryLng Float?
-  deliverySlot String?      // e.g., "10:00-11:00"
+  id                   String      @id @default(uuid())
+  storeId              String
+  store                Store       @relation(fields: [storeId], references: [id])
+  customerId           String
+  customer             User        @relation("CustomerOrders", fields: [customerId], references: [id])
+  staffId              String? // Picker
+  staff                User?       @relation("StaffOrders", fields: [staffId], references: [id])
+  status               OrderStatus @default(PAYMENT_PENDING)
+  totalAmount          Float       @default(0)
+  deliveryFee          Float       @default(0)
+  gstAmount            Float       @default(0)
+  tipAmount            Float       @default(0)
+  deliveryAddress      String?
+  deliveryLat          Float?
+  deliveryLng          Float?
+  deliverySlot         String? // e.g., "10:00-11:00"
   deliveryInstructions String?
-  requireOtp  Boolean       @default(false)
-  otp         String?       // Generated OTP code
-  subscriptionId String?    // If order was created from a subscription
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
+  requireOtp           Boolean     @default(false)
+  otp                  String? // Generated OTP code
+  subscriptionId       String? // If order was created from a subscription
+  createdAt            DateTime    @default(now())
+  updatedAt            DateTime    @updatedAt
 
-  items       OrderItem[]
-  messages    OrderMessage[]
+  items    OrderItem[]
+  messages OrderMessage[]
 
-  @@index([storeId, status])            // store order management
-  @@index([customerId, createdAt])      // customer order history
-  @@index([status, createdAt])          // platform-wide order monitoring
+  @@index([storeId, status]) // store order management
+  @@index([customerId, createdAt]) // customer order history
+  @@index([status, createdAt]) // platform-wide order monitoring
 }
 
 model OrderItem {
@@ -392,18 +395,18 @@ enum SubscriptionStatus {
 }
 
 model Subscription {
-  id              String                @id @default(uuid())
-  customerId      String
-  customer        User                  @relation(fields: [customerId], references: [id])
-  storeId         String
-  store           Store                 @relation(fields: [storeId], references: [id])
-  frequency       SubscriptionFrequency
-  status          SubscriptionStatus    @default(ACTIVE)
-  deliverySlot    String?               // e.g., "07:00-08:00"
+  id               String                @id @default(uuid())
+  customerId       String
+  customer         User                  @relation(fields: [customerId], references: [id])
+  storeId          String
+  store            Store                 @relation(fields: [storeId], references: [id])
+  frequency        SubscriptionFrequency
+  status           SubscriptionStatus    @default(ACTIVE)
+  deliverySlot     String? // e.g., "07:00-08:00"
   nextDeliveryDate DateTime?
-  items           SubscriptionItem[]
-  createdAt       DateTime              @default(now())
-  updatedAt       DateTime              @updatedAt
+  items            SubscriptionItem[]
+  createdAt        DateTime              @default(now())
+  updatedAt        DateTime              @updatedAt
 
   @@index([customerId])
   @@index([storeId])
@@ -414,7 +417,7 @@ model SubscriptionItem {
   subscriptionId String
   subscription   Subscription @relation(fields: [subscriptionId], references: [id])
   productId      String
-  productName    String       // Denormalized for display
+  productName    String // Denormalized for display
   quantity       Int
   createdAt      DateTime     @default(now())
 }
@@ -429,11 +432,11 @@ model Supplier {
   contactEmail String?
   contactPhone String?
   address      String?
-  categories   String?  // comma separated or JSON
+  categories   String? // comma separated or JSON
   rating       Float    @default(5.0)
   description  String?
   logoUrl      String?
-  paymentTerms String?  // e.g., "Net 30", "COD"
+  paymentTerms String? // e.g., "Net 30", "COD"
   onTimeRate   Float    @default(100.0) // percentage
   fillRate     Float    @default(100.0) // percentage
   isActive     Boolean  @default(true)
@@ -495,24 +498,24 @@ enum POStatus {
 }
 
 model PurchaseOrder {
-  id                   String              @id @default(uuid())
+  id                   String    @id @default(uuid())
   storeId              String
-  store                Store               @relation(fields: [storeId], references: [id])
+  store                Store     @relation(fields: [storeId], references: [id])
   supplierId           String
-  supplier             Supplier            @relation(fields: [supplierId], references: [id])
-  status               POStatus            @default(CREATED)
+  supplier             Supplier  @relation(fields: [supplierId], references: [id])
+  status               POStatus  @default(CREATED)
   expectedDeliveryDate DateTime?
-  totalAmount          Float               @default(0)
+  totalAmount          Float     @default(0)
   notes                String?
-  shareToken           String?   @unique   // For shareable link access
-  shareTokenExpiresAt  DateTime?           // Token expiry
-  createdAt            DateTime            @default(now())
-  updatedAt            DateTime            @updatedAt
-  
-  items                PurchaseOrderItem[]
+  shareToken           String?   @unique // For shareable link access
+  shareTokenExpiresAt  DateTime? // Token expiry
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
 
-  @@index([storeId, status])            // PO management dashboard
-  @@index([supplierId, createdAt])      // supplier scorecard
+  items PurchaseOrderItem[]
+
+  @@index([storeId, status]) // PO management dashboard
+  @@index([supplierId, createdAt]) // supplier scorecard
 }
 
 model PurchaseOrderItem {
@@ -550,7 +553,7 @@ model GSTCategoryRule {
   id        String   @id @default(uuid())
   category  String   @unique // Product category name
   gstClass  GSTClass
-  gstRate   Float    // Numeric rate for calculation (0, 5, 12, 18, 28)
+  gstRate   Float // Numeric rate for calculation (0, 5, 12, 18, 28)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -574,18 +577,20 @@ enum DeviceStatus {
 }
 
 model ScannerDevice {
-  id           String       @id @default(uuid())
-  storeId      String
-  store        Store        @relation(fields: [storeId], references: [id])
-  deviceName   String
-  deviceType   DeviceType   @default(ANDROID_PHONE)
-  assignedToId String?
-  assignedTo   User?        @relation("AssignedDevices", fields: [assignedToId], references: [id])
-  lastSeenAt   DateTime?
-  status       DeviceStatus @default(ACTIVE)
-  createdAt    DateTime     @default(now())
-  updatedAt    DateTime     @updatedAt
-  events       ScannerEvent[]
+  id             String           @id @default(uuid())
+  deviceCode     String           @unique
+  storeId        String
+  store          Store            @relation(fields: [storeId], references: [id])
+  deviceName     String
+  deviceType     DeviceType       @default(ANDROID_PHONE)
+  assignedToId   String?
+  assignedTo     User?            @relation("AssignedDevices", fields: [assignedToId], references: [id])
+  lastSeenAt     DateTime?
+  status         DeviceStatus     @default(ACTIVE)
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  events         ScannerEvent[]
+  ScannerSession ScannerSession[]
 
   @@index([storeId, status])
 }
@@ -632,6 +637,22 @@ model ScannerEvent {
   @@index([storeId, createdAt])
 }
 
+model ScannerSession {
+  id              String        @id @default(uuid())
+  storeId         String
+  store           Store         @relation(fields: [storeId], references: [id])
+  deviceId        String
+  device          ScannerDevice @relation(fields: [deviceId], references: [id])
+  staffId         String
+  staff           User          @relation(fields: [staffId], references: [id])
+  startedAt       DateTime      @default(now())
+  endedAt         DateTime?
+  durationSeconds Int?
+
+  @@index([storeId, startedAt])
+  @@index([staffId])
+}
+
 // -----------------------------------------------------
 // Razorpay Payments
 // -----------------------------------------------------
@@ -660,15 +681,15 @@ model Payment {
   storeId           String
   store             Store           @relation(fields: [storeId], references: [id])
   source            PaymentSource
-  billId            String?         // PosBill reference (for POS payments)
-  orderId           String?         // Order reference (for online orders)
+  billId            String? // PosBill reference (for POS payments)
+  orderId           String? // Order reference (for online orders)
   provider          PaymentProvider @default(RAZORPAY)
-  providerOrderId   String?         // razorpay_order_id
-  providerPaymentId String?         // razorpay_payment_id
-  providerQrId      String?         // razorpay_qr_id
+  providerOrderId   String? // razorpay_order_id
+  providerPaymentId String? // razorpay_payment_id
+  providerQrId      String? // razorpay_qr_id
   amount            Float
   currency          String          @default("INR")
-  method            String?         // upi, card, netbanking, etc.
+  method            String? // upi, card, netbanking, etc.
   status            PaymentStatus   @default(PENDING)
   paidAt            DateTime?
   createdAt         DateTime        @default(now())
@@ -681,15 +702,15 @@ model Payment {
 }
 
 model PaymentEvent {
-  id             String   @id @default(uuid())
+  id             String    @id @default(uuid())
   paymentId      String
-  payment        Payment  @relation(fields: [paymentId], references: [id])
+  payment        Payment   @relation(fields: [paymentId], references: [id])
   provider       String
   eventType      String
   payloadJson    Json
-  signatureValid Boolean  @default(false)
+  signatureValid Boolean   @default(false)
   processedAt    DateTime?
-  receivedAt     DateTime @default(now())
+  receivedAt     DateTime  @default(now())
 
   @@index([paymentId])
 }
@@ -699,10 +720,10 @@ model PaymentEvent {
 // -----------------------------------------------------
 
 enum BarcodeScope {
-  GS1_EXTERNAL_PRODUCT   // EAN-13 / GTIN — manufacturer barcode
-  INTERNAL_FIXED_PACK    // e.g. BK01DALT1000 — internal fixed-weight
+  GS1_EXTERNAL_PRODUCT // EAN-13 / GTIN — manufacturer barcode
+  INTERNAL_FIXED_PACK // e.g. BK01DALT1000 — internal fixed-weight
   INTERNAL_VARIABLE_WEIGHT // e.g. 29PPPPPWWWWWC — internal weighed item
-  INTERNAL_OPERATIONAL   // PO barcode, BIN barcode, Order QR
+  INTERNAL_OPERATIONAL // PO barcode, BIN barcode, Order QR
   UNKNOWN
 }
 
@@ -733,17 +754,17 @@ enum PrintJobStatus {
 }
 
 model PrintJob {
-  id              String         @id @default(uuid())
-  storeId         String
-  store           Store          @relation(fields: [storeId], references: [id])
-  requestedById   String?
-  requestedBy     User?          @relation("PrintJobs", fields: [requestedById], references: [id])
-  templateType    String         // LOOSE_ITEM_LABEL, SHELF_TAG, PO_LABEL, etc.
-  labelDataJson   Json           // items + metadata for label rendering
-  status          PrintJobStatus @default(PENDING)
-  r2PdfPath       String?
-  createdAt       DateTime       @default(now())
-  updatedAt       DateTime       @updatedAt
+  id            String         @id @default(uuid())
+  storeId       String
+  store         Store          @relation(fields: [storeId], references: [id])
+  requestedById String?
+  requestedBy   User?          @relation("PrintJobs", fields: [requestedById], references: [id])
+  templateType  String // LOOSE_ITEM_LABEL, SHELF_TAG, PO_LABEL, etc.
+  labelDataJson Json // items + metadata for label rendering
+  status        PrintJobStatus @default(PENDING)
+  r2PdfPath     String?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
 
   @@index([storeId, status])
 }
@@ -774,11 +795,10 @@ model PendingProduct {
   status            PendingProductStatus @default(PENDING_REVIEW)
   createdById       String?
   createdBy         User?                @relation("CreatedPendingProducts", fields: [createdById], references: [id])
-  approvedProductId String?              // populated after approval
+  approvedProductId String? // populated after approval
   notes             String?
   createdAt         DateTime             @default(now())
   updatedAt         DateTime             @updatedAt
 
   @@index([storeId, status])
 }
-

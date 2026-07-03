@@ -29,6 +29,13 @@ export default function TabsLayout() {
           tabBarIcon: ({ color }) => <Settings color={color} size={24} />,
         }}
       />
+      <Tabs.Screen
+        name="action"
+        options={{
+          href: null,
+          title: 'Action',
+        }}
+      />
     </Tabs>
   );
 }

@@ -39,18 +39,101 @@ const prisma = new client_1.PrismaClient();
 async function main() {
     console.log('Seeding database...');
     const hashedAdminPassword = await bcrypt.hash('admin123', 10);
-    const owner = await prisma.user.upsert({
-        where: { email: 'admin@basko.com' },
-        update: { password: hashedAdminPassword, role: 'OWNER' },
+    const hashedDevPassword = await bcrypt.hash('dev123', 10);
+    const org = await prisma.organization.upsert({
+        where: { id: 'dev-org-id' },
+        update: {},
         create: {
-            email: 'admin@basko.com',
-            password: hashedAdminPassword,
-            name: 'System Admin',
+            id: 'dev-org-id',
+            name: 'Dev Organization',
+            plan: 'PRO',
+        },
+    });
+    const store = await prisma.store.upsert({
+        where: { id: 'dev-store-id' },
+        update: {},
+        create: {
+            id: 'dev-store-id',
+            organizationId: org.id,
+            name: 'Dev Supermart',
+            location: '123 Dev Street',
+            latitude: 12.9716,
+            longitude: 77.5946,
+            isActive: true,
+        },
+    });
+    const devUser = await prisma.user.upsert({
+        where: { email: 'dev@basko.com' },
+        update: { password: hashedDevPassword, role: 'OWNER', organizationId: org.id, storeId: store.id },
+        create: {
+            email: 'dev@basko.com',
+            phone: '+1234567890',
+            password: hashedDevPassword,
+            name: 'Dev Tester',
+            role: 'OWNER',
+            organizationId: org.id,
+            storeId: store.id,
+        },
+    });
+    await prisma.userStoreRole.upsert({
+        where: {
+            storeId_userId: {
+                storeId: store.id,
+                userId: devUser.id,
+            },
+        },
+        update: { role: 'OWNER' },
+        create: {
+            organizationId: org.id,
+            storeId: store.id,
+            userId: devUser.id,
             role: 'OWNER',
         },
     });
-    console.log(`Created admin user: ${owner.email} with password: admin123`);
-    console.log('Database is completely fresh. Ready for you to onboard your first store via Web Admin!');
+    const hashedScannerPassword = await bcrypt.hash('scanner123', 10);
+    const scannerUser = await prisma.user.upsert({
+        where: { email: 'scanner@basko.com' },
+        update: { password: hashedScannerPassword, role: 'SCANNER_STAFF', organizationId: org.id, storeId: store.id, pin: '1234' },
+        create: {
+            email: 'scanner@basko.com',
+            phone: '+1987654321',
+            password: hashedScannerPassword,
+            name: 'Scanner Staff',
+            role: 'SCANNER_STAFF',
+            organizationId: org.id,
+            storeId: store.id,
+            pin: '1234',
+        },
+    });
+    await prisma.userStoreRole.upsert({
+        where: {
+            storeId_userId: {
+                storeId: store.id,
+                userId: scannerUser.id,
+            },
+        },
+        update: { role: 'SCANNER_STAFF' },
+        create: {
+            organizationId: org.id,
+            storeId: store.id,
+            userId: scannerUser.id,
+            role: 'SCANNER_STAFF',
+        },
+    });
+    const scannerDevice = await prisma.scannerDevice.upsert({
+        where: { deviceCode: 'DVC-DEV' },
+        update: { storeId: store.id, status: 'ACTIVE' },
+        create: {
+            deviceCode: 'DVC-DEV',
+            deviceName: 'Dev Tester Scanner',
+            storeId: store.id,
+            status: 'ACTIVE',
+        },
+    });
+    console.log(`Created universal dev user: ${devUser.email} / +1234567890 with password: dev123`);
+    console.log(`Created scanner dev user: ${scannerUser.email} / PIN: 1234`);
+    console.log(`Created scanner dev device code: DVC-DEV`);
+    console.log(`Linked to Store: ${store.name} and Organization: ${org.name}`);
 }
 main()
     .catch((e) => {

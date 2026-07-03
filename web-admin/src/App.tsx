@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Store, Users, Activity, Plus, X, Building, ShieldCheck, LogOut, LayoutDashboard, Calculator, Receipt, Moon, Sun, TrendingUp, AlertTriangle, Package, Copy } from 'lucide-react';
+import { Store, Users, Activity, Plus, X, Building, ShieldCheck, LogOut, LayoutDashboard, Calculator, Receipt, Moon, Sun, TrendingUp, AlertTriangle, Package, Copy, Smartphone } from 'lucide-react';
 import { useAuth, fetchWithAuth } from './AuthContext';
 import Login from './Login';
+import ScannerManagement from './pages/ScannerManagement';
 
 const API_BASE = 'http://localhost:3000';
 
@@ -178,7 +179,12 @@ function AdminDashboard() {
             <ShieldCheck size={20} /> Audit Trail
           </button>
           <button className={`nav-item ${activeTab === 'ANALYTICS' ? 'active' : ''}`} onClick={() => setActiveTab('ANALYTICS')}>
-            <TrendingUp size={20} /> Network Analytics
+            <TrendingUp size={20} className="mr-3" /> Network Analytics
+          </button>
+          
+          <div className="text-xs font-bold text-gray-400 mt-8 mb-4 px-4 uppercase tracking-wider">Devices</div>
+          <button className={`nav-item ${activeTab === 'SCANNER_MGMT' ? 'active' : ''}`} onClick={() => setActiveTab('SCANNER_MGMT')}>
+            <Smartphone size={20} className="mr-3" /> Scanner & Inventory
           </button>
         </nav>
         
@@ -266,6 +272,8 @@ function AdminDashboard() {
             </div>
           </div>
         )}
+
+        {activeTab === 'SCANNER_MGMT' && <ScannerManagement />}
 
         {/* STORES VIEW */}
         {activeTab === 'STORES' && (

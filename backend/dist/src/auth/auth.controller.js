@@ -33,6 +33,12 @@ let AuthController = class AuthController {
     async register(body) {
         return this.authService.register(body);
     }
+    async scannerLogin(body) {
+        return this.authService.scannerLogin(body.deviceCode, body.pin);
+    }
+    async scannerLogout(req) {
+        return this.authService.scannerLogout(req.user.sessionId, req.user.id);
+    }
     async requestOtp(body) {
         return this.authService.requestOtp(body.phone);
     }
@@ -63,6 +69,22 @@ __decorate([
     __metadata("design:paramtypes", [Object]),
     __metadata("design:returntype", Promise)
 ], AuthController.prototype, "register", null);
+__decorate([
+    (0, public_decorator_1.Public)(),
+    (0, common_1.Post)('scanner/login'),
+    __param(0, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", Promise)
+], AuthController.prototype, "scannerLogin", null);
+__decorate([
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
+    (0, common_1.Post)('scanner/logout'),
+    __param(0, (0, common_1.Request)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", Promise)
+], AuthController.prototype, "scannerLogout", null);
 __decorate([
     (0, public_decorator_1.Public)(),
     (0, common_1.Post)('otp/request'),

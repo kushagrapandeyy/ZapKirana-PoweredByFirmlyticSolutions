@@ -92,7 +92,7 @@ __decorate([
 ], PosController.prototype, "addItemByBarcode", null);
 exports.PosController = PosController = __decorate([
     (0, common_1.Controller)('pos'),
-    (0, roles_decorator_1.Roles)('ORG_ADMIN', 'STORE_MANAGER', 'CASHIER'),
+    (0, roles_decorator_1.Roles)('ORG_ADMIN', 'MANAGER', 'POS_CASHIER'),
     __metadata("design:paramtypes", [pos_service_1.PosService])
 ], PosController);
 //# sourceMappingURL=pos.controller.js.map

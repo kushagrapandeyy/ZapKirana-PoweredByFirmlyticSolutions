@@ -5,7 +5,7 @@ import { ScanBarcode } from 'lucide-react-native';
 import axios from 'axios';
 
 // Replace with your local machine's IP or actual backend URL
-const API_URL = 'http://192.168.1.100:3000/api/v1';
+const BASE_URL = 'http://100.70.73.205:3000';
 
 export default function LoginScreen() {
   const [deviceCode, setDeviceCode] = useState('');
@@ -26,13 +26,13 @@ export default function LoginScreen() {
     try {
       // Stubbing the login call for the scanner
       // The real backend would expect POST /auth/login or a specific /scanner/login
-      const response = await axios.post(`${API_URL}/auth/scanner/login`, {
+      const response = await axios.post(`${BASE_URL}/auth/scanner/login`, {
         deviceCode,
         pin,
       });
 
-      const { token, storeId, deviceId, staffId } = response.data;
-      await login(token, storeId, deviceId, staffId);
+      const { token, storeId, deviceId, staffId, sessionId } = response.data;
+      await login(token, storeId, deviceId, staffId, sessionId);
     } catch (e: any) {
       console.error(e);
       setError(e.response?.data?.message || 'Login failed. Check credentials.');

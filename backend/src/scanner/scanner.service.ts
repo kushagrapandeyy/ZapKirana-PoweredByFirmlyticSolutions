@@ -1,6 +1,7 @@
 import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { ScannerWorkflow, ScanResolutionStatus, BarcodeScope } from '@prisma/client';
+import { v4 as uuidv4 } from 'uuid';
 
 // ─── Barcode Classifier ───────────────────────────────────────────────────────
 
@@ -354,6 +355,7 @@ export class ScannerService {
   }) {
     return this.prisma.scannerDevice.create({
       data: {
+        deviceCode: uuidv4(),
         storeId: data.storeId,
         deviceName: data.deviceName,
         deviceType: (data.deviceType as any) ?? 'ANDROID_PHONE',

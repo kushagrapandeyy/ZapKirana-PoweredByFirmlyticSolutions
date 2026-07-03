@@ -11,15 +11,15 @@ export declare class AdminController {
         recentOrders: ({
             store: {
                 id: string;
-                organizationId: string | null;
                 name: string;
+                gstin: string | null;
                 createdAt: Date;
                 updatedAt: Date;
+                organizationId: string | null;
                 location: string | null;
                 latitude: number | null;
                 longitude: number | null;
                 operatingRadiusKm: number;
-                gstin: string | null;
                 isActive: boolean;
                 imageUrl: string | null;
                 operatingHours: string | null;
@@ -31,26 +31,27 @@ export declare class AdminController {
             };
             customer: {
                 id: string;
+                name: string | null;
+                createdAt: Date;
+                updatedAt: Date;
+                organizationId: string | null;
                 email: string;
                 phone: string | null;
-                organizationId: string | null;
                 password: string | null;
-                name: string | null;
+                pin: string | null;
                 role: import(".prisma/client").$Enums.Role;
                 storeId: string | null;
                 avatarUrl: string | null;
                 isVerified: boolean;
                 pushToken: string | null;
-                createdAt: Date;
-                updatedAt: Date;
             };
         } & {
             id: string;
-            storeId: string;
+            status: import(".prisma/client").$Enums.OrderStatus;
             createdAt: Date;
             updatedAt: Date;
+            storeId: string;
             staffId: string | null;
-            status: import(".prisma/client").$Enums.OrderStatus;
             customerId: string;
             totalAmount: number;
             deliveryFee: number;
@@ -74,15 +75,15 @@ export declare class AdminController {
         };
     } & {
         id: string;
-        organizationId: string | null;
         name: string;
+        gstin: string | null;
         createdAt: Date;
         updatedAt: Date;
+        organizationId: string | null;
         location: string | null;
         latitude: number | null;
         longitude: number | null;
         operatingRadiusKm: number;
-        gstin: string | null;
         isActive: boolean;
         imageUrl: string | null;
         operatingHours: string | null;
@@ -94,15 +95,15 @@ export declare class AdminController {
     })[]>;
     createStore(body: any, req: any): Promise<{
         id: string;
-        organizationId: string | null;
         name: string;
+        gstin: string | null;
         createdAt: Date;
         updatedAt: Date;
+        organizationId: string | null;
         location: string | null;
         latitude: number | null;
         longitude: number | null;
         operatingRadiusKm: number;
-        gstin: string | null;
         isActive: boolean;
         imageUrl: string | null;
         operatingHours: string | null;
@@ -118,15 +119,15 @@ export declare class AdminController {
     };
     updateStore(id: string, body: any, req: any): Promise<{
         id: string;
-        organizationId: string | null;
         name: string;
+        gstin: string | null;
         createdAt: Date;
         updatedAt: Date;
+        organizationId: string | null;
         location: string | null;
         latitude: number | null;
         longitude: number | null;
         operatingRadiusKm: number;
-        gstin: string | null;
         isActive: boolean;
         imageUrl: string | null;
         operatingHours: string | null;
@@ -147,15 +148,15 @@ export declare class AdminController {
     getVendors(): Promise<({
         store: {
             id: string;
-            organizationId: string | null;
             name: string;
+            gstin: string | null;
             createdAt: Date;
             updatedAt: Date;
+            organizationId: string | null;
             location: string | null;
             latitude: number | null;
             longitude: number | null;
             operatingRadiusKm: number;
-            gstin: string | null;
             isActive: boolean;
             imageUrl: string | null;
             operatingHours: string | null;
@@ -167,33 +168,35 @@ export declare class AdminController {
         } | null;
     } & {
         id: string;
+        name: string | null;
+        createdAt: Date;
+        updatedAt: Date;
+        organizationId: string | null;
         email: string;
         phone: string | null;
-        organizationId: string | null;
         password: string | null;
-        name: string | null;
+        pin: string | null;
         role: import(".prisma/client").$Enums.Role;
         storeId: string | null;
         avatarUrl: string | null;
         isVerified: boolean;
         pushToken: string | null;
-        createdAt: Date;
-        updatedAt: Date;
     })[]>;
     createVendor(body: any, req: any): Promise<{
         id: string;
+        name: string | null;
+        createdAt: Date;
+        updatedAt: Date;
+        organizationId: string | null;
         email: string;
         phone: string | null;
-        organizationId: string | null;
         password: string | null;
-        name: string | null;
+        pin: string | null;
         role: import(".prisma/client").$Enums.Role;
         storeId: string | null;
         avatarUrl: string | null;
         isVerified: boolean;
         pushToken: string | null;
-        createdAt: Date;
-        updatedAt: Date;
     }>;
     getSuppliers(): Promise<({
         _count: {
@@ -222,15 +225,15 @@ export declare class AdminController {
         purchaseOrders: ({
             store: {
                 id: string;
-                organizationId: string | null;
                 name: string;
+                gstin: string | null;
                 createdAt: Date;
                 updatedAt: Date;
+                organizationId: string | null;
                 location: string | null;
                 latitude: number | null;
                 longitude: number | null;
                 operatingRadiusKm: number;
-                gstin: string | null;
                 isActive: boolean;
                 imageUrl: string | null;
                 operatingHours: string | null;
@@ -242,10 +245,10 @@ export declare class AdminController {
             };
         } & {
             id: string;
-            storeId: string;
+            status: import(".prisma/client").$Enums.POStatus;
             createdAt: Date;
             updatedAt: Date;
-            status: import(".prisma/client").$Enums.POStatus;
+            storeId: string;
             totalAmount: number;
             supplierId: string;
             expectedDeliveryDate: Date | null;
@@ -257,12 +260,12 @@ export declare class AdminController {
             product: {
                 id: string;
                 name: string;
-                storeId: string;
                 createdAt: Date;
                 updatedAt: Date;
                 isActive: boolean;
                 imageUrl: string | null;
                 description: string | null;
+                storeId: string;
                 barcode: string | null;
                 internalSku: string;
                 category: string | null;
@@ -283,15 +286,15 @@ export declare class AdminController {
         storeConnections: ({
             store: {
                 id: string;
-                organizationId: string | null;
                 name: string;
+                gstin: string | null;
                 createdAt: Date;
                 updatedAt: Date;
+                organizationId: string | null;
                 location: string | null;
                 latitude: number | null;
                 longitude: number | null;
                 operatingRadiusKm: number;
-                gstin: string | null;
                 isActive: boolean;
                 imageUrl: string | null;
                 operatingHours: string | null;
@@ -303,10 +306,10 @@ export declare class AdminController {
             };
         } & {
             id: string;
-            storeId: string;
+            status: import(".prisma/client").$Enums.ConnectionStatus;
             createdAt: Date;
             updatedAt: Date;
-            status: import(".prisma/client").$Enums.ConnectionStatus;
+            storeId: string;
             supplierId: string;
         })[];
     } & {
@@ -363,26 +366,27 @@ export declare class AdminController {
     getAudits(limit?: string): Promise<({
         user: {
             id: string;
+            name: string | null;
+            createdAt: Date;
+            updatedAt: Date;
+            organizationId: string | null;
             email: string;
             phone: string | null;
-            organizationId: string | null;
             password: string | null;
-            name: string | null;
+            pin: string | null;
             role: import(".prisma/client").$Enums.Role;
             storeId: string | null;
             avatarUrl: string | null;
             isVerified: boolean;
             pushToken: string | null;
-            createdAt: Date;
-            updatedAt: Date;
         } | null;
     } & {
         id: string;
         createdAt: Date;
+        userId: string | null;
         action: string;
         entityType: string;
         entityId: string | null;
         details: string | null;
-        userId: string | null;
     })[]>;
 }

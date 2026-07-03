@@ -11,15 +11,15 @@ export declare class PurchaseOrderService {
     }[], notes?: string): Promise<{
         store: {
             id: string;
-            organizationId: string | null;
             name: string;
+            gstin: string | null;
             createdAt: Date;
             updatedAt: Date;
+            organizationId: string | null;
             location: string | null;
             latitude: number | null;
             longitude: number | null;
             operatingRadiusKm: number;
-            gstin: string | null;
             isActive: boolean;
             imageUrl: string | null;
             operatingHours: string | null;
@@ -50,12 +50,12 @@ export declare class PurchaseOrderService {
             product: {
                 id: string;
                 name: string;
-                storeId: string;
                 createdAt: Date;
                 updatedAt: Date;
                 isActive: boolean;
                 imageUrl: string | null;
                 description: string | null;
+                storeId: string;
                 barcode: string | null;
                 internalSku: string;
                 category: string | null;
@@ -78,10 +78,10 @@ export declare class PurchaseOrderService {
         })[];
     } & {
         id: string;
-        storeId: string;
+        status: import(".prisma/client").$Enums.POStatus;
         createdAt: Date;
         updatedAt: Date;
-        status: import(".prisma/client").$Enums.POStatus;
+        storeId: string;
         totalAmount: number;
         supplierId: string;
         expectedDeliveryDate: Date | null;
@@ -111,12 +111,12 @@ export declare class PurchaseOrderService {
             product: {
                 id: string;
                 name: string;
-                storeId: string;
                 createdAt: Date;
                 updatedAt: Date;
                 isActive: boolean;
                 imageUrl: string | null;
                 description: string | null;
+                storeId: string;
                 barcode: string | null;
                 internalSku: string;
                 category: string | null;
@@ -139,10 +139,10 @@ export declare class PurchaseOrderService {
         })[];
     } & {
         id: string;
-        storeId: string;
+        status: import(".prisma/client").$Enums.POStatus;
         createdAt: Date;
         updatedAt: Date;
-        status: import(".prisma/client").$Enums.POStatus;
+        storeId: string;
         totalAmount: number;
         supplierId: string;
         expectedDeliveryDate: Date | null;
@@ -153,15 +153,15 @@ export declare class PurchaseOrderService {
     getPOById(id: string): Promise<{
         store: {
             id: string;
-            organizationId: string | null;
             name: string;
+            gstin: string | null;
             createdAt: Date;
             updatedAt: Date;
+            organizationId: string | null;
             location: string | null;
             latitude: number | null;
             longitude: number | null;
             operatingRadiusKm: number;
-            gstin: string | null;
             isActive: boolean;
             imageUrl: string | null;
             operatingHours: string | null;
@@ -192,12 +192,12 @@ export declare class PurchaseOrderService {
             product: {
                 id: string;
                 name: string;
-                storeId: string;
                 createdAt: Date;
                 updatedAt: Date;
                 isActive: boolean;
                 imageUrl: string | null;
                 description: string | null;
+                storeId: string;
                 barcode: string | null;
                 internalSku: string;
                 category: string | null;
@@ -220,10 +220,10 @@ export declare class PurchaseOrderService {
         })[];
     } & {
         id: string;
-        storeId: string;
+        status: import(".prisma/client").$Enums.POStatus;
         createdAt: Date;
         updatedAt: Date;
-        status: import(".prisma/client").$Enums.POStatus;
+        storeId: string;
         totalAmount: number;
         supplierId: string;
         expectedDeliveryDate: Date | null;
@@ -234,15 +234,15 @@ export declare class PurchaseOrderService {
     getPOByShareToken(token: string): Promise<{
         store: {
             id: string;
-            organizationId: string | null;
             name: string;
+            gstin: string | null;
             createdAt: Date;
             updatedAt: Date;
+            organizationId: string | null;
             location: string | null;
             latitude: number | null;
             longitude: number | null;
             operatingRadiusKm: number;
-            gstin: string | null;
             isActive: boolean;
             imageUrl: string | null;
             operatingHours: string | null;
@@ -273,12 +273,12 @@ export declare class PurchaseOrderService {
             product: {
                 id: string;
                 name: string;
-                storeId: string;
                 createdAt: Date;
                 updatedAt: Date;
                 isActive: boolean;
                 imageUrl: string | null;
                 description: string | null;
+                storeId: string;
                 barcode: string | null;
                 internalSku: string;
                 category: string | null;
@@ -301,10 +301,10 @@ export declare class PurchaseOrderService {
         })[];
     } & {
         id: string;
-        storeId: string;
+        status: import(".prisma/client").$Enums.POStatus;
         createdAt: Date;
         updatedAt: Date;
-        status: import(".prisma/client").$Enums.POStatus;
+        storeId: string;
         totalAmount: number;
         supplierId: string;
         expectedDeliveryDate: Date | null;
@@ -327,10 +327,10 @@ export declare class PurchaseOrderService {
         }[];
     } & {
         id: string;
-        storeId: string;
+        status: import(".prisma/client").$Enums.POStatus;
         createdAt: Date;
         updatedAt: Date;
-        status: import(".prisma/client").$Enums.POStatus;
+        storeId: string;
         totalAmount: number;
         supplierId: string;
         expectedDeliveryDate: Date | null;
@@ -340,10 +340,10 @@ export declare class PurchaseOrderService {
     }>;
     sendPO(id: string): Promise<{
         id: string;
-        storeId: string;
+        status: import(".prisma/client").$Enums.POStatus;
         createdAt: Date;
         updatedAt: Date;
-        status: import(".prisma/client").$Enums.POStatus;
+        storeId: string;
         totalAmount: number;
         supplierId: string;
         expectedDeliveryDate: Date | null;

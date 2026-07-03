@@ -34,12 +34,12 @@ export declare class GstService {
     classifyProduct(productId: string): Promise<{
         id: string;
         name: string;
-        storeId: string;
         createdAt: Date;
         updatedAt: Date;
         isActive: boolean;
         imageUrl: string | null;
         description: string | null;
+        storeId: string;
         barcode: string | null;
         internalSku: string;
         category: string | null;

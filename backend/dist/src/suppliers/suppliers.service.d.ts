@@ -39,18 +39,18 @@ export declare class SuppliersService {
         };
     } & {
         id: string;
-        storeId: string;
+        status: import(".prisma/client").$Enums.ConnectionStatus;
         createdAt: Date;
         updatedAt: Date;
-        status: import(".prisma/client").$Enums.ConnectionStatus;
+        storeId: string;
         supplierId: string;
     })[]>;
     connectStoreToSupplier(storeId: string, supplierId: string): Promise<{
         id: string;
-        storeId: string;
+        status: import(".prisma/client").$Enums.ConnectionStatus;
         createdAt: Date;
         updatedAt: Date;
-        status: import(".prisma/client").$Enums.ConnectionStatus;
+        storeId: string;
         supplierId: string;
     }>;
 }

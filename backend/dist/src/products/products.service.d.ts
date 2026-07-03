@@ -17,12 +17,12 @@ export declare class ProductsService {
     }): Promise<{
         id: string;
         name: string;
-        storeId: string;
         createdAt: Date;
         updatedAt: Date;
         isActive: boolean;
         imageUrl: string | null;
         description: string | null;
+        storeId: string;
         barcode: string | null;
         internalSku: string;
         category: string | null;
@@ -35,12 +35,12 @@ export declare class ProductsService {
     findAll(storeId: string): Promise<{
         id: string;
         name: string;
-        storeId: string;
         createdAt: Date;
         updatedAt: Date;
         isActive: boolean;
         imageUrl: string | null;
         description: string | null;
+        storeId: string;
         barcode: string | null;
         internalSku: string;
         category: string | null;
@@ -53,12 +53,12 @@ export declare class ProductsService {
     findOne(id: string): Promise<{
         id: string;
         name: string;
-        storeId: string;
         createdAt: Date;
         updatedAt: Date;
         isActive: boolean;
         imageUrl: string | null;
         description: string | null;
+        storeId: string;
         barcode: string | null;
         internalSku: string;
         category: string | null;
@@ -71,12 +71,12 @@ export declare class ProductsService {
     findByBarcode(storeId: string, barcode: string): Promise<{
         id: string;
         name: string;
-        storeId: string;
         createdAt: Date;
         updatedAt: Date;
         isActive: boolean;
         imageUrl: string | null;
         description: string | null;
+        storeId: string;
         barcode: string | null;
         internalSku: string;
         category: string | null;
@@ -89,12 +89,12 @@ export declare class ProductsService {
     updatePrice(id: string, mrp: number, sellingPrice: number): Promise<{
         id: string;
         name: string;
-        storeId: string;
         createdAt: Date;
         updatedAt: Date;
         isActive: boolean;
         imageUrl: string | null;
         description: string | null;
+        storeId: string;
         barcode: string | null;
         internalSku: string;
         category: string | null;
@@ -108,12 +108,12 @@ export declare class ProductsService {
         source: string;
         id: string;
         name: string;
-        storeId: string;
         createdAt: Date;
         updatedAt: Date;
         isActive: boolean;
         imageUrl: string | null;
         description: string | null;
+        storeId: string;
         barcode: string | null;
         internalSku: string;
         category: string | null;
@@ -156,12 +156,12 @@ export declare class ProductsService {
     }): Promise<{
         id: string;
         name: string;
-        storeId: string;
         createdAt: Date;
         updatedAt: Date;
         isActive: boolean;
         imageUrl: string | null;
         description: string | null;
+        storeId: string;
         barcode: string | null;
         internalSku: string;
         category: string | null;
