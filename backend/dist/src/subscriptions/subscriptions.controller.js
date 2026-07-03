@@ -15,6 +15,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.SubscriptionsController = void 0;
 const common_1 = require("@nestjs/common");
 const subscriptions_service_1 = require("./subscriptions.service");
+const public_decorator_1 = require("../common/decorators/public.decorator");
 let SubscriptionsController = class SubscriptionsController {
     subscriptionsService;
     constructor(subscriptionsService) {
@@ -65,6 +66,7 @@ __decorate([
     __metadata("design:returntype", void 0)
 ], SubscriptionsController.prototype, "create", null);
 __decorate([
+    (0, public_decorator_1.Public)(),
     (0, common_1.Get)(),
     __param(0, (0, common_1.Query)('customerId')),
     __metadata("design:type", Function),
@@ -79,6 +81,7 @@ __decorate([
     __metadata("design:returntype", void 0)
 ], SubscriptionsController.prototype, "getOne", null);
 __decorate([
+    (0, public_decorator_1.Public)(),
     (0, common_1.Patch)(':id/pause'),
     __param(0, (0, common_1.Param)('id')),
     __metadata("design:type", Function),
@@ -86,6 +89,7 @@ __decorate([
     __metadata("design:returntype", void 0)
 ], SubscriptionsController.prototype, "pause", null);
 __decorate([
+    (0, public_decorator_1.Public)(),
     (0, common_1.Patch)(':id/resume'),
     __param(0, (0, common_1.Param)('id')),
     __metadata("design:type", Function),

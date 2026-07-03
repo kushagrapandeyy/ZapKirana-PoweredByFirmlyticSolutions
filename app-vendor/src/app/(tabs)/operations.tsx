@@ -57,7 +57,7 @@ export default function OperationsHubScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        <Animated.View entering={FadeInDown.delay(100)} style={styles.header}>
+        <Animated.View entering={FadeInDown.duration(400)} style={styles.header}>
           <Text style={styles.title}>Command Center</Text>
           <Text style={styles.subtitle}>Store Operations Hub</Text>
         </Animated.View>
@@ -66,7 +66,7 @@ export default function OperationsHubScreen() {
           {HUB_ITEMS.map((item, index) => (
             <Animated.View 
               key={index}
-              entering={FadeInDown.delay(150 + index * 50).springify().damping(14).mass(0.8)}
+              entering={FadeInDown.delay(index * 50).duration(400)}
               style={styles.cardWrapper}
             >
               <TouchableOpacity 

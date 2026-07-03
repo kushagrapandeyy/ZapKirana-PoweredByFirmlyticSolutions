@@ -17,6 +17,7 @@ const common_1 = require("@nestjs/common");
 const admin_service_1 = require("./admin.service");
 const roles_decorator_1 = require("../common/decorators/roles.decorator");
 const human_approval_decorator_1 = require("../common/decorators/human-approval.decorator");
+const public_decorator_1 = require("../common/decorators/public.decorator");
 const client_1 = require("@prisma/client");
 let AdminController = class AdminController {
     adminService;
@@ -137,6 +138,7 @@ __decorate([
     __metadata("design:returntype", void 0)
 ], AdminController.prototype, "createVendor", null);
 __decorate([
+    (0, public_decorator_1.Public)(),
     (0, common_1.Get)('suppliers'),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", []),

@@ -30,6 +30,11 @@ let PlatformService = class PlatformService {
             where: { isActive: true, latitude: { not: null }, longitude: { not: null } },
             include: {
                 inventory: { select: { onHandQty: true, reservedQty: true, blockedQty: true } },
+                products: {
+                    where: { isActive: true },
+                    take: 4,
+                    select: { id: true, name: true, imageUrl: true, sellingPrice: true }
+                }
             },
         });
         return stores
@@ -48,6 +53,7 @@ let PlatformService = class PlatformService {
                 distanceKm: Math.round(distance * 10) / 10,
                 availableSkus,
                 description: store.description,
+                topProducts: store.products
             };
         })
             .filter((s) => s.distanceKm <= radiusKm)

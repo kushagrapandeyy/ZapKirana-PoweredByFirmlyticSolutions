@@ -10,9 +10,9 @@ export declare class SuppliersController {
         isActive: boolean;
         rating: number;
         description: string | null;
-        address: string | null;
         contactEmail: string | null;
         contactPhone: string | null;
+        address: string | null;
         categories: string | null;
         logoUrl: string | null;
         paymentTerms: string | null;
@@ -28,9 +28,9 @@ export declare class SuppliersController {
             isActive: boolean;
             rating: number;
             description: string | null;
-            address: string | null;
             contactEmail: string | null;
             contactPhone: string | null;
+            address: string | null;
             categories: string | null;
             logoUrl: string | null;
             paymentTerms: string | null;

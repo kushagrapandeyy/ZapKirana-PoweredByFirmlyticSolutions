@@ -13,8 +13,8 @@ export declare class GrnService {
             createdAt: Date;
             updatedAt: Date;
             productId: string;
-            purchasePrice: number;
             quantity: number;
+            purchasePrice: number;
             acceptedQuantity: number;
             receivedQuantity: number;
             poId: string;
@@ -25,9 +25,9 @@ export declare class GrnService {
         createdAt: Date;
         updatedAt: Date;
         storeId: string;
-        notes: string | null;
-        totalAmount: number;
         supplierId: string;
+        totalAmount: number;
+        notes: string | null;
         expectedDeliveryDate: Date | null;
         shareToken: string | null;
         shareTokenExpiresAt: Date | null;

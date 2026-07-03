@@ -1,25 +1,36 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { StyleSheet, Text, View, ScrollView, TouchableOpacity, Image, SafeAreaView, FlatList, Dimensions, RefreshControl } from 'react-native';
+import { StyleSheet, Text, View, ScrollView, TouchableOpacity, Image, FlatList, Dimensions, RefreshControl } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useCart } from '../../context/CartContext';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import Animated, { FadeInDown, FadeIn, useSharedValue, useAnimatedStyle, withSpring } from 'react-native-reanimated';
+import Animated, { FadeInDown, FadeIn, useSharedValue, useAnimatedStyle, withSpring, withSequence } from 'react-native-reanimated';
 import { Colors, Shadows, Radius } from '../../constants/theme';
 import { API_BASE_URL } from '../../constants/api';
 
 const { width } = Dimensions.get('window');
 
-const CATEGORIES = [
-  { name: 'All', icon: 'grid-outline' },
-  { name: 'Offers', icon: 'pricetag-outline' },
-  { name: 'Dairy & Eggs', icon: 'water-outline' },
-  { name: 'Bakery', icon: 'cafe-outline' },
-  { name: 'Snacks', icon: 'fast-food-outline' },
-  { name: 'Beverages', icon: 'beer-outline' },
-  { name: 'Cleaning', icon: 'sparkles-outline' },
-  { name: 'Personal Care', icon: 'body-outline' },
+const toTitleCase = (str: string) => {
+  if (!str) return '';
+  return str.replace(/_/g, ' ').replace(/\w\S*/g, (txt) => txt.charAt(0).toUpperCase() + txt.substring(1).toLowerCase());
+};
+
+const DEFAULT_CATEGORIES = [
+  { name: 'All', icon: 'grid-outline' }
 ];
+
+const getIconForCategory = (catName: string) => {
+  const name = catName.toLowerCase();
+  if (name.includes('dairy') || name.includes('milk')) return 'water-outline';
+  if (name.includes('snack') || name.includes('food')) return 'fast-food-outline';
+  if (name.includes('beverage') || name.includes('drink')) return 'beer-outline';
+  if (name.includes('clean') || name.includes('hygiene')) return 'sparkles-outline';
+  if (name.includes('care') || name.includes('health')) return 'body-outline';
+  if (name.includes('staple') || name.includes('grocery')) return 'basket-outline';
+  if (name.includes('bakery')) return 'cafe-outline';
+  return 'pricetag-outline';
+};
 
 const BANNERS = [
   { id: '1', title: 'Get 30% OFF', subtitle: 'On your first order!', bg: Colors.gradientPrimary, icon: 'gift-outline' },
@@ -36,6 +47,7 @@ export default function HomeFeed() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [activeCategory, setActiveCategory] = useState(0);
+  const [categories, setCategories] = useState(DEFAULT_CATEGORIES);
   const [storeId, setStoreId] = useState<string | null>(null);
   const [bannerIndex, setBannerIndex] = useState(0);
 
@@ -80,13 +92,25 @@ export default function HomeFeed() {
           gstClass: p.gstClass || 'EXEMPT',
         }));
         setProducts(mapped);
+        
+        // Dynamically build categories from products
+        const uniqueCats = Array.from(new Set(mapped.map((p: any) => p.category))) as string[];
+        const dynamicCats = [
+          { name: 'All', icon: 'grid-outline' },
+          ...uniqueCats.map(c => ({ name: toTitleCase(c), icon: getIconForCategory(c) }))
+        ];
+        setCategories(dynamicCats);
       }
 
       if (storeRes.ok) {
         setStore(await storeRes.json());
+      } else {
+        // If the store was deleted or not found, force a re-selection
+        await AsyncStorage.removeItem('@selected_store_id');
+        router.push('/store-selector');
       }
-    } catch (err) {
-      console.error(err);
+    } catch (e) {
+      console.error('Error fetching store data:', e);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -99,15 +123,22 @@ export default function HomeFeed() {
   }, []);
 
   const handleAddToCart = (product: any) => {
-    addToCart(product);
-    cartScale.value = withSpring(1.3, { damping: 4 }, () => {
-      cartScale.value = withSpring(1);
-    });
+    const productWithStore = {
+      ...product,
+      storeId: storeId || 'unknown',
+      storeName: store?.name || 'Kwick Store',
+    };
+    addToCart(productWithStore);
+    // Trigger bounce animation
+    cartScale.value = withSequence(
+      withSpring(1.3, { damping: 4 }),
+      withSpring(1)
+    );
   };
 
   const filteredProducts = activeCategory === 0 
     ? products 
-    : products.filter(p => p.category === CATEGORIES[activeCategory].name);
+    : products.filter(p => p.category === categories[activeCategory]?.name);
 
   const renderProduct = ({ item, index }: { item: any; index: number }) => {
     const cartItem = cart.find(c => c.product.id === item.id);
@@ -120,7 +151,7 @@ export default function HomeFeed() {
           <View style={styles.productImageContainer}>
             <Image source={{ uri: item.image }} style={styles.productImage} />
             {/* GST Badge */}
-            {item.gstClass !== 'EXEMPT' && (
+            {item.gstClass && item.gstClass !== 'EXEMPT' && (
               <View style={styles.gstBadge}>
                 <Text style={styles.gstBadgeText}>
                   {item.gstClass.replace('GST_', '')}% GST
@@ -130,8 +161,8 @@ export default function HomeFeed() {
           </View>
 
           {/* Product Info */}
-          <Text style={styles.productCategory}>{item.category}</Text>
-          <Text style={styles.productName} numberOfLines={2}>{item.name}</Text>
+          <Text style={styles.productCategory}>{toTitleCase(item.category)}</Text>
+          <Text style={styles.productName} numberOfLines={2}>{toTitleCase(item.name)}</Text>
           
           {/* Price + Add */}
           <View style={styles.productFooter}>
@@ -196,15 +227,21 @@ export default function HomeFeed() {
           <View>
             {/* Top Bar */}
             <Animated.View entering={FadeIn.delay(100)} style={styles.topBar}>
-              <View style={styles.locationRow}>
+              <TouchableOpacity 
+                style={styles.locationRow}
+                onPress={() => router.push('/store-selector')}
+                activeOpacity={0.8}
+              >
                 <View style={styles.locationDot}>
                   <Ionicons name="location" size={16} color={Colors.danger} />
                 </View>
                 <View>
-                  <Text style={styles.deliveryLabel}>Delivering to</Text>
+                  <Text style={styles.deliveryLabel}>
+                    Delivering from <Ionicons name="chevron-down" size={12} />
+                  </Text>
                   <Text style={styles.storeName}>{store ? store.name : 'Loading...'}</Text>
                 </View>
-              </View>
+              </TouchableOpacity>
               <TouchableOpacity style={styles.cartBtn} onPress={() => router.push('/cart')}>
                 <Ionicons name="bag-outline" size={24} color={Colors.textPrimary} />
                 {cartItemsCount > 0 && (
@@ -245,7 +282,7 @@ export default function HomeFeed() {
 
             {/* Categories */}
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.categoryScroll} contentContainerStyle={styles.categoryContent}>
-              {CATEGORIES.map((cat, idx) => (
+              {categories.map((cat, idx) => (
                 <TouchableOpacity 
                   key={idx} 
                   style={[styles.categoryChip, idx === activeCategory && styles.categoryChipActive]}
@@ -266,7 +303,7 @@ export default function HomeFeed() {
             {/* Section Title */}
             <View style={styles.sectionHeader}>
               <Text style={styles.sectionTitle}>
-                {activeCategory === 0 ? 'All Products' : CATEGORIES[activeCategory].name}
+                {activeCategory === 0 ? 'All Products' : categories[activeCategory]?.name}
               </Text>
               <Text style={styles.sectionCount}>
                 {filteredProducts.length} items

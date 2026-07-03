@@ -7,6 +7,8 @@ type Product = {
   time: string;
   image: string;
   gstClass?: string;
+  storeId?: string;
+  storeName?: string;
 };
 
 type CartItem = {

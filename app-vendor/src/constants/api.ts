@@ -1,7 +1,7 @@
 // Temporary constants until authentication is implemented
 
 // URL of the local NestJS backend
-export const API_BASE_URL = 'http://100.70.73.205:3000';
+export const API_BASE_URL = 'http://localhost:3000';
 
 // Seeded database IDs for testing
 export const CURRENT_STORE_ID = '5981f6aa-23ee-4acf-bd1d-8ceb2a92ea0c';

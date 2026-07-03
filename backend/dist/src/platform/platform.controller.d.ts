@@ -14,6 +14,12 @@ export declare class PlatformController {
         distanceKm: number;
         availableSkus: number;
         description: string | null;
+        topProducts: {
+            id: string;
+            name: string;
+            imageUrl: string | null;
+            sellingPrice: number;
+        }[];
     }[]>;
     searchCatalog(q: string, lat: string, lng: string, radiusKm?: string): Promise<{
         query: string;

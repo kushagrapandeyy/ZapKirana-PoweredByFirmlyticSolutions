@@ -1,6 +1,7 @@
 import { PrismaService } from '../prisma.service';
 import { InventoryService } from '../inventory/inventory.service';
 import { EventEmitter2 } from '@nestjs/event-emitter';
+import { OrderStatus } from '@prisma/client';
 export declare class OrdersService {
     private prisma;
     private inventoryService;
@@ -19,8 +20,6 @@ export declare class OrdersService {
         createdAt: Date;
         updatedAt: Date;
         storeId: string;
-        staffId: string | null;
-        customerId: string;
         totalAmount: number;
         deliveryFee: number;
         gstAmount: number;
@@ -33,6 +32,8 @@ export declare class OrdersService {
         requireOtp: boolean;
         otp: string | null;
         subscriptionId: string | null;
+        customerId: string;
+        staffId: string | null;
     }>;
     payOrder(orderId: string): Promise<{
         id: string;
@@ -40,8 +41,6 @@ export declare class OrdersService {
         createdAt: Date;
         updatedAt: Date;
         storeId: string;
-        staffId: string | null;
-        customerId: string;
         totalAmount: number;
         deliveryFee: number;
         gstAmount: number;
@@ -54,6 +53,8 @@ export declare class OrdersService {
         requireOtp: boolean;
         otp: string | null;
         subscriptionId: string | null;
+        customerId: string;
+        staffId: string | null;
     }>;
     pickOrder(orderId: string, staffId: string): Promise<{
         id: string;
@@ -61,8 +62,6 @@ export declare class OrdersService {
         createdAt: Date;
         updatedAt: Date;
         storeId: string;
-        staffId: string | null;
-        customerId: string;
         totalAmount: number;
         deliveryFee: number;
         gstAmount: number;
@@ -75,8 +74,47 @@ export declare class OrdersService {
         requireOtp: boolean;
         otp: string | null;
         subscriptionId: string | null;
+        customerId: string;
+        staffId: string | null;
     } | null>;
+    updateOrderStatus(orderId: string, status: OrderStatus, staffId?: string): Promise<{
+        id: string;
+        status: import(".prisma/client").$Enums.OrderStatus;
+        createdAt: Date;
+        updatedAt: Date;
+        storeId: string;
+        totalAmount: number;
+        deliveryFee: number;
+        gstAmount: number;
+        tipAmount: number;
+        deliveryAddress: string | null;
+        deliveryLat: number | null;
+        deliveryLng: number | null;
+        deliverySlot: string | null;
+        deliveryInstructions: string | null;
+        requireOtp: boolean;
+        otp: string | null;
+        subscriptionId: string | null;
+        customerId: string;
+        staffId: string | null;
+    }>;
     getStoreOrders(storeId: string): Promise<({
+        customer: {
+            id: string;
+            name: string | null;
+            createdAt: Date;
+            updatedAt: Date;
+            organizationId: string | null;
+            email: string;
+            phone: string | null;
+            password: string | null;
+            pin: string | null;
+            role: import(".prisma/client").$Enums.Role;
+            storeId: string | null;
+            avatarUrl: string | null;
+            isVerified: boolean;
+            pushToken: string | null;
+        };
         items: ({
             product: {
                 id: string;
@@ -98,13 +136,40 @@ export declare class OrdersService {
             };
         } & {
             id: string;
-            productId: string;
             gstClass: import(".prisma/client").$Enums.GSTClass;
+            productId: string;
             quantity: number;
             priceAtOrder: number;
             gstAtOrder: number;
             orderId: string;
         })[];
+    } & {
+        id: string;
+        status: import(".prisma/client").$Enums.OrderStatus;
+        createdAt: Date;
+        updatedAt: Date;
+        storeId: string;
+        totalAmount: number;
+        deliveryFee: number;
+        gstAmount: number;
+        tipAmount: number;
+        deliveryAddress: string | null;
+        deliveryLat: number | null;
+        deliveryLng: number | null;
+        deliverySlot: string | null;
+        deliveryInstructions: string | null;
+        requireOtp: boolean;
+        otp: string | null;
+        subscriptionId: string | null;
+        customerId: string;
+        staffId: string | null;
+    })[]>;
+    getCustomerOrders(customerId: string): Promise<({
+        store: {
+            id: string;
+            name: string;
+            location: string | null;
+        };
         customer: {
             id: string;
             name: string | null;
@@ -121,14 +186,40 @@ export declare class OrdersService {
             isVerified: boolean;
             pushToken: string | null;
         };
+        items: ({
+            product: {
+                id: string;
+                name: string;
+                createdAt: Date;
+                updatedAt: Date;
+                isActive: boolean;
+                imageUrl: string | null;
+                description: string | null;
+                storeId: string;
+                barcode: string | null;
+                internalSku: string;
+                category: string | null;
+                mrp: number;
+                sellingPrice: number;
+                purchaseCost: number | null;
+                gstRate: number;
+                gstClass: import(".prisma/client").$Enums.GSTClass;
+            };
+        } & {
+            id: string;
+            gstClass: import(".prisma/client").$Enums.GSTClass;
+            productId: string;
+            quantity: number;
+            priceAtOrder: number;
+            gstAtOrder: number;
+            orderId: string;
+        })[];
     } & {
         id: string;
         status: import(".prisma/client").$Enums.OrderStatus;
         createdAt: Date;
         updatedAt: Date;
         storeId: string;
-        staffId: string | null;
-        customerId: string;
         totalAmount: number;
         deliveryFee: number;
         gstAmount: number;
@@ -141,8 +232,26 @@ export declare class OrdersService {
         requireOtp: boolean;
         otp: string | null;
         subscriptionId: string | null;
+        customerId: string;
+        staffId: string | null;
     })[]>;
     getOrderById(id: string): Promise<{
+        customer: {
+            id: string;
+            name: string | null;
+            createdAt: Date;
+            updatedAt: Date;
+            organizationId: string | null;
+            email: string;
+            phone: string | null;
+            password: string | null;
+            pin: string | null;
+            role: import(".prisma/client").$Enums.Role;
+            storeId: string | null;
+            avatarUrl: string | null;
+            isVerified: boolean;
+            pushToken: string | null;
+        };
         items: ({
             product: {
                 id: string;
@@ -164,37 +273,19 @@ export declare class OrdersService {
             };
         } & {
             id: string;
-            productId: string;
             gstClass: import(".prisma/client").$Enums.GSTClass;
+            productId: string;
             quantity: number;
             priceAtOrder: number;
             gstAtOrder: number;
             orderId: string;
         })[];
-        customer: {
-            id: string;
-            name: string | null;
-            createdAt: Date;
-            updatedAt: Date;
-            organizationId: string | null;
-            email: string;
-            phone: string | null;
-            password: string | null;
-            pin: string | null;
-            role: import(".prisma/client").$Enums.Role;
-            storeId: string | null;
-            avatarUrl: string | null;
-            isVerified: boolean;
-            pushToken: string | null;
-        };
     } & {
         id: string;
         status: import(".prisma/client").$Enums.OrderStatus;
         createdAt: Date;
         updatedAt: Date;
         storeId: string;
-        staffId: string | null;
-        customerId: string;
         totalAmount: number;
         deliveryFee: number;
         gstAmount: number;
@@ -207,6 +298,8 @@ export declare class OrdersService {
         requireOtp: boolean;
         otp: string | null;
         subscriptionId: string | null;
+        customerId: string;
+        staffId: string | null;
     }>;
     startDelivery(orderId: string, staffId: string): Promise<{
         id: string;
@@ -214,8 +307,6 @@ export declare class OrdersService {
         createdAt: Date;
         updatedAt: Date;
         storeId: string;
-        staffId: string | null;
-        customerId: string;
         totalAmount: number;
         deliveryFee: number;
         gstAmount: number;
@@ -228,6 +319,8 @@ export declare class OrdersService {
         requireOtp: boolean;
         otp: string | null;
         subscriptionId: string | null;
+        customerId: string;
+        staffId: string | null;
     }>;
     completeOrder(orderId: string, staffId: string, otp?: string): Promise<{
         id: string;
@@ -235,8 +328,6 @@ export declare class OrdersService {
         createdAt: Date;
         updatedAt: Date;
         storeId: string;
-        staffId: string | null;
-        customerId: string;
         totalAmount: number;
         deliveryFee: number;
         gstAmount: number;
@@ -249,6 +340,8 @@ export declare class OrdersService {
         requireOtp: boolean;
         otp: string | null;
         subscriptionId: string | null;
+        customerId: string;
+        staffId: string | null;
     }>;
     getOrderMessages(orderId: string): Promise<({
         sender: {

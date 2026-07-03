@@ -34,7 +34,7 @@ export const useAuthStore = create<AuthState>((set) => ({
     if (token) {
       // Call backend to close session
       const hostUri = Constants.expoConfig?.hostUri;
-      const ip = hostUri ? hostUri.split(':')[0] : 'localhost';
+      const ip = hostUri ? hostUri.split(':')[0] : '100.70.73.205';
 
       try {
         await fetch(`http://${ip}:3000/auth/scanner/logout`, {

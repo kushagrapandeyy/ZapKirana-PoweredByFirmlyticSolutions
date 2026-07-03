@@ -28,7 +28,13 @@ export default function StoreSelector() {
       
       if (res.ok) {
         const data = await res.json();
-        setStores(Array.isArray(data) ? data : []);
+        const apiStores = Array.isArray(data) ? data : [];
+        setStores(apiStores);
+        
+        // Auto-select if there is exactly 1 store
+        if (apiStores.length === 1) {
+          selectStore(apiStores[0].id);
+        }
       }
     } catch (err) {
       console.error('Failed to find nearby stores:', err);
@@ -52,18 +58,21 @@ export default function StoreSelector() {
   };
 
   const renderStore = ({ item, index }: { item: any; index: number }) => {
+    const isSelected = item.id === selectedStoreId;
     return (
-      <Animated.View entering={FadeInDown.delay(index * 100).springify()}>
-        <View style={styles.storeCard}>
-          {/* Header row: Icon & Name */}
+      <Animated.View 
+        entering={FadeInDown.delay(index * 150).springify().damping(14)}
+        style={styles.storeCardWrapper}
+      >
+        <View style={[styles.storeCard, isSelected && styles.storeCardSelected]}>
           <View style={styles.cardHeader}>
-            <View style={styles.storeAvatar}>
-              <Ionicons name="storefront" size={24} color={Colors.surface} />
+            <View style={styles.storeIconBg}>
+              <Ionicons name="storefront" size={24} color={Colors.primary} />
             </View>
-            <View style={styles.storeTitleContainer}>
+            <View style={styles.storeInfo}>
               <Text style={styles.storeName}>{item.name}</Text>
               <Text style={styles.storeEta}>
-                {item.distanceKm} km away · Delivers in 25 min
+                <Ionicons name="location-outline" size={12} color={Colors.textSecondary} /> {item.distanceKm} km away  ·  <Ionicons name="time-outline" size={12} color={Colors.textSecondary} /> 25 min
               </Text>
             </View>
           </View>
@@ -85,7 +94,7 @@ export default function StoreSelector() {
             activeOpacity={0.85}
             onPress={() => selectStore(item.id)}
           >
-            <Text style={styles.shopBtnText}>Shop this store</Text>
+            <Text style={styles.shopBtnText}>Enter Store</Text>
             <Ionicons name="arrow-forward" size={16} color={Colors.surface} />
           </TouchableOpacity>
         </View>
@@ -99,6 +108,11 @@ export default function StoreSelector() {
       
       {/* Header */}
       <Animated.View entering={FadeIn.delay(100)} style={styles.header}>
+        {router.canGoBack() && (
+          <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+            <Ionicons name="arrow-back" size={24} color={Colors.textPrimary} />
+          </TouchableOpacity>
+        )}
         <Text style={styles.title}>Stores serving your location</Text>
       </Animated.View>
 
@@ -144,45 +158,64 @@ export default function StoreSelector() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FAF9F6', // Warm off-white
+    backgroundColor: '#FAF9F6',
   },
   header: {
-    paddingHorizontal: 24,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 20,
     paddingTop: 24,
     paddingBottom: 20,
+    gap: 16,
+  },
+  backBtn: {
+    padding: 4,
   },
   title: {
-    fontSize: 28,
+    fontSize: 22,
     fontFamily: 'PlayfairDisplay_700Bold',
     color: Colors.textPrimary,
+    flex: 1,
   },
   list: {
     paddingHorizontal: 24,
     paddingBottom: 40,
   },
+  storeCardWrapper: {
+    marginBottom: 20,
+  },
   storeCard: {
     backgroundColor: Colors.surface,
-    borderRadius: Radius.xl,
+    borderRadius: 24,
     padding: 20,
-    marginBottom: 20,
-    ...Shadows.md,
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.03)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.04,
+    shadowRadius: 16,
+    elevation: 4,
+  },
+  storeCardSelected: {
+    borderColor: Colors.primary,
+    borderWidth: 2,
+    shadowOpacity: 0.08,
   },
   cardHeader: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 16,
     marginBottom: 16,
   },
-  storeAvatar: {
-    width: 48,
-    height: 48,
-    borderRadius: 14,
-    backgroundColor: Colors.primary,
+  storeIconBg: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: Colors.primaryGhost,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 16,
-    ...Shadows.sm,
   },
-  storeTitleContainer: {
+  storeInfo: {
     flex: 1,
   },
   storeName: {
@@ -197,21 +230,23 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
   },
   categoriesText: {
-    fontSize: 14,
-    fontFamily: 'Inter_400Regular',
-    color: Colors.textSecondary,
+    fontSize: 13,
+    fontFamily: 'Inter_500Medium',
+    color: Colors.textMuted,
+    marginBottom: 20,
     lineHeight: 20,
-    marginBottom: 16,
   },
   statusBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.successLight,
+    backgroundColor: '#F0FDF4',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 12,
     alignSelf: 'flex-start',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: Radius.full,
     marginBottom: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(34, 197, 94, 0.2)',
     gap: 6,
   },
   liveDot: {

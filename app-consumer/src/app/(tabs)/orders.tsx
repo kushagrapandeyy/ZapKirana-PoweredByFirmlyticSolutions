@@ -20,14 +20,10 @@ export default function OrdersScreen() {
 
   const fetchOrders = async () => {
     try {
-      // Typically there would be a specific endpoint for user's orders.
-      // Assuming GET /orders exists or we filter on client if using store endpoint
-      // Mocking fetch from a known endpoint:
-      const res = await fetch(`${API_BASE_URL}/orders/store/f15b0af3-3667-429a-ae2e-9f85d25e9c2f`); 
+      const res = await fetch(`${API_BASE_URL}/orders/customer/${CURRENT_CUSTOMER_ID}`); 
       if (res.ok) {
         const data = await res.json();
-        const userOrders = data.filter((o: any) => o.customerId === CURRENT_CUSTOMER_ID);
-        setOrders(userOrders);
+        setOrders(data);
       }
     } catch (e) {
       console.error(e);

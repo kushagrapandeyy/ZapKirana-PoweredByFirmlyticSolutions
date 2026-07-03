@@ -139,8 +139,8 @@ export declare class AdminService {
     getSuppliers(): Promise<({
         _count: {
             purchaseOrders: number;
-            supplierProducts: number;
             storeConnections: number;
+            supplierProducts: number;
         };
     } & {
         id: string;
@@ -150,9 +150,9 @@ export declare class AdminService {
         isActive: boolean;
         rating: number;
         description: string | null;
-        address: string | null;
         contactEmail: string | null;
         contactPhone: string | null;
+        address: string | null;
         categories: string | null;
         logoUrl: string | null;
         paymentTerms: string | null;
@@ -187,39 +187,12 @@ export declare class AdminService {
             createdAt: Date;
             updatedAt: Date;
             storeId: string;
-            notes: string | null;
-            totalAmount: number;
             supplierId: string;
+            totalAmount: number;
+            notes: string | null;
             expectedDeliveryDate: Date | null;
             shareToken: string | null;
             shareTokenExpiresAt: Date | null;
-        })[];
-        supplierProducts: ({
-            product: {
-                id: string;
-                name: string;
-                createdAt: Date;
-                updatedAt: Date;
-                isActive: boolean;
-                imageUrl: string | null;
-                description: string | null;
-                storeId: string;
-                barcode: string | null;
-                internalSku: string;
-                category: string | null;
-                mrp: number;
-                sellingPrice: number;
-                purchaseCost: number | null;
-                gstRate: number;
-                gstClass: import(".prisma/client").$Enums.GSTClass;
-            };
-        } & {
-            id: string;
-            createdAt: Date;
-            updatedAt: Date;
-            productId: string;
-            supplierId: string;
-            price: number;
         })[];
         storeConnections: ({
             store: {
@@ -250,6 +223,33 @@ export declare class AdminService {
             storeId: string;
             supplierId: string;
         })[];
+        supplierProducts: ({
+            product: {
+                id: string;
+                name: string;
+                createdAt: Date;
+                updatedAt: Date;
+                isActive: boolean;
+                imageUrl: string | null;
+                description: string | null;
+                storeId: string;
+                barcode: string | null;
+                internalSku: string;
+                category: string | null;
+                mrp: number;
+                sellingPrice: number;
+                purchaseCost: number | null;
+                gstRate: number;
+                gstClass: import(".prisma/client").$Enums.GSTClass;
+            };
+        } & {
+            id: string;
+            createdAt: Date;
+            updatedAt: Date;
+            productId: string;
+            supplierId: string;
+            price: number;
+        })[];
     } & {
         id: string;
         name: string;
@@ -258,9 +258,9 @@ export declare class AdminService {
         isActive: boolean;
         rating: number;
         description: string | null;
-        address: string | null;
         contactEmail: string | null;
         contactPhone: string | null;
+        address: string | null;
         categories: string | null;
         logoUrl: string | null;
         paymentTerms: string | null;
@@ -275,9 +275,9 @@ export declare class AdminService {
         isActive: boolean;
         rating: number;
         description: string | null;
-        address: string | null;
         contactEmail: string | null;
         contactPhone: string | null;
+        address: string | null;
         categories: string | null;
         logoUrl: string | null;
         paymentTerms: string | null;
@@ -292,9 +292,9 @@ export declare class AdminService {
         isActive: boolean;
         rating: number;
         description: string | null;
-        address: string | null;
         contactEmail: string | null;
         contactPhone: string | null;
+        address: string | null;
         categories: string | null;
         logoUrl: string | null;
         paymentTerms: string | null;
@@ -376,8 +376,6 @@ export declare class AdminService {
             createdAt: Date;
             updatedAt: Date;
             storeId: string;
-            staffId: string | null;
-            customerId: string;
             totalAmount: number;
             deliveryFee: number;
             gstAmount: number;
@@ -390,6 +388,8 @@ export declare class AdminService {
             requireOtp: boolean;
             otp: string | null;
             subscriptionId: string | null;
+            customerId: string;
+            staffId: string | null;
         })[];
     }>;
 }

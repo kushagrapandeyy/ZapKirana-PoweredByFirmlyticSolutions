@@ -9,7 +9,7 @@ import Animated, { useSharedValue, useAnimatedStyle, withRepeat, withTiming, Eas
 import { Colors } from '../../constants/theme';
 
 const hostUri = Constants.expoConfig?.hostUri;
-const ip = hostUri ? hostUri.split(':')[0] : 'localhost';
+const ip = hostUri ? hostUri.split(':')[0] : '100.70.73.205';
 const API_URL = `http://${ip}:3000/api/v1`;
 
 export default function ScannerScreen() {

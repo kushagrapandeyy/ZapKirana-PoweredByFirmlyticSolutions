@@ -77,13 +77,13 @@ export declare class InventoryController {
         createdAt: Date;
         storeId: string;
         productId: string;
+        staffId: string | null;
         inventoryId: string;
         type: import(".prisma/client").$Enums.MovementType;
         quantityChange: number;
         sourceType: string | null;
         sourceId: string | null;
         reason: string | null;
-        staffId: string | null;
     })[]>;
     getPendingProducts(storeId: string): Promise<({
         createdBy: {

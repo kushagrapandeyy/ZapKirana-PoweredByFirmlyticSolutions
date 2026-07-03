@@ -14,6 +14,12 @@ export declare class PlatformService {
         distanceKm: number;
         availableSkus: number;
         description: string | null;
+        topProducts: {
+            id: string;
+            name: string;
+            imageUrl: string | null;
+            sellingPrice: number;
+        }[];
     }[]>;
     searchCatalog(query: string, lat: number, lng: number, radiusKm?: number): Promise<{
         query: string;

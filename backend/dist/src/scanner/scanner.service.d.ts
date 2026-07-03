@@ -136,8 +136,8 @@ export declare class ScannerService {
         id: string;
         createdAt: Date;
         storeId: string;
-        symbology: string | null;
         quantity: number | null;
+        symbology: string | null;
         deviceId: string | null;
         metadata: import("@prisma/client/runtime/library").JsonValue | null;
         idempotencyKey: string;

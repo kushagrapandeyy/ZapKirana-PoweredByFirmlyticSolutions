@@ -8,9 +8,11 @@
     "scheme": "appscanner",
     "userInterfaceStyle": "automatic",
     "ios": {
+      "bundleIdentifier": "com.kwick.scanner",
       "icon": "./assets/expo.icon"
     },
     "android": {
+      "package": "com.kwick.scanner",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/images/android-icon-foreground.png",

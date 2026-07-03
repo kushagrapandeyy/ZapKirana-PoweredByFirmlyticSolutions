@@ -1,11 +1,13 @@
 import { Controller, Post, Body, Get, Param, Query, BadRequestException } from '@nestjs/common';
 import { InventoryService } from './inventory.service';
 import { MovementType } from '@prisma/client';
+import { Public } from '../common/decorators/public.decorator';
 
 @Controller('inventory')
 export class InventoryController {
   constructor(private readonly inventoryService: InventoryService) {}
 
+  @Public()
   @Get('products')
   async getProducts(@Query('storeId') storeId: string) {
     return this.inventoryService.getProducts(storeId);
@@ -45,6 +47,7 @@ export class InventoryController {
     });
   }
 
+  @Public()
   @Get(':productId/available')
   getAvailableStock(
     @Param('productId') productId: string,

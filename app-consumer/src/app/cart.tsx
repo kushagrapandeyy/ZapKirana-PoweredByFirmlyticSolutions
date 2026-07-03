@@ -10,6 +10,21 @@ export default function CartScreen() {
   const router = useRouter();
   const { cart, cartTotal, addToCart, removeFromCart, clearCart } = useCart();
 
+  // Group cart items by store
+  const groupedCart = useMemo(() => {
+    const groups: Record<string, { storeName: string, items: typeof cart }> = {};
+    cart.forEach(item => {
+      const sId = item.product.storeId || 'unknown';
+      if (!groups[sId]) {
+        groups[sId] = { storeName: item.product.storeName || 'Kwick Store', items: [] };
+      }
+      groups[sId].items.push(item);
+    });
+    return groups;
+  }, [cart]);
+
+  const storeCount = Object.keys(groupedCart).length;
+
   // Calculate GST Breakdown based on gstClass
   const { totalGST, gstBreakdown } = useMemo(() => {
     let tax = 0;
@@ -20,7 +35,8 @@ export default function CartScreen() {
       const qty = item.qty;
       const rate = p.gstClass === 'GST_5' ? 5 : p.gstClass === 'GST_12' ? 12 : p.gstClass === 'GST_18' ? 18 : p.gstClass === 'GST_28' ? 28 : 0;
       
-      const totalItemValue = p.price * qty;
+      const price = p.price || 0;
+      const totalItemValue = price * qty;
       const itemTax = (totalItemValue * rate) / (100 + rate);
       
       if (rate > 0) {
@@ -39,7 +55,8 @@ export default function CartScreen() {
   }, [cart]);
 
   const subtotal = cartTotal - totalGST;
-  const deliveryFee = cartTotal > 199 ? 0 : 30; // Free delivery over 199
+  const baseDeliveryFee = 30;
+  const deliveryFee = cartTotal > 199 ? 0 : (baseDeliveryFee * storeCount); // If multi-store, charge per store if not free
   const grandTotal = cartTotal + deliveryFee;
 
   if (cart.length === 0) {
@@ -85,39 +102,47 @@ export default function CartScreen() {
           <View style={styles.deliveryIconBox}>
             <Ionicons name="time-outline" size={20} color={Colors.accent} />
           </View>
-          <View>
+          <View style={{ flex: 1 }}>
             <Text style={styles.deliveryInfoTitle}>Delivery in 15-30 mins</Text>
-            <Text style={styles.deliveryInfoText}>From Kwick Local Store</Text>
+            <Text style={styles.deliveryInfoText} numberOfLines={1}>
+              {storeCount > 1 
+                ? `Fulfilling from ${storeCount} stores` 
+                : `From ${Object.values(groupedCart)[0]?.storeName || 'Kwick Local Store'}`}
+            </Text>
           </View>
         </View>
 
-        {/* Cart Items */}
-        <View style={styles.itemsCard}>
-          <Text style={styles.sectionTitle}>Items ({cart.length})</Text>
-          {cart.map((item, index) => (
-            <Animated.View 
-              key={item.product.id} 
-              entering={FadeInDown.delay(index * 50).springify()}
-              exiting={SlideOutRight}
-              style={styles.cartItem}
-            >
-              <Image source={{ uri: item.product.image }} style={styles.itemImage} />
-              <View style={styles.itemDetails}>
-                <Text style={styles.itemName} numberOfLines={2}>{item.product.name}</Text>
-                <Text style={styles.itemPrice}>₹{item.product.price}</Text>
+        {/* Cart Items Grouped By Store */}
+        {Object.entries(groupedCart).map(([sId, group], groupIndex) => (
+          <View key={sId} style={styles.itemsCard}>
+            <View style={styles.storeHeader}>
+              <Ionicons name="storefront-outline" size={18} color={Colors.textSecondary} />
+              <Text style={styles.storeTitle}>{group.storeName}</Text>
+            </View>
+            
+            {group.items.map((item, index) => (
+              <View 
+                key={item.product.id + '-' + index} 
+                style={styles.cartItem}
+              >
+                <Image source={{ uri: item.product.image }} style={styles.itemImage} />
+                <View style={styles.itemDetails}>
+                  <Text style={styles.itemName} numberOfLines={2}>{item.product.name}</Text>
+                  <Text style={styles.itemPrice}>₹{item.product.price || 0}</Text>
+                </View>
+                <View style={styles.qtyControls}>
+                  <TouchableOpacity style={styles.qtyBtn} onPress={() => removeFromCart(item.product.id)}>
+                    <Ionicons name={item.qty === 1 ? "trash-outline" : "remove"} size={16} color={item.qty === 1 ? Colors.danger : Colors.primary} />
+                  </TouchableOpacity>
+                  <Text style={styles.qtyText}>{item.qty}</Text>
+                  <TouchableOpacity style={styles.qtyBtn} onPress={() => addToCart(item.product)}>
+                    <Ionicons name="add" size={16} color={Colors.primary} />
+                  </TouchableOpacity>
+                </View>
               </View>
-              <View style={styles.qtyControls}>
-                <TouchableOpacity style={styles.qtyBtn} onPress={() => removeFromCart(item.product.id)}>
-                  <Ionicons name={item.qty === 1 ? "trash-outline" : "remove"} size={16} color={item.qty === 1 ? Colors.danger : Colors.primary} />
-                </TouchableOpacity>
-                <Text style={styles.qtyText}>{item.qty}</Text>
-                <TouchableOpacity style={styles.qtyBtn} onPress={() => addToCart(item.product)}>
-                  <Ionicons name="add" size={16} color={Colors.primary} />
-                </TouchableOpacity>
-              </View>
-            </Animated.View>
-          ))}
-        </View>
+            ))}
+          </View>
+        ))}
 
         {/* Coupon Section */}
         <TouchableOpacity style={styles.couponCard} activeOpacity={0.8}>
@@ -131,19 +156,20 @@ export default function CartScreen() {
         {/* Bill Summary */}
         <View style={styles.billCard}>
           <Text style={styles.sectionTitle}>Bill Summary</Text>
+          
           <View style={styles.billRow}>
             <Text style={styles.billLabel}>Item Total</Text>
             <Text style={styles.billValue}>₹{subtotal.toFixed(2)}</Text>
           </View>
           
           <View style={styles.billRow}>
-            <Text style={styles.billLabel}>Delivery Fee</Text>
+            <Text style={styles.billLabel}>Delivery Fee {storeCount > 1 && `(${storeCount} stores)`}</Text>
             <Text style={[styles.billValue, deliveryFee === 0 && styles.freeText]}>
               {deliveryFee === 0 ? 'FREE' : `₹${deliveryFee}`}
             </Text>
           </View>
           {deliveryFee > 0 && (
-            <Text style={styles.deliveryPromo}>Add ₹{(200 - cartTotal).toFixed(2)} more for free delivery</Text>
+            <Text style={styles.deliveryPromo}>Add ₹{(199 - cartTotal).toFixed(2)} more for free delivery</Text>
           )}
 
           <View style={styles.billRow}>
@@ -154,7 +180,7 @@ export default function CartScreen() {
             <Text style={styles.billValue}>₹{totalGST.toFixed(2)}</Text>
           </View>
 
-          {/* GST Breakdown (Optional detailed view) */}
+          {/* GST Breakdown */}
           {Object.keys(gstBreakdown).length > 0 && (
             <View style={styles.gstBreakdownBox}>
               {Object.entries(gstBreakdown).map(([rate, data]) => (
@@ -209,8 +235,11 @@ const styles = StyleSheet.create({
   deliveryInfoText: { fontSize: 13, fontFamily: 'Inter_500Medium', color: Colors.textSecondary },
   
   itemsCard: { backgroundColor: Colors.surface, borderRadius: Radius.lg, padding: 16, ...Shadows.sm },
+  storeHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 16, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: Colors.borderLight },
+  storeTitle: { fontSize: 15, fontFamily: 'Inter_700Bold', color: Colors.textSecondary },
   sectionTitle: { fontSize: 16, fontFamily: 'Inter_700Bold', color: Colors.textPrimary, marginBottom: 16 },
-  cartItem: { flexDirection: 'row', alignItems: 'center', marginBottom: 16, paddingBottom: 16, borderBottomWidth: 1, borderBottomColor: Colors.borderLight },
+  
+  cartItem: { flexDirection: 'row', alignItems: 'center', marginBottom: 16 },
   itemImage: { width: 60, height: 60, borderRadius: Radius.md, backgroundColor: Colors.surfaceAlt, marginRight: 12 },
   itemDetails: { flex: 1 },
   itemName: { fontSize: 14, fontFamily: 'Inter_600SemiBold', color: Colors.textPrimary, marginBottom: 6 },

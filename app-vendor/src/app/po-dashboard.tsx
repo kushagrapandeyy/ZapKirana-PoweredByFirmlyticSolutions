@@ -73,7 +73,7 @@ export default function PODashboard() {
     const statusColor = getStatusColor(item.status);
     
     return (
-      <Animated.View entering={FadeInDown.delay(index * 50).springify()}>
+      <Animated.View entering={FadeInDown.delay(index * 30).duration(400)}>
         <TouchableOpacity 
           style={styles.poCard} 
           activeOpacity={0.9}

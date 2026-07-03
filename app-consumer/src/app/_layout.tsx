@@ -1,3 +1,4 @@
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { CartProvider } from '../context/CartContext';
@@ -5,8 +6,9 @@ import { useFonts, PlayfairDisplay_700Bold } from '@expo-google-fonts/playfair-d
 import { Inter_400Regular, Inter_500Medium, Inter_600SemiBold, Inter_700Bold } from '@expo-google-fonts/inter';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Toast from 'react-native-toast-message';
-import { StatusBar } from 'react-native';
+import { StatusBar, View, StyleSheet } from 'react-native';
 import { supabase } from '../lib/supabase';
+import Animated, { FadeIn, ZoomIn, SlideInDown } from 'react-native-reanimated';
 
 export default function RootLayout() {
   const [fontsLoaded] = useFonts({
@@ -68,22 +70,26 @@ export default function RootLayout() {
   return (
     <CartProvider>
       <StatusBar barStyle="dark-content" />
-      <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: '#FAF9F6' } }}>
-        <Stack.Screen name="onboarding" />
-        <Stack.Screen name="location-permission" />
-        <Stack.Screen name="manual-location" />
-        <Stack.Screen name="store-selector" />
-        <Stack.Screen name="(tabs)" />
-        <Stack.Screen name="product/[id]" />
-        <Stack.Screen name="cart" options={{ presentation: 'modal' }} />
-        <Stack.Screen name="checkout" options={{ presentation: 'modal' }} />
-        <Stack.Screen name="order-confirmation" options={{ gestureEnabled: false }} />
-        <Stack.Screen name="delivery-tracking" />
-        <Stack.Screen name="subscriptions" />
-        <Stack.Screen name="auth/login" options={{ presentation: 'modal' }} />
-        <Stack.Screen name="auth/register" options={{ presentation: 'modal' }} />
-      </Stack>
-      <Toast />
+      <GestureHandlerRootView style={{ flex: 1 }}>
+        <Animated.View style={{ flex: 1 }} entering={FadeIn.duration(800)}>
+          <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: '#FAF9F6' } }}>
+            <Stack.Screen name="onboarding" />
+            <Stack.Screen name="location-permission" />
+            <Stack.Screen name="manual-location" />
+            <Stack.Screen name="store-selector" />
+            <Stack.Screen name="(tabs)" />
+            <Stack.Screen name="product/[id]" />
+            <Stack.Screen name="cart" options={{ presentation: 'modal' }} />
+            <Stack.Screen name="checkout" options={{ presentation: 'modal' }} />
+            <Stack.Screen name="order-confirmation" options={{ gestureEnabled: false }} />
+            <Stack.Screen name="delivery-tracking" />
+            <Stack.Screen name="subscriptions" />
+            <Stack.Screen name="auth/login" options={{ presentation: 'modal' }} />
+            <Stack.Screen name="auth/register" options={{ presentation: 'modal' }} />
+          </Stack>
+        </Animated.View>
+        <Toast />
+      </GestureHandlerRootView>
     </CartProvider>
   );
 }

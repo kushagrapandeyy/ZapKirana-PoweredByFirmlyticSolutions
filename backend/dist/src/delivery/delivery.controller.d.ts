@@ -24,8 +24,6 @@ export declare class DeliveryController {
         createdAt: Date;
         updatedAt: Date;
         storeId: string;
-        staffId: string | null;
-        customerId: string;
         totalAmount: number;
         deliveryFee: number;
         gstAmount: number;
@@ -38,5 +36,7 @@ export declare class DeliveryController {
         requireOtp: boolean;
         otp: string | null;
         subscriptionId: string | null;
+        customerId: string;
+        staffId: string | null;
     }>;
 }

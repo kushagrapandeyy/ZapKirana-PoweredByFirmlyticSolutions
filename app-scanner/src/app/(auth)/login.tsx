@@ -7,7 +7,7 @@ import axios from 'axios';
 
 // Replace with your local machine's IP or actual backend URL
 const hostUri = Constants.expoConfig?.hostUri;
-const ip = hostUri ? hostUri.split(':')[0] : 'localhost';
+const ip = hostUri ? hostUri.split(':')[0] : '100.70.73.205';
 const BASE_URL = `http://${ip}:3000`;
 
 export default function LoginScreen() {

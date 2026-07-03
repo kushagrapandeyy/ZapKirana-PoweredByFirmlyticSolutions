@@ -1,6 +1,7 @@
 import { Controller, Get, Post, Patch, Delete, Body, Param, Query, BadRequestException } from '@nestjs/common';
 
 import { SubscriptionsService } from './subscriptions.service';
+import { Public } from '../common/decorators/public.decorator';
 
 @Controller('subscriptions')
 export class SubscriptionsController {
@@ -11,6 +12,7 @@ export class SubscriptionsController {
     return this.subscriptionsService.createSubscription(body);
   }
 
+  @Public()
   @Get()
   getAll(@Query('customerId') customerId: string) {
     return this.subscriptionsService.getSubscriptions(customerId);
@@ -21,11 +23,13 @@ export class SubscriptionsController {
     return this.subscriptionsService.getSubscriptionById(id);
   }
 
+  @Public()
   @Patch(':id/pause')
   pause(@Param('id') id: string) {
     return this.subscriptionsService.pauseSubscription(id);
   }
 
+  @Public()
   @Patch(':id/resume')
   resume(@Param('id') id: string) {
     return this.subscriptionsService.resumeSubscription(id);

@@ -27,7 +27,7 @@ export default function SuppliersScreen() {
   };
 
   const renderSupplier = ({ item, index }: { item: any; index: number }) => (
-    <Animated.View entering={FadeInDown.delay(index * 50).springify()}>
+    <Animated.View entering={FadeInDown.delay(index * 30).duration(400)}>
       <View style={styles.supplierCard}>
         <View style={styles.cardHeader}>
           <View style={styles.logoContainer}>

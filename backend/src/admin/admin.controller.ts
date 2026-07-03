@@ -3,6 +3,7 @@ import { AdminService } from './admin.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { Roles } from '../common/decorators/roles.decorator';
 import { HumanApprovalRequired } from '../common/decorators/human-approval.decorator';
+import { Public } from '../common/decorators/public.decorator';
 import { Role } from '@prisma/client';
 
 @Controller('admin')
@@ -62,6 +63,7 @@ export class AdminController {
   }
 
   // ─── Suppliers ─────────────────────────────────────
+  @Public()
   @Get('suppliers')
   getSuppliers() {
     return this.adminService.getSuppliers();

@@ -122,12 +122,31 @@ let OrdersService = class OrdersService {
         this.eventEmitter.emit('order.status_changed', { orderId, status: 'READY_FOR_PICKUP', customerId: order.customerId });
         return finalOrder;
     }
+    async updateOrderStatus(orderId, status, staffId) {
+        const order = await this.prisma.order.update({
+            where: { id: orderId },
+            data: { status, ...(staffId ? { staffId } : {}) },
+        });
+        this.eventEmitter.emit('order.status_changed', { orderId, status, customerId: order.customerId });
+        return order;
+    }
     async getStoreOrders(storeId) {
         return this.prisma.order.findMany({
             where: { storeId },
             include: {
                 customer: true,
                 items: { include: { product: true } }
+            },
+            orderBy: { createdAt: 'desc' }
+        });
+    }
+    async getCustomerOrders(customerId) {
+        return this.prisma.order.findMany({
+            where: { customerId },
+            include: {
+                customer: true,
+                items: { include: { product: true } },
+                store: { select: { id: true, name: true, location: true } }
             },
             orderBy: { createdAt: 'desc' }
         });

@@ -28,7 +28,7 @@ export default function CheckoutScreen() {
     setIsProcessing(true);
 
     try {
-      const storeId = await AsyncStorage.getItem('@selected_store_id') || 'f15b0af3-3667-429a-ae2e-9f85d25e9c2f';
+      const storeId = await AsyncStorage.getItem('@selected_store_id') || CURRENT_STORE_ID;
 
       const orderPayload = {
         storeId,
@@ -53,10 +53,8 @@ export default function CheckoutScreen() {
       if (res.ok) {
         const orderData = await res.json();
         
-        // Mock payment step
-        if (paymentMethod !== 'CASH') {
-          await fetch(`${API_BASE_URL}/orders/${orderData.id}/pay`, { method: 'POST' });
-        }
+        // Mock payment step: Always mark as paid/confirmed so it appears in the Vendor App's incoming queue
+        await fetch(`${API_BASE_URL}/orders/${orderData.id}/pay`, { method: 'POST' });
 
         clearCart();
         router.replace(`/order-confirmation?orderId=${orderData.id}`);

@@ -8,8 +8,6 @@ export declare class DeliveryService {
         createdAt: Date;
         updatedAt: Date;
         storeId: string;
-        staffId: string | null;
-        customerId: string;
         totalAmount: number;
         deliveryFee: number;
         gstAmount: number;
@@ -22,6 +20,8 @@ export declare class DeliveryService {
         requireOtp: boolean;
         otp: string | null;
         subscriptionId: string | null;
+        customerId: string;
+        staffId: string | null;
     }>;
     getLastLocation(orderId: string): Promise<{
         orderId: string;

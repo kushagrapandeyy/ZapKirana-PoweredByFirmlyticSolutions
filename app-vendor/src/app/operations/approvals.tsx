@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image, Modal, TextInput, ActivityIndicator, Alert, SafeAreaView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { API_BASE_URL } from '../../constants/api';
 
 // Hardcoded for now until auth context is fully connected
 const STORE_ID = 'b935e4e7-4b15-46d5-8eb6-a36746cf5cb0'; // Same test store ID used in other tabs
-const API_URL = 'http://localhost:3000/inventory';
+const API_URL = `${API_BASE_URL}/inventory`;
 
 type PendingProduct = {
   id: string;

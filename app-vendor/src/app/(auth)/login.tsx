@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, SafeAreaView, KeyboardAvoidingView, Platform } from 'react-native';
 import { useAuth, Role } from '@/context/AuthContext';
+import { API_BASE_URL } from '../../constants/api';
 
 const ROYAL_BLUE = '#1D4ED8';
 const WHITE = '#FFFFFF';
@@ -22,7 +23,7 @@ export default function LoginScreen() {
     setError('');
 
     try {
-      const res = await fetch(`http://100.70.73.205:3000/auth/login`, {
+      const res = await fetch(`${API_BASE_URL}/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: identifier, password })

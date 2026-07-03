@@ -16,6 +16,7 @@ exports.InventoryController = void 0;
 const common_1 = require("@nestjs/common");
 const inventory_service_1 = require("./inventory.service");
 const client_1 = require("@prisma/client");
+const public_decorator_1 = require("../common/decorators/public.decorator");
 let InventoryController = class InventoryController {
     inventoryService;
     constructor(inventoryService) {
@@ -67,6 +68,7 @@ let InventoryController = class InventoryController {
 };
 exports.InventoryController = InventoryController;
 __decorate([
+    (0, public_decorator_1.Public)(),
     (0, common_1.Get)('products'),
     __param(0, (0, common_1.Query)('storeId')),
     __metadata("design:type", Function),
@@ -88,6 +90,7 @@ __decorate([
     __metadata("design:returntype", void 0)
 ], InventoryController.prototype, "manualAdjustment", null);
 __decorate([
+    (0, public_decorator_1.Public)(),
     (0, common_1.Get)(':productId/available'),
     __param(0, (0, common_1.Param)('productId')),
     __param(1, (0, common_1.Query)('storeId')),
