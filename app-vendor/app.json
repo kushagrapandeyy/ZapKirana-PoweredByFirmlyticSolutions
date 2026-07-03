@@ -1,16 +1,18 @@
 {
   "expo": {
-    "name": "app-vendor",
-    "slug": "app-vendor",
+    "name": "Kwick Vendor",
+    "slug": "kwick-vendor",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "appvendor",
     "userInterfaceStyle": "automatic",
     "ios": {
+      "bundleIdentifier": "com.kwick.vendor",
       "icon": "./assets/expo.icon"
     },
     "android": {
+      "package": "com.kwick.vendor",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/images/android-icon-foreground.png",

@@ -3,14 +3,36 @@ import { View, Text, StyleSheet, Button, ActivityIndicator, Alert } from 'react-
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useAuthStore } from '../../store/useAuthStore';
+import Constants from 'expo-constants';
 import axios from 'axios';
+import Animated, { useSharedValue, useAnimatedStyle, withRepeat, withTiming, Easing, withSequence } from 'react-native-reanimated';
+import { Colors } from '../../constants/theme';
 
-const API_URL = 'http://192.168.1.100:3000/api/v1';
+const hostUri = Constants.expoConfig?.hostUri;
+const ip = hostUri ? hostUri.split(':')[0] : 'localhost';
+const API_URL = `http://${ip}:3000/api/v1`;
 
 export default function ScannerScreen() {
   const [permission, requestPermission] = useCameraPermissions();
-  const [scanned, setScanned] = useState(false);
   const [processing, setProcessing] = useState(false);
+  const [laserPos, setLaserPos] = useState(0);
+
+  // Laser Animation
+  const laserTranslateY = useSharedValue(0);
+  useEffect(() => {
+    laserTranslateY.value = withRepeat(
+      withSequence(
+        withTiming(146, { duration: 1500, easing: Easing.inOut(Easing.ease) }),
+        withTiming(0, { duration: 1500, easing: Easing.inOut(Easing.ease) })
+      ),
+      -1,
+      true
+    );
+  }, []);
+
+  const laserAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: laserTranslateY.value }],
+  }));
   const params = useLocalSearchParams();
   const router = useRouter();
   const { token, storeId, deviceId, staffId } = useAuthStore();
@@ -118,14 +140,24 @@ export default function ScannerScreen() {
       />
       
       <View style={styles.overlay}>
-        <Text style={styles.workflowText}>Current Workflow: {workflow}</Text>
-        <View style={styles.targetBox} />
+        <View style={styles.headerGlass}>
+          <Text style={styles.workflowText}>{workflow.toUpperCase()}</Text>
+        </View>
+        <View style={styles.targetBox}>
+          {/* Corner accents */}
+          <View style={[styles.corner, styles.tl]} />
+          <View style={[styles.corner, styles.tr]} />
+          <View style={[styles.corner, styles.bl]} />
+          <View style={[styles.corner, styles.br]} />
+          {/* Animated Laser */}
+          {!scanned && <Animated.View style={[styles.laser, laserAnimatedStyle]} />}
+        </View>
       </View>
 
       {processing && (
         <View style={styles.loadingOverlay}>
-          <ActivityIndicator size="large" color="#0EA5E9" />
-          <Text style={styles.loadingText}>Resolving Barcode...</Text>
+          <ActivityIndicator size="large" color={Colors.primary} />
+          <Text style={styles.loadingText}>RESOLVING BARCODE...</Text>
         </View>
       )}
 
@@ -139,6 +171,7 @@ export default function ScannerScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: Colors.bg,
     justifyContent: 'center',
   },
   overlay: {
@@ -146,31 +179,56 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  workflowText: {
+  headerGlass: {
     position: 'absolute',
-    top: 40,
-    backgroundColor: 'rgba(0,0,0,0.7)',
-    color: '#fff',
-    padding: 8,
-    borderRadius: 8,
+    top: 60,
+    backgroundColor: 'rgba(17, 24, 39, 0.8)',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  workflowText: {
+    color: Colors.textPrimary,
+    fontFamily: 'monospace',
     fontWeight: 'bold',
+    letterSpacing: 2,
+    fontSize: 12,
   },
   targetBox: {
     width: 250,
     height: 150,
-    borderWidth: 2,
-    borderColor: '#0EA5E9',
-    backgroundColor: 'rgba(255,255,255,0.1)',
+    backgroundColor: 'rgba(16, 185, 129, 0.05)',
+    position: 'relative',
+    overflow: 'hidden',
+  },
+  corner: { position: 'absolute', width: 20, height: 20, borderColor: Colors.primary },
+  tl: { top: 0, left: 0, borderTopWidth: 4, borderLeftWidth: 4 },
+  tr: { top: 0, right: 0, borderTopWidth: 4, borderRightWidth: 4 },
+  bl: { bottom: 0, left: 0, borderBottomWidth: 4, borderLeftWidth: 4 },
+  br: { bottom: 0, right: 0, borderBottomWidth: 4, borderRightWidth: 4 },
+  laser: {
+    width: '100%',
+    height: 2,
+    backgroundColor: Colors.primary,
+    shadowColor: Colors.primary,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 1,
+    shadowRadius: 10,
+    elevation: 5,
   },
   loadingOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.6)',
+    backgroundColor: 'rgba(0,0,0,0.85)',
     justifyContent: 'center',
     alignItems: 'center',
   },
   loadingText: {
-    color: '#fff',
-    marginTop: 12,
+    color: Colors.primary,
+    marginTop: 16,
+    fontFamily: 'monospace',
     fontWeight: 'bold',
+    letterSpacing: 2,
   }
 });

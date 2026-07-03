@@ -4,7 +4,7 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Shadows, Radius } from '../constants/theme';
 import { API_BASE_URL, CURRENT_STORE_ID } from '../constants/api';
-const API_URL = 'https://basko.com';
+const API_URL = 'https://kwick.com';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Animated, { FadeInDown, FadeIn } from 'react-native-reanimated';
 import Toast from 'react-native-toast-message';
@@ -43,7 +43,7 @@ export default function PODashboard() {
     try {
       const shareUrl = `${API_URL}/supplier-portal/po/${po.shareToken}`;
       await Share.share({
-        message: `Purchase Order from Basko Local Store.\n\nPlease review and fulfill PO #${po.id.substring(0,8).toUpperCase()}.\n\nSecure Link: ${shareUrl}`,
+        message: `Purchase Order from Kwick Local Store.\n\nPlease review and fulfill PO #${po.id.substring(0,8).toUpperCase()}.\n\nSecure Link: ${shareUrl}`,
         title: `Purchase Order ${po.id.substring(0,8).toUpperCase()}`
       });
       

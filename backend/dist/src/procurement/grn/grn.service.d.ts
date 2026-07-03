@@ -13,10 +13,10 @@ export declare class GrnService {
             createdAt: Date;
             updatedAt: Date;
             productId: string;
+            purchasePrice: number;
             quantity: number;
             acceptedQuantity: number;
             receivedQuantity: number;
-            purchasePrice: number;
             poId: string;
         }[];
     } & {
@@ -25,10 +25,10 @@ export declare class GrnService {
         createdAt: Date;
         updatedAt: Date;
         storeId: string;
+        notes: string | null;
         totalAmount: number;
         supplierId: string;
         expectedDeliveryDate: Date | null;
-        notes: string | null;
         shareToken: string | null;
         shareTokenExpiresAt: Date | null;
     }>;

@@ -2,10 +2,13 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, ActivityIndicator, Alert, KeyboardAvoidingView, Platform } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useAuthStore } from '../../store/useAuthStore';
+import Constants from 'expo-constants';
 import axios from 'axios';
 import { Check, X } from 'lucide-react-native';
 
-const BASE_URL = 'http://100.70.73.205:3000';
+const hostUri = Constants.expoConfig?.hostUri;
+const ip = hostUri ? hostUri.split(':')[0] : 'localhost';
+const BASE_URL = `http://${ip}:3000`;
 
 export default function ActionScreen() {
   const params = useLocalSearchParams();

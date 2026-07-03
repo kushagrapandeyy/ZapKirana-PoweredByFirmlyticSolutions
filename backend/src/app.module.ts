@@ -33,6 +33,7 @@ import { StoreScopeGuard } from './common/guards/store-scope.guard';
 import { AuditInterceptor } from './common/audit/audit.interceptor';
 import { GlobalExceptionFilter } from './common/filters/global-exception.filter';
 import { ScannerManagementModule } from './scanner-management/scanner-management.module';
+import { CartModule } from './cart/cart.module';
 
 @Module({
   imports: [
@@ -62,6 +63,7 @@ import { ScannerManagementModule } from './scanner-management/scanner-management
     LabelsModule,
     CatalogModule,
     ScannerManagementModule,
+    CartModule,
   ],
   controllers: [AppController],
   providers: [

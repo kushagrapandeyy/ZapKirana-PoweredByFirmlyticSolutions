@@ -66,13 +66,13 @@ export declare class CatalogController {
         mrp: number | null;
         sellingPrice: number | null;
         gstRate: number;
-        notes: string | null;
-        purchasePrice: number | null;
         suggestedName: string | null;
         suggestedBrand: string | null;
         suggestedCategory: string | null;
+        purchasePrice: number | null;
         createdById: string | null;
         approvedProductId: string | null;
+        notes: string | null;
     } | {
         alreadyPending: boolean;
         id: string;
@@ -85,13 +85,13 @@ export declare class CatalogController {
         mrp: number | null;
         sellingPrice: number | null;
         gstRate: number;
-        notes: string | null;
-        purchasePrice: number | null;
         suggestedName: string | null;
         suggestedBrand: string | null;
         suggestedCategory: string | null;
+        purchasePrice: number | null;
         createdById: string | null;
         approvedProductId: string | null;
+        notes: string | null;
     }>;
     listPendingProducts(storeId: string, status?: string): Promise<({
         createdBy: {
@@ -110,13 +110,13 @@ export declare class CatalogController {
         mrp: number | null;
         sellingPrice: number | null;
         gstRate: number;
-        notes: string | null;
-        purchasePrice: number | null;
         suggestedName: string | null;
         suggestedBrand: string | null;
         suggestedCategory: string | null;
+        purchasePrice: number | null;
         createdById: string | null;
         approvedProductId: string | null;
+        notes: string | null;
     })[]>;
     approvePendingProduct(id: string, body: {
         name?: string;
@@ -146,12 +146,12 @@ export declare class CatalogController {
         mrp: number | null;
         sellingPrice: number | null;
         gstRate: number;
-        notes: string | null;
-        purchasePrice: number | null;
         suggestedName: string | null;
         suggestedBrand: string | null;
         suggestedCategory: string | null;
+        purchasePrice: number | null;
         createdById: string | null;
         approvedProductId: string | null;
+        notes: string | null;
     }>;
 }

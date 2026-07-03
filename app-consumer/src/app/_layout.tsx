@@ -6,6 +6,7 @@ import { Inter_400Regular, Inter_500Medium, Inter_600SemiBold, Inter_700Bold } f
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Toast from 'react-native-toast-message';
 import { StatusBar } from 'react-native';
+import { supabase } from '../lib/supabase';
 
 export default function RootLayout() {
   const [fontsLoaded] = useFonts({
@@ -17,10 +18,12 @@ export default function RootLayout() {
   });
   
   const [hasOnboarded, setHasOnboarded] = useState<boolean | null>(null);
+  const [session, setSession] = useState<any>(null);
   const router = useRouter();
   const segments = useSegments();
 
   useEffect(() => {
+    // 1. Check local onboarding flag
     const checkOnboarding = async () => {
       try {
         const value = await AsyncStorage.getItem('@has_onboarded');
@@ -30,15 +33,34 @@ export default function RootLayout() {
       }
     };
     checkOnboarding();
+
+    // 2. Initialize Supabase session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+    });
+
+    supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+    });
   }, []);
 
   useEffect(() => {
-    if (!fontsLoaded || hasOnboarded === null) return;
-    
-    // Redirect logic
-    if (!hasOnboarded && segments[0] !== 'onboarding') {
-      router.replace('/onboarding');
-    }
+    const checkRedirect = async () => {
+      if (!fontsLoaded || hasOnboarded === null) return;
+      
+      // Re-read from AsyncStorage because the state might be stale if updated from a child screen
+      const onboardedValue = await AsyncStorage.getItem('@has_onboarded');
+      const isActuallyOnboarded = onboardedValue === 'true' || hasOnboarded;
+
+      // Redirect logic
+      const onboardingGroup = ['onboarding', 'location-permission', 'manual-location', 'store-selector'];
+      const inOnboarding = segments[0] ? onboardingGroup.includes(segments[0]) : false;
+
+      if (!isActuallyOnboarded && !inOnboarding) {
+        router.replace('/onboarding');
+      }
+    };
+    checkRedirect();
   }, [hasOnboarded, fontsLoaded, segments]);
 
   if (!fontsLoaded || hasOnboarded === null) return null;
@@ -46,8 +68,10 @@ export default function RootLayout() {
   return (
     <CartProvider>
       <StatusBar barStyle="dark-content" />
-      <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: '#f8fafc' } }}>
+      <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: '#FAF9F6' } }}>
         <Stack.Screen name="onboarding" />
+        <Stack.Screen name="location-permission" />
+        <Stack.Screen name="manual-location" />
         <Stack.Screen name="store-selector" />
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="product/[id]" />

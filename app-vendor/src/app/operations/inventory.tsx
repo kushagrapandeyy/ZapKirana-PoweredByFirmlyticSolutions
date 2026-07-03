@@ -79,25 +79,26 @@ export default function InventoryScreen() {
     return (
       <Animated.View entering={FadeInDown.delay(index * 50).springify()}>
         <TouchableOpacity 
-          style={[styles.productCard, isLowStock && styles.productCardLow]}
+          style={styles.productCard}
           onPress={() => {
             setSelectedProduct(item);
             setUpdateStock(item.stockLevel.toString());
           }}
         >
-          <View style={styles.productInfo}>
-            <Text style={styles.productName}>{item.name}</Text>
-            <Text style={styles.productSku}>SKU: {item.sku || item.internalSku || 'N/A'}</Text>
-            <Text style={styles.productCategory}>{item.category || 'General'}</Text>
+          <View style={styles.cardHeader}>
+            <View>
+              <Text style={styles.productName}>{item.name}</Text>
+              <Text style={styles.productCategory}>{item.category || 'Uncategorized'}</Text>
+            </View>
+            <View style={[styles.stockBadge, isLowStock ? styles.lowStockBadge : null]}>
+              <Text style={[styles.stockText, isLowStock ? styles.lowStockText : null]}>
+                {item.stockLevel} in stock
+              </Text>
+            </View>
           </View>
-          <View style={styles.stockInfo}>
-            <Text style={styles.stockLabel}>Stock</Text>
-            <Text style={[styles.stockValue, isLowStock && styles.stockValueLow]}>{item.stockLevel}</Text>
-            {isLowStock && (
-              <View style={styles.lowBadge}>
-                <Text style={styles.lowBadgeText}>Low</Text>
-              </View>
-            )}
+          <View style={styles.cardDetails}>
+            <Text style={styles.detailText}>SKU: {item.sku}</Text>
+            <Text style={styles.detailText}>₹{item.sellingPrice}</Text>
           </View>
         </TouchableOpacity>
       </Animated.View>
@@ -140,7 +141,7 @@ export default function InventoryScreen() {
           data={filteredProducts}
           renderItem={renderProduct}
           keyExtractor={item => item.id}
-          contentContainerStyle={styles.list}
+          contentContainerStyle={styles.listContainer}
           showsVerticalScrollIndicator={false}
         />
       )}
@@ -229,19 +230,17 @@ const styles = StyleSheet.create({
   
   centerContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   
-  list: { padding: 20, gap: 12 },
-  productCard: { flexDirection: 'row', justifyContent: 'space-between', backgroundColor: Colors.surface, padding: 16, borderRadius: Radius.lg, ...Shadows.sm, borderLeftWidth: 4, borderLeftColor: Colors.success },
-  productCardLow: { borderLeftColor: Colors.danger },
-  productInfo: { flex: 1, paddingRight: 16 },
-  productName: { fontSize: 15, fontFamily: 'Inter_600SemiBold', color: Colors.textPrimary, marginBottom: 4 },
-  productSku: { fontSize: 13, fontFamily: 'Inter_400Regular', color: Colors.textMuted, marginBottom: 4 },
-  productCategory: { fontSize: 12, fontFamily: 'Inter_500Medium', color: Colors.primary },
-  stockInfo: { alignItems: 'flex-end', justifyContent: 'center' },
-  stockLabel: { fontSize: 11, fontFamily: 'Inter_500Medium', color: Colors.textMuted, marginBottom: 2 },
-  stockValue: { fontSize: 20, fontFamily: 'Inter_700Bold', color: Colors.successDark },
-  stockValueLow: { color: Colors.dangerDark },
-  lowBadge: { backgroundColor: Colors.dangerLight, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4, marginTop: 4 },
-  lowBadgeText: { fontSize: 10, fontFamily: 'Inter_700Bold', color: Colors.dangerDark },
+  listContainer: { paddingHorizontal: 20, paddingBottom: 100 },
+  productCard: { backgroundColor: Colors.surface, borderRadius: Radius.lg, padding: 16, marginBottom: 12, ...Shadows.sm, borderWidth: 1, borderColor: Colors.borderLight },
+  cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 },
+  productName: { fontFamily: 'Inter_600SemiBold', fontSize: 16, color: Colors.textPrimary, marginBottom: 4 },
+  productCategory: { fontFamily: 'Inter_500Medium', fontSize: 13, color: Colors.primary },
+  stockBadge: { backgroundColor: Colors.primaryGhost, paddingHorizontal: 10, paddingVertical: 4, borderRadius: Radius.full, borderWidth: 1, borderColor: 'rgba(6, 78, 59, 0.1)' },
+  stockText: { fontFamily: 'Inter_600SemiBold', fontSize: 12, color: Colors.primary },
+  lowStockBadge: { backgroundColor: Colors.dangerLight, borderColor: 'rgba(225, 29, 72, 0.1)' },
+  lowStockText: { color: Colors.danger },
+  cardDetails: { flexDirection: 'row', justifyContent: 'space-between', borderTopWidth: 1, borderTopColor: Colors.borderLight, paddingTop: 12 },
+  detailText: { fontFamily: 'Inter_500Medium', fontSize: 13, color: Colors.textSecondary },
   
   scannerOverlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: '#000', zIndex: 100 },
   scannerHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingTop: 20, paddingBottom: 20, zIndex: 101 },

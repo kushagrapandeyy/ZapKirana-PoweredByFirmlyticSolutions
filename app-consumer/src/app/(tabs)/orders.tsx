@@ -63,7 +63,7 @@ export default function OrdersScreen() {
         >
           <View style={styles.orderHeader}>
             <View>
-              <Text style={styles.storeName}>Basko Local Store</Text>
+              <Text style={styles.storeName}>Kwick Local Store</Text>
               <Text style={styles.orderDate}>
                 {new Date(item.createdAt).toLocaleDateString('en-IN', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
               </Text>

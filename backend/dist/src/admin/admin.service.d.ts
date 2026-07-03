@@ -187,10 +187,10 @@ export declare class AdminService {
             createdAt: Date;
             updatedAt: Date;
             storeId: string;
+            notes: string | null;
             totalAmount: number;
             supplierId: string;
             expectedDeliveryDate: Date | null;
-            notes: string | null;
             shareToken: string | null;
             shareTokenExpiresAt: Date | null;
         })[];

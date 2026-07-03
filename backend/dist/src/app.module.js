@@ -40,6 +40,7 @@ const store_scope_guard_1 = require("./common/guards/store-scope.guard");
 const audit_interceptor_1 = require("./common/audit/audit.interceptor");
 const global_exception_filter_1 = require("./common/filters/global-exception.filter");
 const scanner_management_module_1 = require("./scanner-management/scanner-management.module");
+const cart_module_1 = require("./cart/cart.module");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
@@ -72,6 +73,7 @@ exports.AppModule = AppModule = __decorate([
             labels_module_1.LabelsModule,
             catalog_module_1.CatalogModule,
             scanner_management_module_1.ScannerManagementModule,
+            cart_module_1.CartModule,
         ],
         controllers: [app_controller_1.AppController],
         providers: [

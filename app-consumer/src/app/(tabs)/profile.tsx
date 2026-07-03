@@ -72,11 +72,11 @@ export default function ProfileScreen() {
           <View style={styles.statBox}>
             <Ionicons name="wallet-outline" size={24} color={Colors.primary} style={styles.statIcon} />
             <Text style={styles.statValue}>₹450</Text>
-            <Text style={styles.statLabel}>Basko Wallet</Text>
+            <Text style={styles.statLabel}>Kwick Wallet</Text>
           </View>
           <View style={styles.statDivider} />
           <View style={styles.statBox}>
-            <Ionicons name="star-outline" size={24} color={Colors.accent} style={styles.statIcon} />
+            <Ionicons name="star" size={24} color={Colors.accent} style={styles.statIcon} />
             <Text style={styles.statValue}>Gold</Text>
             <Text style={styles.statLabel}>Membership</Text>
           </View>
@@ -122,7 +122,7 @@ export default function ProfileScreen() {
             <Ionicons name="log-out-outline" size={20} color={Colors.danger} />
             <Text style={styles.logoutText}>Log Out</Text>
           </TouchableOpacity>
-          <Text style={styles.versionText}>Basko App v1.0.0</Text>
+          <Text style={styles.versionText}>Kwick App v1.0.0</Text>
         </Animated.View>
 
         <View style={{ height: 100 }} />
@@ -138,7 +138,7 @@ const styles = StyleSheet.create({
   
   scroll: { flex: 1 },
   
-  profileCard: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: Colors.surface, marginHorizontal: 20, marginTop: 16, padding: 20, borderRadius: Radius.lg, ...Shadows.sm },
+  profileCard: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: Colors.surface, marginHorizontal: 20, marginTop: 16, padding: 20, borderRadius: Radius.xl, ...Shadows.md },
   profileInfo: { flex: 1 },
   name: { fontSize: 22, fontFamily: 'Inter_700Bold', color: Colors.textPrimary, marginBottom: 4 },
   phone: { fontSize: 14, fontFamily: 'Inter_500Medium', color: Colors.textSecondary, marginBottom: 2 },
@@ -148,7 +148,7 @@ const styles = StyleSheet.create({
   avatarContainer: { width: 80, height: 80, borderRadius: 40, backgroundColor: Colors.surfaceAlt, padding: 4, ...Shadows.sm },
   avatar: { width: '100%', height: '100%', borderRadius: 36 },
   
-  statsContainer: { flexDirection: 'row', backgroundColor: Colors.surface, marginHorizontal: 20, marginTop: 16, borderRadius: Radius.lg, padding: 16, ...Shadows.sm },
+  statsContainer: { flexDirection: 'row', backgroundColor: Colors.surface, marginHorizontal: 20, marginTop: 16, borderRadius: Radius.xl, padding: 16, ...Shadows.md },
   statBox: { flex: 1, alignItems: 'center', gap: 4 },
   statIcon: { marginBottom: 4 },
   statValue: { fontSize: 18, fontFamily: 'Inter_700Bold', color: Colors.textPrimary },
@@ -157,7 +157,7 @@ const styles = StyleSheet.create({
   
   menuContainer: { paddingHorizontal: 20, marginTop: 24, gap: 20 },
   groupTitle: { fontSize: 14, fontFamily: 'Inter_600SemiBold', color: Colors.textMuted, marginBottom: 10, textTransform: 'uppercase', letterSpacing: 0.5, paddingLeft: 4 },
-  groupCard: { backgroundColor: Colors.surface, borderRadius: Radius.lg, ...Shadows.sm, overflow: 'hidden' },
+  groupCard: { backgroundColor: Colors.surface, borderRadius: Radius.xl, ...Shadows.md, overflow: 'hidden' },
   menuItem: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 16 },
   menuItemBorder: { borderBottomWidth: 1, borderBottomColor: Colors.borderLight },
   menuItemLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },

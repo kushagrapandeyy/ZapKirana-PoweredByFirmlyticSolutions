@@ -87,7 +87,7 @@ export default function CartScreen() {
           </View>
           <View>
             <Text style={styles.deliveryInfoTitle}>Delivery in 15-30 mins</Text>
-            <Text style={styles.deliveryInfoText}>From Basko Local Store</Text>
+            <Text style={styles.deliveryInfoText}>From Kwick Local Store</Text>
           </View>
         </View>
 

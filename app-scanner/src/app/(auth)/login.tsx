@@ -2,10 +2,13 @@ import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
 import { useAuthStore } from '../../store/useAuthStore';
 import { ScanBarcode } from 'lucide-react-native';
+import Constants from 'expo-constants';
 import axios from 'axios';
 
 // Replace with your local machine's IP or actual backend URL
-const BASE_URL = 'http://100.70.73.205:3000';
+const hostUri = Constants.expoConfig?.hostUri;
+const ip = hostUri ? hostUri.split(':')[0] : 'localhost';
+const BASE_URL = `http://${ip}:3000`;
 
 export default function LoginScreen() {
   const [deviceCode, setDeviceCode] = useState('');
@@ -45,7 +48,7 @@ export default function LoginScreen() {
     <View style={styles.container}>
       <View style={styles.logoContainer}>
         <ScanBarcode size={64} color="#0EA5E9" />
-        <Text style={styles.title}>Basko Scanner</Text>
+        <Text style={styles.title}>Kwick Scanner</Text>
         <Text style={styles.subtitle}>Kirana Operating System</Text>
       </View>
 

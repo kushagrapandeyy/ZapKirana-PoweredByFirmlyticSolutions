@@ -3,7 +3,7 @@ import { StyleSheet, View } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { Ionicons } from '@expo/vector-icons';
 
-const ROYAL_BLUE = '#1D4ED8';
+const DEEP_GREEN = '#064e3b'; // Premium grocery green
 
 export default function TabLayout() {
   return (
@@ -11,7 +11,7 @@ export default function TabLayout() {
       screenOptions={{
         headerShown: false,
         tabBarShowLabel: true,
-        tabBarActiveTintColor: ROYAL_BLUE,
+        tabBarActiveTintColor: DEEP_GREEN,
         tabBarInactiveTintColor: '#9ca3af',
         tabBarBackground: () => (
           <BlurView tint="light" intensity={80} style={StyleSheet.absoluteFill} />
@@ -45,6 +45,15 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
+        name="orders"
+        options={{
+          title: 'Orders',
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="receipt" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
         name="pos"
         options={{
           title: 'POS',
@@ -54,29 +63,11 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="inventory"
+        name="operations"
         options={{
-          title: 'Inventory',
+          title: 'Hub',
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="cube" size={size} color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="fulfillment"
-        options={{
-          title: 'Fulfill',
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="bicycle" size={size} color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="suppliers"
-        options={{
-          title: 'Suppliers',
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="business" size={size} color={color} />
+            <Ionicons name="grid" size={size} color={color} />
           ),
         }}
       />

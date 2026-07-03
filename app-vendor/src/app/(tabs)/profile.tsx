@@ -44,7 +44,7 @@ export default function ProfileScreen() {
             </View>
             <View style={styles.infoRow}>
               <Text style={styles.infoLabel}>Store Name</Text>
-              <Text style={styles.infoValue}>Basko Main Store</Text>
+              <Text style={styles.infoValue}>Kwick Main Store</Text>
             </View>
             <View style={styles.infoRow}>
               <Text style={styles.infoLabel}>GST Number</Text>

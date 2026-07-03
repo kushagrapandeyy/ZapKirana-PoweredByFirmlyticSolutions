@@ -1,16 +1,16 @@
-// Basko Design System — Refreshed Palette
-// Richer gradients, warmer accent colors, premium feel
+// Kwick Design System — Premium Grocery OS
+// Warm off-white, Deep Green, Muted Gold
 
 export const Colors = {
-  // Primary — Deep Indigo (replaces flat Royal Blue)
-  primary: '#6366f1',
-  primaryDark: '#4f46e5',
-  primaryLight: '#a5b4fc',
-  primaryGhost: '#eef2ff',
+  // Primary — Deep Grocery Green
+  primary: '#064e3b',
+  primaryDark: '#022c22',
+  primaryLight: '#34d399',
+  primaryGhost: '#ecfdf5',
   
-  // Warm Accent — Amber/Tangerine  
-  accent: '#f59e0b',
-  accentDark: '#d97706',
+  // Warm Accent — Muted Gold / Champagne
+  accent: '#d4af37',
+  accentDark: '#b8860b',
   accentLight: '#fef3c7',
   
   // Success — Emerald
@@ -19,8 +19,8 @@ export const Colors = {
   successLight: '#d1fae5',
   
   // Danger — Rose
-  danger: '#f43f5e',
-  dangerDark: '#e11d48',
+  danger: '#e11d48',
+  dangerDark: '#be123c',
   dangerLight: '#ffe4e6',
   
   // Warning — Amber
@@ -28,26 +28,26 @@ export const Colors = {
   warningDark: '#b45309',
   warningLight: '#fef3c7',
   
-  // Neutrals — Slate
-  bg: '#f8fafc',
+  // Neutrals — Warm Ivory/Off-White base
+  bg: '#fdfbf7', // Warm ivory
   surface: '#ffffff',
-  surfaceAlt: '#f1f5f9',
-  border: '#e2e8f0',
-  borderLight: '#f1f5f9',
+  surfaceAlt: '#f3f4f6',
+  border: '#e5e7eb',
+  borderLight: '#f9fafb',
   
   // Text
-  textPrimary: '#0f172a',
-  textSecondary: '#475569',
-  textMuted: '#94a3b8',
+  textPrimary: '#111827',
+  textSecondary: '#4b5563',
+  textMuted: '#9ca3af',
   textOnPrimary: '#ffffff',
-  textOnAccent: '#78350f',
+  textOnAccent: '#451a03',
   
   // Gradients (use with LinearGradient)
-  gradientPrimary: ['#6366f1', '#8b5cf6'],
-  gradientWarm: ['#f59e0b', '#ef4444'],
-  gradientSuccess: ['#10b981', '#06b6d4'],
-  gradientDark: ['#1e293b', '#0f172a'],
-  gradientSunrise: ['#f97316', '#f59e0b', '#eab308'],
+  gradientPrimary: ['#064e3b', '#047857'],
+  gradientWarm: ['#d4af37', '#f59e0b'],
+  gradientSuccess: ['#10b981', '#34d399'],
+  gradientDark: ['#111827', '#1f2937'],
+  gradientSunrise: ['#f59e0b', '#d4af37', '#fbbf24'],
 };
 
 // Spacing scale
@@ -73,34 +73,34 @@ export const Radius = {
   full: 9999,
 };
 
-// Shadow presets
+// Shadow presets - Smooth diffuse glassmorphism shadows
 export const Shadows = {
   sm: {
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 3,
-    elevation: 1,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    elevation: 2,
   },
   md: {
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    elevation: 4,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.06,
+    shadowRadius: 24,
+    elevation: 6,
   },
   lg: {
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.12,
-    shadowRadius: 20,
-    elevation: 8,
+    shadowOffset: { width: 0, height: 16 },
+    shadowOpacity: 0.08,
+    shadowRadius: 32,
+    elevation: 12,
   },
   glow: {
-    shadowColor: '#6366f1',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 12,
-    elevation: 6,
+    shadowColor: '#064e3b',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 24,
+    elevation: 8,
   },
 };

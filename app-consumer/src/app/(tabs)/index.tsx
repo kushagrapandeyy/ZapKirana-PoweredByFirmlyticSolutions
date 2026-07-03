@@ -114,7 +114,7 @@ export default function HomeFeed() {
     const qty = cartItem ? cartItem.qty : 0;
 
     return (
-      <Animated.View entering={FadeInDown.delay(index * 60).springify()}>
+      <Animated.View entering={FadeInDown.delay(index * 60).springify().damping(14).mass(0.8)}>
         <TouchableOpacity style={styles.productCard} activeOpacity={0.9} onPress={() => router.push(`/product/${item.id}`)}>
           {/* Product Image */}
           <View style={styles.productImageContainer}>
@@ -147,10 +147,19 @@ export default function HomeFeed() {
                 </TouchableOpacity>
               </View>
             ) : (
-              <TouchableOpacity style={styles.addBtn} onPress={(e) => { e.stopPropagation(); handleAddToCart(item); }}>
-                <Ionicons name="add" size={18} color={Colors.primary} />
-                <Text style={styles.addBtnText}>Add</Text>
-              </TouchableOpacity>
+              <Animated.View>
+                <TouchableOpacity 
+                  style={styles.addBtn} 
+                  activeOpacity={0.7}
+                  onPress={(e) => { 
+                    e.stopPropagation(); 
+                    handleAddToCart(item); 
+                  }}
+                >
+                  <Ionicons name="add" size={18} color={Colors.primary} />
+                  <Text style={styles.addBtnText}>Add</Text>
+                </TouchableOpacity>
+              </Animated.View>
             )}
           </View>
         </TouchableOpacity>
@@ -287,7 +296,7 @@ const styles = StyleSheet.create({
   // Top Bar
   topBar: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingTop: 8, paddingBottom: 12 },
   locationRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  locationDot: { width: 36, height: 36, borderRadius: 12, backgroundColor: '#fef2f2', justifyContent: 'center', alignItems: 'center' },
+  locationDot: { width: 36, height: 36, borderRadius: 12, backgroundColor: Colors.primaryGhost, justifyContent: 'center', alignItems: 'center' },
   deliveryLabel: { fontSize: 12, color: Colors.textMuted, fontFamily: 'Inter_500Medium' },
   storeName: { fontSize: 16, color: Colors.textPrimary, fontFamily: 'Inter_700Bold' },
   cartBtn: { position: 'relative', width: 44, height: 44, borderRadius: 14, backgroundColor: Colors.surfaceAlt, justifyContent: 'center', alignItems: 'center' },
@@ -300,7 +309,7 @@ const styles = StyleSheet.create({
   
   // Banner
   bannerContainer: { paddingHorizontal: 20, marginBottom: 20 },
-  banner: { borderRadius: Radius.xl, padding: 24, flexDirection: 'row', alignItems: 'center', overflow: 'hidden', ...Shadows.md },
+  banner: { borderRadius: Radius['2xl'], padding: 24, flexDirection: 'row', alignItems: 'center', overflow: 'hidden', ...Shadows.glow },
   bannerContent: { flex: 1 },
   bannerTitle: { fontSize: 24, fontFamily: 'PlayfairDisplay_700Bold', color: '#fff', marginBottom: 4 },
   bannerSubtitle: { fontSize: 14, fontFamily: 'Inter_400Regular', color: 'rgba(255,255,255,0.85)', marginBottom: 14 },
@@ -326,21 +335,21 @@ const styles = StyleSheet.create({
   
   // Products
   columnWrapper: { justifyContent: 'space-between', paddingHorizontal: 16 },
-  productCard: { width: (width - 48) / 2, marginBottom: 16, backgroundColor: Colors.surface, borderRadius: Radius.lg, padding: 10, ...Shadows.sm },
-  productImageContainer: { position: 'relative', marginBottom: 10 },
-  productImage: { width: '100%', height: 130, borderRadius: Radius.md, backgroundColor: Colors.surfaceAlt },
+  productCard: { width: (width - 48) / 2, marginBottom: 16, backgroundColor: Colors.surface, borderRadius: Radius.xl, padding: 10, ...Shadows.md, borderWidth: 1, borderColor: Colors.borderLight },
+  productImageContainer: { position: 'relative', marginBottom: 12 },
+  productImage: { width: '100%', height: 130, borderRadius: Radius.lg, backgroundColor: Colors.surfaceAlt },
   gstBadge: { position: 'absolute', top: 6, right: 6, backgroundColor: 'rgba(0,0,0,0.6)', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 },
   gstBadgeText: { fontSize: 9, color: '#fff', fontFamily: 'Inter_600SemiBold' },
   productCategory: { fontSize: 11, color: Colors.primary, fontFamily: 'Inter_600SemiBold', marginBottom: 2, textTransform: 'uppercase', letterSpacing: 0.5 },
   productName: { fontSize: 14, color: Colors.textPrimary, fontFamily: 'Inter_600SemiBold', marginBottom: 8, lineHeight: 18, height: 36 },
   productFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   productPrice: { fontSize: 16, color: Colors.textPrimary, fontFamily: 'Inter_700Bold' },
-  addBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: Colors.primaryGhost, paddingHorizontal: 12, paddingVertical: 7, borderRadius: Radius.sm, borderWidth: 1, borderColor: Colors.primaryLight },
+  addBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: Colors.primaryGhost, paddingHorizontal: 12, paddingVertical: 7, borderRadius: Radius.md, borderWidth: 1, borderColor: 'rgba(6, 78, 59, 0.1)' },
   addBtnText: { color: Colors.primary, fontSize: 13, fontFamily: 'Inter_600SemiBold' },
-  qtyControls: { flexDirection: 'row', alignItems: 'center', backgroundColor: Colors.primaryGhost, borderRadius: Radius.sm, overflow: 'hidden', borderWidth: 1, borderColor: Colors.primaryLight },
+  qtyControls: { flexDirection: 'row', alignItems: 'center', backgroundColor: Colors.primaryGhost, borderRadius: Radius.md, overflow: 'hidden', borderWidth: 1, borderColor: 'rgba(6, 78, 59, 0.1)' },
   qtyBtn: { width: 30, height: 30, justifyContent: 'center', alignItems: 'center' },
   qtyBtnAdd: { backgroundColor: Colors.primary },
-  qtyText: { fontSize: 14, fontFamily: 'Inter_700Bold', color: Colors.textPrimary, paddingHorizontal: 8 },
+  qtyText: { fontSize: 14, fontFamily: 'Inter_700Bold', color: Colors.primaryDark, paddingHorizontal: 8 },
   
   // Skeleton
   skeletonGrid: { flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: 16, gap: 12, justifyContent: 'space-between' },

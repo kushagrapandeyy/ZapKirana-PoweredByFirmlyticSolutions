@@ -112,8 +112,8 @@ export declare class ScannerController {
         id: string;
         createdAt: Date;
         storeId: string;
-        quantity: number | null;
         symbology: string | null;
+        quantity: number | null;
         deviceId: string | null;
         metadata: import("@prisma/client/runtime/library").JsonValue | null;
         idempotencyKey: string;

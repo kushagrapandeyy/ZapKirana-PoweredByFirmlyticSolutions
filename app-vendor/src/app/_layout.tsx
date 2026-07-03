@@ -4,6 +4,7 @@ import { Inter_400Regular, Inter_600SemiBold, Inter_700Bold } from '@expo-google
 import { AuthProvider } from '@/context/AuthContext';
 import { LedgerProvider } from '@/context/LedgerContext';
 import Toast from 'react-native-toast-message';
+import '@/lib/locationTracking';
 
 export default function RootLayout() {
   const [fontsLoaded] = useFonts({

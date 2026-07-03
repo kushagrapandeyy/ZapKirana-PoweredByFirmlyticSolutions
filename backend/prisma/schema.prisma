@@ -72,6 +72,7 @@ model User {
   printJobs              PrintJob[]       @relation("PrintJobs")
   pendingProductsCreated PendingProduct[] @relation("CreatedPendingProducts")
   ScannerSession         ScannerSession[]
+  carts                  Cart[]
 }
 
 enum Role {
@@ -156,6 +157,7 @@ model Store {
 
   purchaseOrders PurchaseOrder[]
   ScannerSession ScannerSession[]
+  carts          Cart[]
 }
 
 // -----------------------------------------------------
@@ -193,6 +195,7 @@ model Product {
   purchaseOrderItems PurchaseOrderItem[]
   supplierProducts   SupplierProduct[]
   barcodeRegistry    BarcodeRegistry[]
+  cartItems          CartItem[]
   createdAt          DateTime            @default(now())
   updatedAt          DateTime            @updatedAt
 
@@ -801,4 +804,32 @@ model PendingProduct {
   updatedAt         DateTime             @updatedAt
 
   @@index([storeId, status])
+}
+
+// -----------------------------------------------------
+// Consumer Carts
+// -----------------------------------------------------
+
+model Cart {
+  id        String     @id @default(uuid())
+  userId    String
+  user      User       @relation(fields: [userId], references: [id])
+  storeId   String
+  store     Store      @relation(fields: [storeId], references: [id])
+  items     CartItem[]
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  @@unique([userId, storeId])
+}
+
+model CartItem {
+  id        String  @id @default(uuid())
+  cartId    String
+  cart      Cart    @relation(fields: [cartId], references: [id])
+  productId String
+  product   Product @relation(fields: [productId], references: [id])
+  quantity  Int
+
+  @@unique([cartId, productId])
 }

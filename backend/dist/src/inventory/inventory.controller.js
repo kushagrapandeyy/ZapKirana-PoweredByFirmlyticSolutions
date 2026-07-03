@@ -53,6 +53,17 @@ let InventoryController = class InventoryController {
             throw new common_1.BadRequestException('storeId is required');
         return this.inventoryService.getMovementHistory(storeId, productId);
     }
+    getPendingProducts(storeId) {
+        if (!storeId)
+            throw new common_1.BadRequestException('storeId is required');
+        return this.inventoryService.getPendingProducts(storeId);
+    }
+    approvePendingProduct(id, body) {
+        return this.inventoryService.approvePendingProduct(id, body);
+    }
+    rejectPendingProduct(id) {
+        return this.inventoryService.rejectPendingProduct(id);
+    }
 };
 exports.InventoryController = InventoryController;
 __decorate([
@@ -92,6 +103,28 @@ __decorate([
     __metadata("design:paramtypes", [String, String]),
     __metadata("design:returntype", void 0)
 ], InventoryController.prototype, "getMovementHistory", null);
+__decorate([
+    (0, common_1.Get)('pending'),
+    __param(0, (0, common_1.Query)('storeId')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", void 0)
+], InventoryController.prototype, "getPendingProducts", null);
+__decorate([
+    (0, common_1.Post)('pending/:id/approve'),
+    __param(0, (0, common_1.Param)('id')),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, Object]),
+    __metadata("design:returntype", void 0)
+], InventoryController.prototype, "approvePendingProduct", null);
+__decorate([
+    (0, common_1.Post)('pending/:id/reject'),
+    __param(0, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", void 0)
+], InventoryController.prototype, "rejectPendingProduct", null);
 exports.InventoryController = InventoryController = __decorate([
     (0, common_1.Controller)('inventory'),
     __metadata("design:paramtypes", [inventory_service_1.InventoryService])

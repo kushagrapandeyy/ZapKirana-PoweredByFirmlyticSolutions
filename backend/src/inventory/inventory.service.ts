@@ -211,4 +211,71 @@ export class InventoryService {
       }
     }
   }
+
+  // --- Pending Products (Approvals) ---
+
+  async getPendingProducts(storeId: string) {
+    return this.prisma.pendingProduct.findMany({
+      where: { storeId, status: 'PENDING_REVIEW' },
+      orderBy: { createdAt: 'desc' },
+      include: { createdBy: { select: { name: true, role: true } } },
+    });
+  }
+
+  async approvePendingProduct(
+    id: string,
+    data: { name: string; category?: string; mrp: number; sellingPrice: number; gstClass?: any }
+  ) {
+    return this.prisma.$transaction(async (tx) => {
+      const pending = await tx.pendingProduct.findUnique({ where: { id } });
+      if (!pending) throw new BadRequestException('Pending product not found');
+      if (pending.status !== 'PENDING_REVIEW') throw new BadRequestException('Already processed');
+
+      // 1. Create the official product
+      const product = await tx.product.create({
+        data: {
+          storeId: pending.storeId,
+          name: data.name,
+          category: data.category || pending.suggestedCategory,
+          mrp: data.mrp,
+          sellingPrice: data.sellingPrice,
+          gstClass: data.gstClass || 'EXEMPT',
+          barcode: pending.barcode,
+          internalSku: `SKU-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+          imageUrl: pending.imageUrl,
+        },
+      });
+
+      // 2. Add to barcode registry
+      if (pending.barcode) {
+        await tx.barcodeRegistry.create({
+          data: {
+            storeId: pending.storeId,
+            productId: product.id,
+            barcodeValue: pending.barcode,
+            symbology: 'EAN_13', // default assumption
+            barcodeScope: 'GS1_EXTERNAL_PRODUCT',
+          },
+        });
+      }
+
+      // 3. Update pending status
+      await tx.pendingProduct.update({
+        where: { id },
+        data: { status: 'APPROVED', approvedProductId: product.id },
+      });
+
+      return product;
+    });
+  }
+
+  async rejectPendingProduct(id: string) {
+    const pending = await this.prisma.pendingProduct.findUnique({ where: { id } });
+    if (!pending) throw new BadRequestException('Pending product not found');
+
+    return this.prisma.pendingProduct.update({
+      where: { id },
+      data: { status: 'REJECTED' },
+    });
+  }
 }

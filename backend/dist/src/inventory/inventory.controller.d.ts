@@ -85,4 +85,71 @@ export declare class InventoryController {
         reason: string | null;
         staffId: string | null;
     })[]>;
+    getPendingProducts(storeId: string): Promise<({
+        createdBy: {
+            name: string | null;
+            role: import(".prisma/client").$Enums.Role;
+        } | null;
+    } & {
+        id: string;
+        status: import(".prisma/client").$Enums.PendingProductStatus;
+        createdAt: Date;
+        updatedAt: Date;
+        imageUrl: string | null;
+        storeId: string;
+        barcode: string | null;
+        mrp: number | null;
+        sellingPrice: number | null;
+        gstRate: number;
+        suggestedName: string | null;
+        suggestedBrand: string | null;
+        suggestedCategory: string | null;
+        purchasePrice: number | null;
+        createdById: string | null;
+        approvedProductId: string | null;
+        notes: string | null;
+    })[]>;
+    approvePendingProduct(id: string, body: {
+        name: string;
+        category?: string;
+        mrp: number;
+        sellingPrice: number;
+        gstClass?: any;
+    }): Promise<{
+        id: string;
+        name: string;
+        createdAt: Date;
+        updatedAt: Date;
+        isActive: boolean;
+        imageUrl: string | null;
+        description: string | null;
+        storeId: string;
+        barcode: string | null;
+        internalSku: string;
+        category: string | null;
+        mrp: number;
+        sellingPrice: number;
+        purchaseCost: number | null;
+        gstRate: number;
+        gstClass: import(".prisma/client").$Enums.GSTClass;
+    }>;
+    rejectPendingProduct(id: string): Promise<{
+        id: string;
+        status: import(".prisma/client").$Enums.PendingProductStatus;
+        createdAt: Date;
+        updatedAt: Date;
+        imageUrl: string | null;
+        storeId: string;
+        barcode: string | null;
+        mrp: number | null;
+        sellingPrice: number | null;
+        gstRate: number;
+        suggestedName: string | null;
+        suggestedBrand: string | null;
+        suggestedCategory: string | null;
+        purchasePrice: number | null;
+        createdById: string | null;
+        approvedProductId: string | null;
+        notes: string | null;
+    }>;
 }

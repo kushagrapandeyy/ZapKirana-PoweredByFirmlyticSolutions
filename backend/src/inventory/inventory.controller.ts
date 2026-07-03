@@ -62,4 +62,25 @@ export class InventoryController {
     if (!storeId) throw new BadRequestException('storeId is required');
     return this.inventoryService.getMovementHistory(storeId, productId);
   }
+
+  // --- Approvals ---
+
+  @Get('pending')
+  getPendingProducts(@Query('storeId') storeId: string) {
+    if (!storeId) throw new BadRequestException('storeId is required');
+    return this.inventoryService.getPendingProducts(storeId);
+  }
+
+  @Post('pending/:id/approve')
+  approvePendingProduct(
+    @Param('id') id: string,
+    @Body() body: { name: string; category?: string; mrp: number; sellingPrice: number; gstClass?: any }
+  ) {
+    return this.inventoryService.approvePendingProduct(id, body);
+  }
+
+  @Post('pending/:id/reject')
+  rejectPendingProduct(@Param('id') id: string) {
+    return this.inventoryService.rejectPendingProduct(id);
+  }
 }
