@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { StyleSheet, Text, View, SafeAreaView, TouchableOpacity, ScrollView, RefreshControl, ActivityIndicator, Dimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Shadows, Radius } from '../../constants/theme';
-import { API_BASE_URL } from '../../constants/api';
+import { API_BASE_URL, CURRENT_STORE_ID } from '../../constants/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useRouter } from 'expo-router';
@@ -24,7 +24,7 @@ export default function FulfillmentKanban() {
 
   const fetchOrders = async () => {
     try {
-      const storeId = await AsyncStorage.getItem('@vendor_store_id') || 'f15b0af3-3667-429a-ae2e-9f85d25e9c2f';
+      const storeId = CURRENT_STORE_ID; // Bypass AsyncStorage cache for testing
       const res = await fetch(`${API_BASE_URL}/orders/store/${storeId}`);
       if (res.ok) {
         const data = await res.json();

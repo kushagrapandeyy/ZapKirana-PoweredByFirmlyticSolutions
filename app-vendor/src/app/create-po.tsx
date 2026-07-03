@@ -3,7 +3,7 @@ import { StyleSheet, Text, View, SafeAreaView, TouchableOpacity, ScrollView, Tex
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Shadows, Radius } from '../constants/theme';
-import { API_BASE_URL } from '../constants/api';
+import { API_BASE_URL, CURRENT_STORE_ID } from '../constants/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import Toast from 'react-native-toast-message';
@@ -25,7 +25,7 @@ export default function CreatePO() {
 
   const loadData = async () => {
     try {
-      const storeId = await AsyncStorage.getItem('@vendor_store_id') || 'f15b0af3-3667-429a-ae2e-9f85d25e9c2f';
+      const storeId = CURRENT_STORE_ID; // Bypass AsyncStorage cache for testing
       
       const [suppRes, prodRes] = await Promise.all([
         fetch(`${API_BASE_URL}/admin/suppliers`), // Using admin endpoint for now or specific store supplier endpoint
@@ -86,7 +86,7 @@ export default function CreatePO() {
 
     setIsSubmitting(true);
     try {
-      const storeId = await AsyncStorage.getItem('@vendor_store_id') || 'f15b0af3-3667-429a-ae2e-9f85d25e9c2f';
+      const storeId = CURRENT_STORE_ID; // Bypass AsyncStorage cache for testing
       
       const expectedDate = new Date();
       expectedDate.setDate(expectedDate.getDate() + 2); // default 2 days delivery

@@ -9,8 +9,8 @@ export declare class DeliveryController {
         staffLng: number | null;
         deliveryAddress: string | null;
         staff: {
-            name: string | null;
             phone: string | null;
+            name: string | null;
             avatarUrl: string | null;
         } | null;
     }>;
@@ -20,9 +20,9 @@ export declare class DeliveryController {
         staffId: string;
     }): Promise<{
         id: string;
+        storeId: string;
         createdAt: Date;
         updatedAt: Date;
-        storeId: string;
         staffId: string | null;
         status: import(".prisma/client").$Enums.OrderStatus;
         customerId: string;

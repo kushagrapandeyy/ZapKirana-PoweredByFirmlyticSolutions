@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Store, Users, Activity, Plus, X, Building, ShieldCheck, LogOut, LayoutDashboard, Calculator, Receipt, Moon, Sun, TrendingUp, AlertTriangle, Package } from 'lucide-react';
+import { Store, Users, Activity, Plus, X, Building, ShieldCheck, LogOut, LayoutDashboard, Calculator, Receipt, Moon, Sun, TrendingUp, AlertTriangle, Package, Copy } from 'lucide-react';
 import { useAuth, fetchWithAuth } from './AuthContext';
 import Login from './Login';
 
@@ -290,6 +290,7 @@ function AdminDashboard() {
                 <thead>
                   <tr>
                     <th>Store Name</th>
+                    <th>Store ID</th>
                     <th>Address</th>
                     <th>Radius</th>
                     <th>Tax ID</th>
@@ -303,6 +304,24 @@ function AdminDashboard() {
                       setShowStoreModal(true);
                     }}>
                       <td><strong>{store.name}</strong></td>
+                      <td>
+                        <div style={{display: 'flex', alignItems: 'center', gap: 6}}>
+                          <code style={{fontSize: 12, background: 'var(--surface-alt)', padding: '2px 6px', borderRadius: 4}}>
+                            {store.id.substring(0,8)}...
+                          </code>
+                          <button 
+                            style={{background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)'}}
+                            title="Copy full Store ID"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              navigator.clipboard.writeText(store.id);
+                              alert('Store ID copied to clipboard!');
+                            }}
+                          >
+                            <Copy size={14} />
+                          </button>
+                        </div>
+                      </td>
                       <td>{store.address || store.location}</td>
                       <td>{store.operatingRadiusKm} km</td>
                       <td>{store.taxId || 'N/A'}</td>
@@ -314,7 +333,7 @@ function AdminDashboard() {
                     </tr>
                   ))}
                   {stores.length === 0 && (
-                    <tr><td colSpan={5} style={{textAlign:'center', color: 'var(--text-muted)'}}>No stores found.</td></tr>
+                    <tr><td colSpan={6} style={{textAlign:'center', color: 'var(--text-muted)'}}>No stores found.</td></tr>
                   )}
                 </tbody>
               </table>

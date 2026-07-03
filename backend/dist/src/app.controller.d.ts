@@ -23,7 +23,7 @@ export declare class AppController {
         bankAccountNumber: string | null;
         bankRoutingNumber: string | null;
         taxId: string | null;
-    } | null>;
+    }>;
     getNearbyStores(lat: string, lng: string, radiusKm?: string): Promise<{
         distanceKm: number;
         id: string;

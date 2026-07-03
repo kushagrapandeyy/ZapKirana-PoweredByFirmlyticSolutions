@@ -56,40 +56,40 @@ export declare class AuthService {
     }>;
     updatePushToken(userId: string, pushToken: string): Promise<{
         id: string;
-        name: string | null;
-        createdAt: Date;
-        updatedAt: Date;
         email: string;
         phone: string | null;
         password: string | null;
+        name: string | null;
         role: import(".prisma/client").$Enums.Role;
         storeId: string | null;
         avatarUrl: string | null;
         isVerified: boolean;
         pushToken: string | null;
+        createdAt: Date;
+        updatedAt: Date;
     }>;
     getProfile(userId: string): Promise<{
         savedAddresses: {
             id: string;
-            latitude: number;
-            longitude: number;
             createdAt: Date;
             updatedAt: Date;
+            latitude: number;
+            longitude: number;
             address: string;
             userId: string;
             label: string;
             isDefault: boolean;
         }[];
         id: string;
-        name: string | null;
-        createdAt: Date;
-        updatedAt: Date;
         email: string;
         phone: string | null;
+        name: string | null;
         role: import(".prisma/client").$Enums.Role;
         storeId: string | null;
         avatarUrl: string | null;
         isVerified: boolean;
         pushToken: string | null;
+        createdAt: Date;
+        updatedAt: Date;
     }>;
 }

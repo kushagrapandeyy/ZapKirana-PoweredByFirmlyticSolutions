@@ -27,7 +27,11 @@ let AppController = class AppController {
         return this.appService.getHello();
     }
     async getStore(id) {
-        return this.prisma.store.findUnique({ where: { id } });
+        const store = await this.prisma.store.findUnique({ where: { id } });
+        if (!store) {
+            throw new require('@nestjs/common').NotFoundException('Store not found');
+        }
+        return store;
     }
     async getNearbyStores(lat, lng, radiusKm) {
         const userLat = parseFloat(lat);

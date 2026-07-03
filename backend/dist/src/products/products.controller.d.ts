@@ -5,12 +5,12 @@ export declare class ProductsController {
     createProduct(body: any): Promise<{
         id: string;
         name: string;
+        storeId: string;
+        createdAt: Date;
+        updatedAt: Date;
         isActive: boolean;
         imageUrl: string | null;
         description: string | null;
-        createdAt: Date;
-        updatedAt: Date;
-        storeId: string;
         barcode: string | null;
         internalSku: string;
         category: string | null;
@@ -23,12 +23,12 @@ export declare class ProductsController {
     findAll(storeId: string): Promise<{
         id: string;
         name: string;
+        storeId: string;
+        createdAt: Date;
+        updatedAt: Date;
         isActive: boolean;
         imageUrl: string | null;
         description: string | null;
-        createdAt: Date;
-        updatedAt: Date;
-        storeId: string;
         barcode: string | null;
         internalSku: string;
         category: string | null;
@@ -43,12 +43,12 @@ export declare class ProductsController {
     findByBarcode(barcode: string, storeId: string): Promise<{
         id: string;
         name: string;
+        storeId: string;
+        createdAt: Date;
+        updatedAt: Date;
         isActive: boolean;
         imageUrl: string | null;
         description: string | null;
-        createdAt: Date;
-        updatedAt: Date;
-        storeId: string;
         barcode: string | null;
         internalSku: string;
         category: string | null;
@@ -63,12 +63,12 @@ export declare class ProductsController {
     findOne(id: string): Promise<{
         id: string;
         name: string;
+        storeId: string;
+        createdAt: Date;
+        updatedAt: Date;
         isActive: boolean;
         imageUrl: string | null;
         description: string | null;
-        createdAt: Date;
-        updatedAt: Date;
-        storeId: string;
         barcode: string | null;
         internalSku: string;
         category: string | null;
@@ -84,12 +84,12 @@ export declare class ProductsController {
     }): Promise<{
         id: string;
         name: string;
+        storeId: string;
+        createdAt: Date;
+        updatedAt: Date;
         isActive: boolean;
         imageUrl: string | null;
         description: string | null;
-        createdAt: Date;
-        updatedAt: Date;
-        storeId: string;
         barcode: string | null;
         internalSku: string;
         category: string | null;
@@ -103,12 +103,12 @@ export declare class ProductsController {
         source: string;
         id: string;
         name: string;
+        storeId: string;
+        createdAt: Date;
+        updatedAt: Date;
         isActive: boolean;
         imageUrl: string | null;
         description: string | null;
-        createdAt: Date;
-        updatedAt: Date;
-        storeId: string;
         barcode: string | null;
         internalSku: string;
         category: string | null;
@@ -146,12 +146,12 @@ export declare class ProductsController {
     createFromBarcode(body: any): Promise<{
         id: string;
         name: string;
+        storeId: string;
+        createdAt: Date;
+        updatedAt: Date;
         isActive: boolean;
         imageUrl: string | null;
         description: string | null;
-        createdAt: Date;
-        updatedAt: Date;
-        storeId: string;
         barcode: string | null;
         internalSku: string;
         category: string | null;

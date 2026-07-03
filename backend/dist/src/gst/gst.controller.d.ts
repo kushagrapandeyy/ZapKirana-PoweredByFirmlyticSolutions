@@ -38,12 +38,12 @@ export declare class GstController {
     classifyProduct(productId: string): Promise<{
         id: string;
         name: string;
+        storeId: string;
+        createdAt: Date;
+        updatedAt: Date;
         isActive: boolean;
         imageUrl: string | null;
         description: string | null;
-        createdAt: Date;
-        updatedAt: Date;
-        storeId: string;
         barcode: string | null;
         internalSku: string;
         category: string | null;

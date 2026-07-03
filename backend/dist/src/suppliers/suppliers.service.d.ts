@@ -5,11 +5,11 @@ export declare class SuppliersService {
     getAllSuppliers(): Promise<{
         id: string;
         name: string;
+        createdAt: Date;
+        updatedAt: Date;
         isActive: boolean;
         rating: number;
         description: string | null;
-        createdAt: Date;
-        updatedAt: Date;
         address: string | null;
         contactEmail: string | null;
         contactPhone: string | null;
@@ -23,11 +23,11 @@ export declare class SuppliersService {
         supplier: {
             id: string;
             name: string;
+            createdAt: Date;
+            updatedAt: Date;
             isActive: boolean;
             rating: number;
             description: string | null;
-            createdAt: Date;
-            updatedAt: Date;
             address: string | null;
             contactEmail: string | null;
             contactPhone: string | null;
@@ -39,17 +39,17 @@ export declare class SuppliersService {
         };
     } & {
         id: string;
+        storeId: string;
         createdAt: Date;
         updatedAt: Date;
-        storeId: string;
         status: import(".prisma/client").$Enums.ConnectionStatus;
         supplierId: string;
     })[]>;
     connectStoreToSupplier(storeId: string, supplierId: string): Promise<{
         id: string;
+        storeId: string;
         createdAt: Date;
         updatedAt: Date;
-        storeId: string;
         status: import(".prisma/client").$Enums.ConnectionStatus;
         supplierId: string;
     }>;

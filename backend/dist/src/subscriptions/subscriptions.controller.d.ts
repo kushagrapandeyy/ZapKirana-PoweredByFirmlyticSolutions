@@ -13,9 +13,9 @@ export declare class SubscriptionsController {
         }[];
     } & {
         id: string;
+        storeId: string;
         createdAt: Date;
         updatedAt: Date;
-        storeId: string;
         status: import(".prisma/client").$Enums.SubscriptionStatus;
         customerId: string;
         deliverySlot: string | null;
@@ -38,9 +38,9 @@ export declare class SubscriptionsController {
         }[];
     } & {
         id: string;
+        storeId: string;
         createdAt: Date;
         updatedAt: Date;
-        storeId: string;
         status: import(".prisma/client").$Enums.SubscriptionStatus;
         customerId: string;
         deliverySlot: string | null;
@@ -51,6 +51,8 @@ export declare class SubscriptionsController {
         store: {
             id: string;
             name: string;
+            createdAt: Date;
+            updatedAt: Date;
             location: string | null;
             latitude: number | null;
             longitude: number | null;
@@ -61,8 +63,6 @@ export declare class SubscriptionsController {
             operatingHours: string | null;
             rating: number;
             description: string | null;
-            createdAt: Date;
-            updatedAt: Date;
             bankAccountNumber: string | null;
             bankRoutingNumber: string | null;
             taxId: string | null;
@@ -77,9 +77,9 @@ export declare class SubscriptionsController {
         }[];
     } & {
         id: string;
+        storeId: string;
         createdAt: Date;
         updatedAt: Date;
-        storeId: string;
         status: import(".prisma/client").$Enums.SubscriptionStatus;
         customerId: string;
         deliverySlot: string | null;
@@ -88,9 +88,9 @@ export declare class SubscriptionsController {
     }>;
     pause(id: string): Promise<{
         id: string;
+        storeId: string;
         createdAt: Date;
         updatedAt: Date;
-        storeId: string;
         status: import(".prisma/client").$Enums.SubscriptionStatus;
         customerId: string;
         deliverySlot: string | null;
@@ -99,9 +99,9 @@ export declare class SubscriptionsController {
     }>;
     resume(id: string): Promise<{
         id: string;
+        storeId: string;
         createdAt: Date;
         updatedAt: Date;
-        storeId: string;
         status: import(".prisma/client").$Enums.SubscriptionStatus;
         customerId: string;
         deliverySlot: string | null;
@@ -121,9 +121,9 @@ export declare class SubscriptionsController {
         }[];
     } & {
         id: string;
+        storeId: string;
         createdAt: Date;
         updatedAt: Date;
-        storeId: string;
         status: import(".prisma/client").$Enums.SubscriptionStatus;
         customerId: string;
         deliverySlot: string | null;
@@ -132,9 +132,9 @@ export declare class SubscriptionsController {
     }>;
     cancel(id: string): Promise<{
         id: string;
+        storeId: string;
         createdAt: Date;
         updatedAt: Date;
-        storeId: string;
         status: import(".prisma/client").$Enums.SubscriptionStatus;
         customerId: string;
         deliverySlot: string | null;
@@ -154,15 +154,15 @@ export declare class SubscriptionsController {
         }[];
         customer: {
             id: string;
-            name: string | null;
             phone: string | null;
+            name: string | null;
             avatarUrl: string | null;
         };
     } & {
         id: string;
+        storeId: string;
         createdAt: Date;
         updatedAt: Date;
-        storeId: string;
         status: import(".prisma/client").$Enums.SubscriptionStatus;
         customerId: string;
         deliverySlot: string | null;

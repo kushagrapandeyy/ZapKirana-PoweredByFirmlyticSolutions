@@ -13,7 +13,11 @@ export class AppController {
 
   @Get('stores/:id')
   async getStore(@Param('id') id: string) {
-    return this.prisma.store.findUnique({ where: { id } });
+    const store = await this.prisma.store.findUnique({ where: { id } });
+    if (!store) {
+      throw new require('@nestjs/common').NotFoundException('Store not found');
+    }
+    return store;
   }
 
   // Nearby stores endpoint using Haversine formula
