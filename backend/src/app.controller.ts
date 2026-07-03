@@ -1,4 +1,4 @@
-import { Controller, Get, Param, Query } from '@nestjs/common';
+import { Controller, Get, NotFoundException, Param, Query } from '@nestjs/common';
 import { AppService } from './app.service';
 import { PrismaService } from './prisma.service';
 
@@ -15,7 +15,7 @@ export class AppController {
   async getStore(@Param('id') id: string) {
     const store = await this.prisma.store.findUnique({ where: { id } });
     if (!store) {
-      throw new require('@nestjs/common').NotFoundException('Store not found');
+      throw new NotFoundException('Store not found');
     }
     return store;
   }

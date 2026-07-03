@@ -29,7 +29,7 @@ let AppController = class AppController {
     async getStore(id) {
         const store = await this.prisma.store.findUnique({ where: { id } });
         if (!store) {
-            throw new require('@nestjs/common').NotFoundException('Store not found');
+            throw new common_1.NotFoundException('Store not found');
         }
         return store;
     }
