@@ -77,4 +77,16 @@ export declare class ScannerManagementService {
             durationSeconds: number | null;
         })[];
     }>;
+    heartbeatDevice(storeId: string, deviceCode: string): Promise<{
+        id: string;
+        status: import(".prisma/client").$Enums.DeviceStatus;
+        createdAt: Date;
+        updatedAt: Date;
+        storeId: string;
+        deviceCode: string;
+        deviceName: string;
+        deviceType: import(".prisma/client").$Enums.DeviceType;
+        assignedToId: string | null;
+        lastSeenAt: Date | null;
+    }>;
 }

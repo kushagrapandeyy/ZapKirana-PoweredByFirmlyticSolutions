@@ -260,6 +260,37 @@ let AdminService = class AdminService {
             recentOrders,
         };
     }
+    async getStaffList(storeId) {
+        const staffList = await this.prisma.user.findMany({
+            where: { role: { in: ['STAFF', 'MANAGER', 'OWNER'] }, storeId },
+        });
+        return staffList;
+    }
+    async getAlerts(storeId) {
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+        const sevenDaysFromNow = new Date();
+        sevenDaysFromNow.setDate(sevenDaysFromNow.getDate() + 7);
+        const [lowStock, expiringSoon, damagedGoods] = await Promise.all([
+            this.prisma.inventory.findMany({
+                where: { storeId, onHandQty: { lte: 10 } },
+                include: { product: true }
+            }),
+            this.prisma.inventory.findMany({
+                where: { storeId, expiryDate: { not: null, lte: sevenDaysFromNow }, onHandQty: { gt: 0 } },
+                include: { product: true }
+            }),
+            this.prisma.stockMovement.findMany({
+                where: {
+                    inventory: { storeId },
+                    type: 'DAMAGED',
+                    createdAt: { gte: thirtyDaysAgo }
+                },
+                include: { inventory: { include: { product: true } } }
+            })
+        ]);
+        return { lowStock, expiringSoon, damagedGoods };
+    }
 };
 exports.AdminService = AdminService;
 exports.AdminService = AdminService = __decorate([

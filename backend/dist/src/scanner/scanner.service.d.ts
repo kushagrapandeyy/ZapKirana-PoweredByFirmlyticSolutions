@@ -139,13 +139,13 @@ export declare class ScannerService {
         quantity: number | null;
         symbology: string | null;
         deviceId: string | null;
-        metadata: import("@prisma/client/runtime/library").JsonValue | null;
         idempotencyKey: string;
         scannedById: string | null;
         workflow: import(".prisma/client").$Enums.ScannerWorkflow;
         rawValue: string;
         parsedJson: import("@prisma/client/runtime/library").JsonValue | null;
         resolutionStatus: import(".prisma/client").$Enums.ScanResolutionStatus;
+        metadata: import("@prisma/client/runtime/library").JsonValue | null;
     })[]>;
     getDevices(storeId: string): Promise<({
         assignedTo: {

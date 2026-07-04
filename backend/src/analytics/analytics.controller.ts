@@ -92,4 +92,14 @@ export class AnalyticsController {
     if (!from || !to) throw new BadRequestException('from and to are required');
     return this.analyticsService.getNetworkSummary(from, to);
   }
+
+  /**
+   * GET /analytics/profit?storeId=x
+   * True Profit P&L breakdown.
+   */
+  @Get('profit')
+  getProfitAnalytics(@Query('storeId') storeId: string) {
+    if (!storeId) throw new BadRequestException('storeId is required');
+    return this.analyticsService.getProfitAnalytics(storeId);
+  }
 }

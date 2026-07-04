@@ -15,6 +15,7 @@ export default function StoreSelector() {
   const router = useRouter();
   const [stores, setStores] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedStoreId, setSelectedStoreId] = useState<string | null>(null);
 
   useEffect(() => {
     findNearbyStores();

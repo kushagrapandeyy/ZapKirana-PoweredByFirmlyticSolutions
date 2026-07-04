@@ -258,6 +258,32 @@ let AnalyticsService = class AnalyticsService {
             stores: storeStats,
         };
     }
+    async getProfitAnalytics(storeId) {
+        const posSales = await this.prisma.posBill.aggregate({
+            where: { storeId, status: 'PAID' },
+            _sum: { total: true }
+        });
+        const onlineSales = await this.prisma.order.aggregate({
+            where: { storeId, status: 'DELIVERED' },
+            _sum: { totalAmount: true }
+        });
+        const cogs = await this.prisma.purchaseOrder.aggregate({
+            where: { storeId, status: 'DELIVERED' },
+            _sum: { totalAmount: true }
+        });
+        const totalRevenue = (posSales._sum.total || 0) + (onlineSales._sum.totalAmount || 0);
+        const totalCOGS = cogs._sum?.totalAmount || 0;
+        const totalExpenses = 0;
+        const profit = totalRevenue - totalCOGS - totalExpenses;
+        return {
+            storeId,
+            totalRevenue,
+            totalCOGS,
+            totalExpenses,
+            netProfit: profit,
+            profitMargin: totalRevenue > 0 ? ((profit / totalRevenue) * 100).toFixed(2) + '%' : '0.00%'
+        };
+    }
 };
 exports.AnalyticsService = AnalyticsService;
 exports.AnalyticsService = AnalyticsService = __decorate([

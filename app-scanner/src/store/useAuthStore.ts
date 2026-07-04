@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import Constants from 'expo-constants';
+import { API_BASE_URL } from '../constants/api';
 
 interface AuthState {
   token: string | null;
@@ -33,11 +33,10 @@ export const useAuthStore = create<AuthState>((set) => ({
     const token = await AsyncStorage.getItem('scanner_token');
     if (token) {
       // Call backend to close session
-      const hostUri = Constants.expoConfig?.hostUri;
-      const ip = hostUri ? hostUri.split(':')[0] : '100.70.73.205';
+      
 
       try {
-        await fetch(`http://${ip}:3000/auth/scanner/logout`, {
+        await fetch(`${API_BASE_URL}/auth/scanner/logout`, {
           method: 'POST',
           headers: { 'Authorization': `Bearer ${token}` }
         });

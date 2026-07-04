@@ -1,13 +1,15 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
-import { StyleSheet, Text, View, SafeAreaView, TouchableOpacity, FlatList, TextInput, ActivityIndicator, Alert, Image } from 'react-native';
+import { StyleSheet, Text, View, TouchableOpacity, FlatList, TextInput, ActivityIndicator, Alert, Image } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Shadows, Radius } from '../../constants/theme';
 import { API_BASE_URL, CURRENT_STORE_ID } from '../../constants/api';
-import Animated, { FadeInDown, SlideInUp } from 'react-native-reanimated';
+import Animated, { FadeInDown } from 'react-native-reanimated';
 import BottomSheet, { BottomSheetScrollView, BottomSheetBackdrop } from '@gorhom/bottom-sheet';
 
 // Mocked RBAC Context
-const CURRENT_STAFF_ROLE = 'STAFF'; // Change to 'MANAGER' to unlock edits
+const CURRENT_STAFF_ROLE = 'MANAGER' as string;
 
 export default function InventoryScreen() {
   const [products, setProducts] = useState<any[]>([]);
@@ -15,10 +17,11 @@ export default function InventoryScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   
   const bottomSheetRef = useRef<BottomSheet>(null);
-  const snapPoints = useMemo(() => ['50%', '85%'], []);
+  const snapPoints = useMemo(() => ['50%', '90%'], []);
   
   const [selectedProduct, setSelectedProduct] = useState<any>(null);
   const [updateStock, setUpdateStock] = useState('');
+  const [subDiscount, setSubDiscount] = useState('0');
 
   useEffect(() => {
     loadInventory();
@@ -40,11 +43,14 @@ export default function InventoryScreen() {
   const openProductDetails = (product: any) => {
     setSelectedProduct(product);
     setUpdateStock((product.stockLevel ?? product.onHandQty ?? 0).toString());
+    setSubDiscount((product.subscriptionDiscount || 0).toString());
     bottomSheetRef.current?.expand();
   };
 
   const handleSheetChanges = useCallback((index: number) => {
-    if (index === -1) setSelectedProduct(null);
+    if (index === -1) {
+      setSelectedProduct(null);
+    }
   }, []);
 
   const renderBackdrop = useCallback(
@@ -66,46 +72,63 @@ export default function InventoryScreen() {
       const res = await fetch(`${API_BASE_URL}/inventory/products/${selectedProduct.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ stockLevel: parseInt(updateStock, 10) })
+        body: JSON.stringify({ 
+          stockLevel: parseInt(updateStock),
+          userId: 'de283b71-1972-47b7-996f-6633d0f7b7f5'
+        })
       });
-      
+
       if (res.ok) {
-        loadInventory();
         bottomSheetRef.current?.close();
+        loadInventory();
+        Alert.alert('Stock Updated', `${selectedProduct.name} is now at ${updateStock} units.`);
       }
     } catch (e) {
-      Alert.alert('Error', 'Failed to update stock');
+      console.error(e);
+      Alert.alert('Error', 'Failed to update stock.');
     }
   };
 
-  const filteredProducts = products.filter(p => 
-    p.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-    (p.sku && p.sku.toLowerCase().includes(searchQuery.toLowerCase()))
-  );
+  const updateDiscount = async () => {
+    if (!selectedProduct) return;
+    try {
+      const res = await fetch(`${API_BASE_URL}/products/${selectedProduct.id}/subscription-discount`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ discount: parseFloat(subDiscount) || 0 })
+      });
+      if (res.ok) {
+        Alert.alert('Success', 'Subscription discount updated.');
+        loadInventory();
+      }
+    } catch (e) {
+      Alert.alert('Error', 'Failed to update discount.');
+    }
+  };
 
-  const renderProduct = ({ item, index }: { item: any; index: number }) => {
+  const filteredProducts = products.filter(p => p.name.toLowerCase().includes(searchQuery.toLowerCase()) || p.sku?.includes(searchQuery));
+
+  const renderProduct = ({ item, index }: { item: any, index: number }) => {
     const stock = item.stockLevel ?? item.onHandQty ?? 0;
-    const isLowStock = stock <= (item.reorderPoint || 10);
-    
+    const isLow = stock <= 10;
+
     return (
       <Animated.View entering={FadeInDown.delay(index * 30).duration(400)}>
-        <TouchableOpacity 
-          style={styles.productCard}
-          activeOpacity={0.8}
-          onPress={() => openProductDetails(item)}
-        >
-          <Image source={{ uri: item.imageUrl || `https://placehold.co/100x100?text=${item.name.substring(0,1)}` }} style={styles.cardImage} />
-          
+        <TouchableOpacity style={styles.productCard} onPress={() => openProductDetails(item)} activeOpacity={0.7}>
+          <Image 
+            source={{ uri: item.imageUrl || `https://placehold.co/100x100?text=${item.name.substring(0,1)}` }} 
+            style={styles.cardImage} 
+          />
           <View style={styles.cardInfo}>
             <Text style={styles.productName} numberOfLines={1}>{item.name}</Text>
-            <Text style={styles.productCategory}>{item.category || 'Uncategorized'}</Text>
+            <Text style={styles.productCategory}>{item.category || 'General'}</Text>
             <Text style={styles.productPrice}>₹{item.sellingPrice}</Text>
           </View>
-
-          <View style={[styles.stockBadge, isLowStock ? styles.lowStockBadge : null]}>
-            <Text style={[styles.stockText, isLowStock ? styles.lowStockText : null]}>
-              {stock} units
-            </Text>
+          <View style={styles.stockColumn}>
+            <View style={[styles.stockBadge, isLow && styles.lowStockBadge]}>
+              <Text style={[styles.stockText, isLow && styles.lowStockText]}>{stock}</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={16} color={Colors.textMuted} style={{ marginTop: 8 }} />
           </View>
         </TouchableOpacity>
       </Animated.View>
@@ -113,29 +136,36 @@ export default function InventoryScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
+      {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Inventory Manager</Text>
+        <Text style={styles.headerTitle}>Catalog</Text>
         <TouchableOpacity style={styles.scanBtn}>
-          <Ionicons name="barcode-outline" size={24} color={Colors.primary} />
+          <Ionicons name="scan-outline" size={24} color={Colors.primary} />
         </TouchableOpacity>
       </View>
 
-      <View style={styles.searchWrapper}>
-        <Ionicons name="search" size={20} color={Colors.textMuted} />
-        <TextInput 
-          style={styles.searchInput}
-          placeholder="Search by name or SKU..."
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-          placeholderTextColor={Colors.textMuted}
-        />
-      </View>
-
-      {/* Role Badge Indicator */}
+      {/* Role Banner */}
       <View style={styles.roleBanner}>
         <Ionicons name="shield-checkmark" size={16} color={Colors.surface} />
         <Text style={styles.roleText}>Access Level: {CURRENT_STAFF_ROLE}</Text>
+      </View>
+
+      {/* Search */}
+      <View style={styles.searchWrapper}>
+        <Ionicons name="search" size={20} color={Colors.textMuted} />
+        <TextInput
+          style={styles.searchInput}
+          placeholder="Search products, SKU..."
+          placeholderTextColor={Colors.textMuted}
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+        />
+        {searchQuery.length > 0 && (
+          <TouchableOpacity onPress={() => setSearchQuery('')}>
+            <Ionicons name="close-circle" size={20} color={Colors.textMuted} />
+          </TouchableOpacity>
+        )}
       </View>
 
       {loading ? (
@@ -150,6 +180,7 @@ export default function InventoryScreen() {
         />
       )}
 
+      {/* Bottom Sheet */}
       <BottomSheet
         ref={bottomSheetRef}
         index={-1}
@@ -191,7 +222,7 @@ export default function InventoryScreen() {
 
               <View style={styles.divider} />
 
-              <Text style={styles.sectionTitle}>Manual Stock Adjustment</Text>
+              <Text style={styles.sectionTitle}>Manual Adjustment</Text>
               
               {CURRENT_STAFF_ROLE !== 'MANAGER' && (
                 <View style={styles.alertBox}>
@@ -201,7 +232,7 @@ export default function InventoryScreen() {
               )}
 
               <View style={styles.inputRow}>
-                <Text style={styles.inputLabel}>New Stock Level:</Text>
+                <Text style={styles.inputLabel}>New Level:</Text>
                 <TextInput
                   style={[styles.stockInput, CURRENT_STAFF_ROLE !== 'MANAGER' && styles.disabledInput]}
                   value={updateStock}
@@ -218,6 +249,27 @@ export default function InventoryScreen() {
               >
                 <Text style={styles.saveBtnText}>Update Inventory</Text>
               </TouchableOpacity>
+
+              <View style={styles.divider} />
+              
+              <Text style={styles.sectionTitle}>Subscription Config</Text>
+              <View style={styles.inputRow}>
+                <Text style={styles.inputLabel}>Discount %:</Text>
+                <TextInput
+                  style={[styles.stockInput, CURRENT_STAFF_ROLE !== 'MANAGER' && styles.disabledInput]}
+                  value={subDiscount}
+                  onChangeText={setSubDiscount}
+                  keyboardType="numeric"
+                  editable={CURRENT_STAFF_ROLE === 'MANAGER'}
+                />
+              </View>
+              <TouchableOpacity 
+                style={[styles.saveBtn, { backgroundColor: '#1E40AF', marginBottom: 20 }, CURRENT_STAFF_ROLE !== 'MANAGER' && styles.saveBtnDisabled]} 
+                onPress={updateDiscount}
+                disabled={CURRENT_STAFF_ROLE !== 'MANAGER'}
+              >
+                <Text style={styles.saveBtnText}>Update Discount</Text>
+              </TouchableOpacity>
             </>
           )}
         </BottomSheetScrollView>
@@ -228,54 +280,55 @@ export default function InventoryScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#FAF9F6' },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingTop: 20, paddingBottom: 10 },
-  headerTitle: { fontSize: 26, fontFamily: 'PlayfairDisplay_700Bold', color: Colors.textPrimary },
-  scanBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: Colors.surface, justifyContent: 'center', alignItems: 'center', ...Shadows.sm },
-  searchWrapper: { flexDirection: 'row', alignItems: 'center', backgroundColor: Colors.surface, marginHorizontal: 20, marginBottom: 16, borderRadius: Radius.lg, paddingHorizontal: 16, height: 50, ...Shadows.sm },
-  searchInput: { flex: 1, marginLeft: 10, fontSize: 16, fontFamily: 'Inter_500Medium', color: Colors.textPrimary },
-  roleBanner: { backgroundColor: Colors.textPrimary, paddingVertical: 6, paddingHorizontal: 20, flexDirection: 'row', alignItems: 'center', gap: 6 },
-  roleText: { color: Colors.surface, fontFamily: 'Inter_600SemiBold', fontSize: 13 },
-  list: { paddingHorizontal: 20, paddingBottom: 100, paddingTop: 16 },
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingTop: 16, paddingBottom: 10 },
+  headerTitle: { fontSize: 32, fontFamily: 'PlayfairDisplay_700Bold', color: Colors.textPrimary },
+  scanBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#fff', justifyContent: 'center', alignItems: 'center', ...Shadows.sm, borderWidth: 1, borderColor: '#E2E8F0' },
+  searchWrapper: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', marginHorizontal: 20, marginBottom: 16, borderRadius: Radius.lg, paddingHorizontal: 16, height: 52, ...Shadows.sm, borderWidth: 1, borderColor: '#E2E8F0' },
+  searchInput: { flex: 1, marginLeft: 12, fontSize: 15, fontFamily: 'Inter_500Medium', color: Colors.textPrimary },
+  roleBanner: { backgroundColor: Colors.textPrimary, paddingVertical: 8, paddingHorizontal: 20, flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 16 },
+  roleText: { color: Colors.surface, fontFamily: 'Inter_700Bold', fontSize: 13, letterSpacing: 1 },
+  list: { paddingHorizontal: 20, paddingBottom: 120 },
   
-  productCard: { flexDirection: 'row', backgroundColor: Colors.surface, borderRadius: Radius.lg, padding: 12, marginBottom: 12, alignItems: 'center', ...Shadows.sm },
-  cardImage: { width: 60, height: 60, borderRadius: Radius.md, backgroundColor: '#F1F5F9', marginRight: 16 },
+  productCard: { flexDirection: 'row', backgroundColor: '#fff', borderRadius: Radius.xl, padding: 12, marginBottom: 12, alignItems: 'center', ...Shadows.sm, borderWidth: 1, borderColor: '#F1F5F9' },
+  cardImage: { width: 64, height: 64, borderRadius: Radius.lg, backgroundColor: '#F8FAFC', marginRight: 16 },
   cardInfo: { flex: 1 },
-  productName: { fontSize: 15, fontFamily: 'Inter_700Bold', color: Colors.textPrimary, marginBottom: 2 },
-  productCategory: { fontSize: 12, fontFamily: 'Inter_500Medium', color: Colors.textSecondary, marginBottom: 4 },
-  productPrice: { fontSize: 14, fontFamily: 'Inter_600SemiBold', color: Colors.textPrimary },
+  productName: { fontSize: 16, fontFamily: 'Inter_700Bold', color: Colors.textPrimary, marginBottom: 4 },
+  productCategory: { fontSize: 13, fontFamily: 'Inter_500Medium', color: Colors.textSecondary, marginBottom: 6 },
+  productPrice: { fontSize: 15, fontFamily: 'Inter_700Bold', color: Colors.successDark },
   
-  stockBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12, backgroundColor: '#EFF6FF' },
-  stockText: { fontSize: 12, fontFamily: 'Inter_700Bold', color: Colors.primary },
+  stockColumn: { alignItems: 'center', justifyContent: 'center' },
+  stockBadge: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8, backgroundColor: '#F0FDF4' },
+  stockText: { fontSize: 14, fontFamily: 'Inter_700Bold', color: Colors.successDark },
   lowStockBadge: { backgroundColor: '#FEF2F2' },
   lowStockText: { color: Colors.danger },
 
-  bottomSheetBg: { backgroundColor: '#F8FAFC', borderRadius: 24 },
+  bottomSheetBg: { backgroundColor: '#FAF9F6', borderRadius: 32 },
   sheetContent: { padding: 24, paddingBottom: 40 },
-  sheetImage: { width: '100%', height: 200, borderRadius: Radius.lg, backgroundColor: '#fff', marginBottom: 20, resizeMode: 'contain' },
-  sheetTitle: { fontSize: 24, fontFamily: 'Inter_700Bold', color: Colors.textPrimary, marginBottom: 12 },
+  sheetImage: { width: '100%', height: 240, borderRadius: Radius.xl, backgroundColor: '#fff', marginBottom: 20, resizeMode: 'cover' },
+  sheetTitle: { fontSize: 28, fontFamily: 'PlayfairDisplay_700Bold', color: Colors.textPrimary, marginBottom: 16 },
   
   tagsRow: { flexDirection: 'row', gap: 8, flexWrap: 'wrap' },
-  tag: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 16, backgroundColor: '#F0FDF4' },
-  tagText: { fontSize: 12, fontFamily: 'Inter_600SemiBold', color: '#166534' },
+  tag: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: Radius.full, backgroundColor: '#F1F5F9' },
+  tagText: { fontSize: 13, fontFamily: 'Inter_600SemiBold', color: Colors.textSecondary },
 
   divider: { height: 1, backgroundColor: '#E2E8F0', marginVertical: 24 },
 
-  sheetRow: { flexDirection: 'row', justifyContent: 'space-between' },
-  statBox: { flex: 1, backgroundColor: '#fff', padding: 16, borderRadius: Radius.md, marginHorizontal: 4, alignItems: 'center', ...Shadows.sm },
-  statLabel: { fontSize: 12, fontFamily: 'Inter_500Medium', color: Colors.textSecondary, marginBottom: 4 },
-  statValue: { fontSize: 18, fontFamily: 'Inter_700Bold', color: Colors.textPrimary },
+  sheetRow: { flexDirection: 'row', gap: 12 },
+  statBox: { flex: 1, backgroundColor: '#fff', padding: 16, borderRadius: Radius.xl, alignItems: 'center', ...Shadows.sm, borderWidth: 1, borderColor: '#F1F5F9' },
+  statLabel: { fontSize: 13, fontFamily: 'Inter_600SemiBold', color: Colors.textSecondary, marginBottom: 6 },
+  statValue: { fontSize: 20, fontFamily: 'Inter_700Bold', color: Colors.textPrimary },
 
-  sectionTitle: { fontSize: 16, fontFamily: 'Inter_700Bold', color: Colors.textPrimary, marginBottom: 16 },
+  sectionTitle: { fontSize: 18, fontFamily: 'Inter_700Bold', color: Colors.textPrimary, marginBottom: 16 },
   
-  alertBox: { backgroundColor: '#FEF3C7', padding: 12, borderRadius: Radius.md, flexDirection: 'row', gap: 10, marginBottom: 16 },
-  alertText: { flex: 1, fontSize: 13, fontFamily: 'Inter_500Medium', color: '#92400E', lineHeight: 18 },
+  alertBox: { backgroundColor: '#FFFBEB', padding: 16, borderRadius: Radius.lg, flexDirection: 'row', gap: 12, marginBottom: 20, borderWidth: 1, borderColor: '#FDE68A' },
+  alertText: { flex: 1, fontSize: 14, fontFamily: 'Inter_500Medium', color: '#92400E', lineHeight: 20 },
 
   inputRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 24 },
-  inputLabel: { fontSize: 15, fontFamily: 'Inter_600SemiBold', color: Colors.textPrimary, marginRight: 16 },
-  stockInput: { flex: 1, backgroundColor: '#fff', height: 50, borderRadius: Radius.md, paddingHorizontal: 16, fontSize: 18, fontFamily: 'Inter_700Bold', color: Colors.textPrimary, borderWidth: 1, borderColor: '#CBD5E1' },
-  disabledInput: { backgroundColor: '#F1F5F9', color: Colors.textMuted },
+  inputLabel: { fontSize: 16, fontFamily: 'Inter_600SemiBold', color: Colors.textPrimary, marginRight: 16 },
+  stockInput: { flex: 1, backgroundColor: '#fff', height: 56, borderRadius: Radius.lg, paddingHorizontal: 16, fontSize: 20, fontFamily: 'Inter_700Bold', color: Colors.textPrimary, borderWidth: 1, borderColor: '#CBD5E1' },
+  disabledInput: { backgroundColor: '#F8FAFC', color: Colors.textMuted },
   
-  saveBtn: { backgroundColor: Colors.primary, paddingVertical: 16, borderRadius: Radius.lg, alignItems: 'center' },
+  saveBtn: { backgroundColor: Colors.primary, paddingVertical: 18, borderRadius: Radius.xl, alignItems: 'center', ...Shadows.md },
   saveBtnDisabled: { backgroundColor: '#94A3B8' },
-  saveBtnText: { color: '#fff', fontSize: 16, fontFamily: 'Inter_700Bold' },
+  saveBtnText: { color: '#fff', fontSize: 16, fontFamily: 'Inter_700Bold', letterSpacing: 1 },
 });

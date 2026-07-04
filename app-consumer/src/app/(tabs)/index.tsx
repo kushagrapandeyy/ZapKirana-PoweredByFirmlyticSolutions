@@ -90,6 +90,7 @@ export default function HomeFeed() {
           image: p.imageUrl || `https://placehold.co/300x300/f1f5f9/64748b?text=${encodeURIComponent(p.name?.substring(0, 6) || 'Item')}`,
           description: p.description,
           gstClass: p.gstClass || 'EXEMPT',
+          subscriptionDiscount: p.subscriptionDiscount || 0,
         }));
         setProducts(mapped);
         
@@ -156,6 +157,14 @@ export default function HomeFeed() {
                 <Text style={styles.gstBadgeText}>
                   {item.gstClass.replace('GST_', '')}% GST
                 </Text>
+              </View>
+            )}
+            
+            {/* Subscription Discount Badge */}
+            {item.subscriptionDiscount > 0 && (
+              <View style={styles.subBadge}>
+                <Ionicons name="repeat" size={8} color="#1e40af" />
+                <Text style={styles.subBadgeText}>Save {item.subscriptionDiscount}%</Text>
               </View>
             )}
           </View>
@@ -229,7 +238,7 @@ export default function HomeFeed() {
             <Animated.View entering={FadeIn.delay(100)} style={styles.topBar}>
               <TouchableOpacity 
                 style={styles.locationRow}
-                onPress={() => router.push('/store-selector')}
+                onPress={() => router.push('/address-manager')}
                 activeOpacity={0.8}
               >
                 <View style={styles.locationDot}>
@@ -237,9 +246,9 @@ export default function HomeFeed() {
                 </View>
                 <View>
                   <Text style={styles.deliveryLabel}>
-                    Delivering from <Ionicons name="chevron-down" size={12} />
+                    Delivering to <Ionicons name="chevron-down" size={12} />
                   </Text>
-                  <Text style={styles.storeName}>{store ? store.name : 'Loading...'}</Text>
+                  <Text style={styles.storeName}>Tower A, Sunshine Resi...</Text>
                 </View>
               </TouchableOpacity>
               <TouchableOpacity style={styles.cartBtn} onPress={() => router.push('/cart')}>
@@ -377,6 +386,8 @@ const styles = StyleSheet.create({
   productImage: { width: '100%', height: 130, borderRadius: Radius.lg, backgroundColor: Colors.surfaceAlt },
   gstBadge: { position: 'absolute', top: 6, right: 6, backgroundColor: 'rgba(0,0,0,0.6)', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 },
   gstBadgeText: { fontSize: 9, color: '#fff', fontFamily: 'Inter_600SemiBold' },
+  subBadge: { position: 'absolute', bottom: 6, left: 6, backgroundColor: '#dbeafe', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4, flexDirection: 'row', alignItems: 'center', gap: 2 },
+  subBadgeText: { fontSize: 9, color: '#1e40af', fontFamily: 'Inter_700Bold' },
   productCategory: { fontSize: 11, color: Colors.primary, fontFamily: 'Inter_600SemiBold', marginBottom: 2, textTransform: 'uppercase', letterSpacing: 0.5 },
   productName: { fontSize: 14, color: Colors.textPrimary, fontFamily: 'Inter_600SemiBold', marginBottom: 8, lineHeight: 18, height: 36 },
   productFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },

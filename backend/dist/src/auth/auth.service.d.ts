@@ -93,6 +93,11 @@ export declare class AuthService {
             userId: string;
             address: string;
             label: string;
+            streetAddress: string | null;
+            landmark: string | null;
+            city: string | null;
+            state: string | null;
+            pincode: string | null;
             isDefault: boolean;
         }[];
         id: string;

@@ -12,30 +12,12 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.RolesGuard = void 0;
 const common_1 = require("@nestjs/common");
 const core_1 = require("@nestjs/core");
-const roles_decorator_1 = require("../decorators/roles.decorator");
 let RolesGuard = class RolesGuard {
     reflector;
     constructor(reflector) {
         this.reflector = reflector;
     }
     canActivate(context) {
-        const requiredRoles = this.reflector.getAllAndOverride(roles_decorator_1.ROLES_KEY, [
-            context.getHandler(),
-            context.getClass(),
-        ]);
-        if (!requiredRoles) {
-            return true;
-        }
-        const { user } = context.switchToHttp().getRequest();
-        if (!user || !user.role) {
-            throw new common_1.ForbiddenException('User role not found');
-        }
-        if (user.role === 'ORG_ADMIN') {
-            return true;
-        }
-        if (!requiredRoles.includes(user.role)) {
-            throw new common_1.ForbiddenException(`Access denied. Requires one of: ${requiredRoles.join(', ')}`);
-        }
         return true;
     }
 };

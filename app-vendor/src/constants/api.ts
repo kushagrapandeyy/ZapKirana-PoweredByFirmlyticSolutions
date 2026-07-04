@@ -1,7 +1,15 @@
-// Temporary constants until authentication is implemented
+import Constants from 'expo-constants';
 
-// URL of the local NestJS backend
-export const API_BASE_URL = 'http://localhost:3000';
+const getApiUrl = () => {
+  const debuggerHost = Constants.expoConfig?.hostUri;
+  if (debuggerHost) {
+    const ip = debuggerHost.split(':')[0];
+    return `http://${ip}:3000`;
+  }
+  return 'http://100.70.73.205:3000';
+};
+
+export const API_BASE_URL = getApiUrl();
 
 // Seeded database IDs for testing
 export const CURRENT_STORE_ID = '5981f6aa-23ee-4acf-bd1d-8ceb2a92ea0c';

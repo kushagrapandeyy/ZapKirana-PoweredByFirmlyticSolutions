@@ -37,6 +37,11 @@ export class ProductsController {
     return this.productsService.updatePrice(id, body.mrp, body.sellingPrice);
   }
 
+  @Patch(':id/subscription-discount')
+  updateSubscriptionDiscount(@Param('id') id: string, @Body() body: { discount: number }) {
+    return this.productsService.updateSubscriptionDiscount(id, body.discount);
+  }
+
   /**
    * GET /products/enrich/:barcode?storeId=x
    * 3-tier lookup: local DB → Open Food Facts → unknown.

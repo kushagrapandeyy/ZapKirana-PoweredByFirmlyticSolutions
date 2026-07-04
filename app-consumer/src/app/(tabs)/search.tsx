@@ -347,6 +347,9 @@ const styles = StyleSheet.create({
   resultContext: { fontSize: 13, fontFamily: 'Inter_400Regular', color: Colors.textMuted, marginBottom: 10 },
   resultContextBold: { fontFamily: 'Inter_600SemiBold', color: Colors.textSecondary },
   
+  gstBadge: { backgroundColor: Colors.surfaceAlt, paddingHorizontal: 6, paddingVertical: 2, borderRadius: Radius.sm },
+  gstBadgeText: { fontSize: 10, fontFamily: 'Inter_700Bold', color: Colors.textMuted },
+  
   resultFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   resultPrice: { fontSize: 16, fontFamily: 'Inter_700Bold', color: Colors.textPrimary },
   

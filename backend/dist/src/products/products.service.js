@@ -65,6 +65,12 @@ let ProductsService = class ProductsService {
             data: { mrp, sellingPrice },
         });
     }
+    async updateSubscriptionDiscount(id, subscriptionDiscount) {
+        return this.prisma.product.update({
+            where: { id },
+            data: { subscriptionDiscount },
+        });
+    }
     async enrichFromBarcode(barcode, storeId) {
         const local = await this.prisma.product.findFirst({ where: { barcode, storeId, isActive: true } });
         if (local)

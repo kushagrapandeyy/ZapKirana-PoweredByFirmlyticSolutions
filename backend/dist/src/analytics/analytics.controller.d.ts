@@ -48,4 +48,12 @@ export declare class AnalyticsController {
         storeCount: number;
         stores: any[];
     }>;
+    getProfitAnalytics(storeId: string): Promise<{
+        storeId: string;
+        totalRevenue: number;
+        totalCOGS: number;
+        totalExpenses: number;
+        netProfit: number;
+        profitMargin: string;
+    }>;
 }

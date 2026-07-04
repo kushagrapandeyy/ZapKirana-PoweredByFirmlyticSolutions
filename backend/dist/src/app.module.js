@@ -34,6 +34,7 @@ const scanner_module_1 = require("./scanner/scanner.module");
 const payments_module_1 = require("./payments/payments.module");
 const labels_module_1 = require("./labels/labels.module");
 const catalog_module_1 = require("./catalog/catalog.module");
+const addresses_module_1 = require("./addresses/addresses.module");
 const jwt_auth_guard_1 = require("./auth/jwt-auth.guard");
 const roles_guard_1 = require("./common/guards/roles.guard");
 const store_scope_guard_1 = require("./common/guards/store-scope.guard");
@@ -74,6 +75,7 @@ exports.AppModule = AppModule = __decorate([
             catalog_module_1.CatalogModule,
             scanner_management_module_1.ScannerManagementModule,
             cart_module_1.CartModule,
+            addresses_module_1.AddressesModule,
         ],
         controllers: [app_controller_1.AppController],
         providers: [

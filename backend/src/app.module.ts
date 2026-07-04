@@ -25,6 +25,7 @@ import { ScannerModule } from './scanner/scanner.module';
 import { PaymentsModule } from './payments/payments.module';
 import { LabelsModule } from './labels/labels.module';
 import { CatalogModule } from './catalog/catalog.module';
+import { AddressesModule } from './addresses/addresses.module';
 
 // Guards & Interceptors & Filters
 import { JwtAuthGuard } from './auth/jwt-auth.guard';
@@ -64,6 +65,7 @@ import { CartModule } from './cart/cart.module';
     CatalogModule,
     ScannerManagementModule,
     CartModule,
+    AddressesModule,
   ],
   controllers: [AppController],
   providers: [

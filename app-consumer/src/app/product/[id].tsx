@@ -26,7 +26,8 @@ export default function ProductDetailsScreen() {
           price: p.sellingPrice,
           time: '10 MINS',
           image: p.imageUrl || 'https://via.placeholder.com/300/f3f4f6/374151?text=Product',
-          description: p.description
+          description: p.description,
+          subscriptionDiscount: p.subscriptionDiscount || 0,
         }));
         const current = mapped.find((p: any) => p.id === id) || mapped[0];
         setProduct(current);
@@ -77,6 +78,21 @@ export default function ProductDetailsScreen() {
           <Text style={styles.title}>{product.name}</Text>
           <Text style={styles.price}>₹{product.price}</Text>
           
+          {product.subscriptionDiscount > 0 && (
+            <View style={styles.subscribeBanner}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <Ionicons name="repeat" size={20} color={ROYAL_BLUE} />
+                <View>
+                  <Text style={styles.subscribeTitle}>Subscribe & Save {product.subscriptionDiscount}%</Text>
+                  <Text style={styles.subscribeDesc}>Get this delivered daily or weekly.</Text>
+                </View>
+              </View>
+              <TouchableOpacity style={styles.subscribeBtn} onPress={() => router.push(`/subscribe/${product.id}`)}>
+                <Text style={styles.subscribeBtnText}>Setup</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+
           <Text style={styles.sectionTitle}>Description</Text>
           <Text style={styles.description}>{product.description}</Text>
 
@@ -139,6 +155,11 @@ const styles = StyleSheet.create({
   price: { fontSize: 24, color: '#111827', fontFamily: 'Inter_700Bold', marginBottom: 20 },
   sectionTitle: { fontSize: 18, color: '#111827', fontFamily: 'Inter_700Bold', marginBottom: 8, marginTop: 10 },
   description: { fontSize: 15, color: '#4b5563', fontFamily: 'Inter_400Regular', lineHeight: 22 },
+  subscribeBanner: { backgroundColor: '#eff6ff', padding: 16, borderRadius: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, borderWidth: 1, borderColor: '#bfdbfe' },
+  subscribeTitle: { fontSize: 14, fontFamily: 'Inter_700Bold', color: '#1e40af' },
+  subscribeDesc: { fontSize: 12, fontFamily: 'Inter_400Regular', color: '#3b82f6', marginTop: 2 },
+  subscribeBtn: { backgroundColor: ROYAL_BLUE, paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20 },
+  subscribeBtnText: { color: WHITE, fontSize: 13, fontFamily: 'Inter_600SemiBold' },
   divider: { height: 1, backgroundColor: '#e5e7eb', marginVertical: 20 },
   similarList: { paddingHorizontal: 20, paddingBottom: 100 }, // space for bottom bar
   similarCard: { width: 140, marginRight: 15 },

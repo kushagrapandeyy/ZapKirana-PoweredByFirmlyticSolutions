@@ -6,9 +6,8 @@ import Constants from 'expo-constants';
 import axios from 'axios';
 
 // Replace with your local machine's IP or actual backend URL
-const hostUri = Constants.expoConfig?.hostUri;
-const ip = hostUri ? hostUri.split(':')[0] : '100.70.73.205';
-const BASE_URL = `http://${ip}:3000`;
+import { API_BASE_URL } from '../../constants/api';
+const BASE_URL = API_BASE_URL;
 
 export default function LoginScreen() {
   const [deviceCode, setDeviceCode] = useState('');

@@ -14,6 +14,7 @@ function CustomTabBar({ state, descriptors, navigation }: any) {
     { name: 'explore', label: 'Explore', icon: 'compass' },
     { name: 'search', label: 'Search', icon: 'search' },
     { name: 'orders', label: 'Orders', icon: 'receipt' },
+    { name: 'subscriptions', label: 'Subs', icon: 'repeat' },
     { name: 'profile', label: 'Profile', icon: 'person' },
   ];
 
@@ -63,6 +64,7 @@ export default function TabLayout() {
         <Tabs.Screen name="explore" options={{ title: 'Explore' }} />
         <Tabs.Screen name="search" options={{ title: 'Search' }} />
         <Tabs.Screen name="orders" options={{ title: 'Orders' }} />
+        <Tabs.Screen name="subscriptions" options={{ title: 'Subscriptions' }} />
         <Tabs.Screen name="profile" options={{ title: 'Profile' }} />
       </Tabs>
       <SmartStatusBar />

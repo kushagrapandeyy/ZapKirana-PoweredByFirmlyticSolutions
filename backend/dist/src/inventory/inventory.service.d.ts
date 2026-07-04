@@ -91,6 +91,7 @@ export declare class InventoryService {
         purchaseCost: number | null;
         gstRate: number;
         gstClass: import(".prisma/client").$Enums.GSTClass;
+        subscriptionDiscount: number;
     }[]>;
     getMovementHistory(storeId: string, productId?: string): Promise<({
         product: {
@@ -164,6 +165,7 @@ export declare class InventoryService {
         purchaseCost: number | null;
         gstRate: number;
         gstClass: import(".prisma/client").$Enums.GSTClass;
+        subscriptionDiscount: number;
     }>;
     rejectPendingProduct(id: string): Promise<{
         id: string;

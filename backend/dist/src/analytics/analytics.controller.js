@@ -55,6 +55,11 @@ let AnalyticsController = class AnalyticsController {
             throw new common_1.BadRequestException('from and to are required');
         return this.analyticsService.getNetworkSummary(from, to);
     }
+    getProfitAnalytics(storeId) {
+        if (!storeId)
+            throw new common_1.BadRequestException('storeId is required');
+        return this.analyticsService.getProfitAnalytics(storeId);
+    }
 };
 exports.AnalyticsController = AnalyticsController;
 __decorate([
@@ -113,6 +118,13 @@ __decorate([
     __metadata("design:paramtypes", [String, String]),
     __metadata("design:returntype", void 0)
 ], AnalyticsController.prototype, "getNetworkSummary", null);
+__decorate([
+    (0, common_1.Get)('profit'),
+    __param(0, (0, common_1.Query)('storeId')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", void 0)
+], AnalyticsController.prototype, "getProfitAnalytics", null);
 exports.AnalyticsController = AnalyticsController = __decorate([
     (0, common_1.Controller)('analytics'),
     __metadata("design:paramtypes", [analytics_service_1.AnalyticsService])

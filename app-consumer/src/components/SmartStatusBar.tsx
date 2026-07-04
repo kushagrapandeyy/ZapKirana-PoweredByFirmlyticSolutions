@@ -51,9 +51,9 @@ export default function SmartStatusBar() {
     transform: [{ scale: scale.value }],
   }));
 
-  const isHiddenRoute = segments.includes('cart') || segments.includes('checkout');
+  const isDarkScreen = (segments as string[]).includes('cart') || (segments as string[]).includes('checkout');
 
-  if (isHiddenRoute || (cartItemsCount === 0 && !activeOrder)) {
+  if (isDarkScreen || (cartItemsCount === 0 && !activeOrder)) {
     return null;
   }
 

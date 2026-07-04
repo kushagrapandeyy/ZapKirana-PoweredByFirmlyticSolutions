@@ -41,6 +41,9 @@ let ProductsController = class ProductsController {
     updatePrice(id, body) {
         return this.productsService.updatePrice(id, body.mrp, body.sellingPrice);
     }
+    updateSubscriptionDiscount(id, body) {
+        return this.productsService.updateSubscriptionDiscount(id, body.discount);
+    }
     enrichBarcode(barcode, storeId) {
         if (!storeId)
             return { error: 'storeId is required' };
@@ -88,6 +91,14 @@ __decorate([
     __metadata("design:paramtypes", [String, Object]),
     __metadata("design:returntype", void 0)
 ], ProductsController.prototype, "updatePrice", null);
+__decorate([
+    (0, common_1.Patch)(':id/subscription-discount'),
+    __param(0, (0, common_1.Param)('id')),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, Object]),
+    __metadata("design:returntype", void 0)
+], ProductsController.prototype, "updateSubscriptionDiscount", null);
 __decorate([
     (0, common_1.Get)('enrich/:barcode'),
     __param(0, (0, common_1.Param)('barcode')),

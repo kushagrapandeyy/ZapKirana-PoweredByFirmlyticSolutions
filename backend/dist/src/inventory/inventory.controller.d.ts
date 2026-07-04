@@ -19,6 +19,7 @@ export declare class InventoryController {
         purchaseCost: number | null;
         gstRate: number;
         gstClass: import(".prisma/client").$Enums.GSTClass;
+        subscriptionDiscount: number;
     }[]>;
     receiveStock(body: {
         storeId: string;
@@ -132,6 +133,7 @@ export declare class InventoryController {
         purchaseCost: number | null;
         gstRate: number;
         gstClass: import(".prisma/client").$Enums.GSTClass;
+        subscriptionDiscount: number;
     }>;
     rejectPendingProduct(id: string): Promise<{
         id: string;

@@ -67,6 +67,137 @@ export declare class AdminController {
             updatedAt: Date;
         })[];
     }>;
+    getStaffList(storeId: string): Promise<{
+        id: string;
+        storeId: string | null;
+        createdAt: Date;
+        updatedAt: Date;
+        name: string | null;
+        organizationId: string | null;
+        email: string;
+        password: string | null;
+        pin: string | null;
+        phone: string | null;
+        role: import(".prisma/client").$Enums.Role;
+        avatarUrl: string | null;
+        isVerified: boolean;
+        pushToken: string | null;
+    }[]>;
+    getAlerts(storeId: string): Promise<{
+        lowStock: ({
+            product: {
+                isActive: boolean;
+                id: string;
+                storeId: string;
+                createdAt: Date;
+                updatedAt: Date;
+                name: string;
+                imageUrl: string | null;
+                description: string | null;
+                barcode: string | null;
+                internalSku: string;
+                category: string | null;
+                mrp: number;
+                sellingPrice: number;
+                purchaseCost: number | null;
+                gstRate: number;
+                gstClass: import(".prisma/client").$Enums.GSTClass;
+                subscriptionDiscount: number;
+            };
+        } & {
+            id: string;
+            storeId: string;
+            createdAt: Date;
+            updatedAt: Date;
+            productId: string;
+            batchNo: string | null;
+            expiryDate: Date | null;
+            onHandQty: number;
+            reservedQty: number;
+            blockedQty: number;
+            lowStockThreshold: number;
+        })[];
+        expiringSoon: ({
+            product: {
+                isActive: boolean;
+                id: string;
+                storeId: string;
+                createdAt: Date;
+                updatedAt: Date;
+                name: string;
+                imageUrl: string | null;
+                description: string | null;
+                barcode: string | null;
+                internalSku: string;
+                category: string | null;
+                mrp: number;
+                sellingPrice: number;
+                purchaseCost: number | null;
+                gstRate: number;
+                gstClass: import(".prisma/client").$Enums.GSTClass;
+                subscriptionDiscount: number;
+            };
+        } & {
+            id: string;
+            storeId: string;
+            createdAt: Date;
+            updatedAt: Date;
+            productId: string;
+            batchNo: string | null;
+            expiryDate: Date | null;
+            onHandQty: number;
+            reservedQty: number;
+            blockedQty: number;
+            lowStockThreshold: number;
+        })[];
+        damagedGoods: ({
+            inventory: {
+                product: {
+                    isActive: boolean;
+                    id: string;
+                    storeId: string;
+                    createdAt: Date;
+                    updatedAt: Date;
+                    name: string;
+                    imageUrl: string | null;
+                    description: string | null;
+                    barcode: string | null;
+                    internalSku: string;
+                    category: string | null;
+                    mrp: number;
+                    sellingPrice: number;
+                    purchaseCost: number | null;
+                    gstRate: number;
+                    gstClass: import(".prisma/client").$Enums.GSTClass;
+                    subscriptionDiscount: number;
+                };
+            } & {
+                id: string;
+                storeId: string;
+                createdAt: Date;
+                updatedAt: Date;
+                productId: string;
+                batchNo: string | null;
+                expiryDate: Date | null;
+                onHandQty: number;
+                reservedQty: number;
+                blockedQty: number;
+                lowStockThreshold: number;
+            };
+        } & {
+            id: string;
+            storeId: string;
+            staffId: string | null;
+            createdAt: Date;
+            productId: string;
+            inventoryId: string;
+            type: import(".prisma/client").$Enums.MovementType;
+            quantityChange: number;
+            sourceType: string | null;
+            sourceId: string | null;
+            reason: string | null;
+        })[];
+    }>;
     getStores(): Promise<({
         _count: {
             users: number;
@@ -201,8 +332,8 @@ export declare class AdminController {
     getSuppliers(): Promise<({
         _count: {
             purchaseOrders: number;
-            storeConnections: number;
             supplierProducts: number;
+            storeConnections: number;
         };
     } & {
         isActive: boolean;
@@ -256,6 +387,34 @@ export declare class AdminController {
             shareToken: string | null;
             shareTokenExpiresAt: Date | null;
         })[];
+        supplierProducts: ({
+            product: {
+                isActive: boolean;
+                id: string;
+                storeId: string;
+                createdAt: Date;
+                updatedAt: Date;
+                name: string;
+                imageUrl: string | null;
+                description: string | null;
+                barcode: string | null;
+                internalSku: string;
+                category: string | null;
+                mrp: number;
+                sellingPrice: number;
+                purchaseCost: number | null;
+                gstRate: number;
+                gstClass: import(".prisma/client").$Enums.GSTClass;
+                subscriptionDiscount: number;
+            };
+        } & {
+            id: string;
+            createdAt: Date;
+            updatedAt: Date;
+            productId: string;
+            supplierId: string;
+            price: number;
+        })[];
         storeConnections: ({
             store: {
                 isActive: boolean;
@@ -284,33 +443,6 @@ export declare class AdminController {
             createdAt: Date;
             updatedAt: Date;
             supplierId: string;
-        })[];
-        supplierProducts: ({
-            product: {
-                isActive: boolean;
-                id: string;
-                storeId: string;
-                createdAt: Date;
-                updatedAt: Date;
-                name: string;
-                imageUrl: string | null;
-                description: string | null;
-                barcode: string | null;
-                internalSku: string;
-                category: string | null;
-                mrp: number;
-                sellingPrice: number;
-                purchaseCost: number | null;
-                gstRate: number;
-                gstClass: import(".prisma/client").$Enums.GSTClass;
-            };
-        } & {
-            id: string;
-            createdAt: Date;
-            updatedAt: Date;
-            supplierId: string;
-            productId: string;
-            price: number;
         })[];
     } & {
         isActive: boolean;

@@ -17,6 +17,8 @@ export class SubscriptionsService {
     customerId: string;
     storeId: string;
     frequency: SubscriptionFrequency;
+    customDays?: any;
+    discountApplied?: number;
     deliverySlot?: string;
     items: { productId: string; productName: string; quantity: number }[];
   }) {
@@ -24,13 +26,15 @@ export class SubscriptionsService {
       throw new BadRequestException('At least one item is required');
     }
 
-    const nextDeliveryDate = this.calculateNextDelivery(data.frequency);
+    const nextDeliveryDate = this.calculateNextDelivery(data.frequency, data.customDays);
 
     return this.prisma.subscription.create({
       data: {
         customerId: data.customerId,
         storeId: data.storeId,
         frequency: data.frequency,
+        customDays: data.customDays || null,
+        discountApplied: data.discountApplied || 0,
         deliverySlot: data.deliverySlot,
         nextDeliveryDate,
         status: SubscriptionStatus.ACTIVE,
@@ -113,21 +117,34 @@ export class SubscriptionsService {
     });
   }
 
-  private calculateNextDelivery(frequency: SubscriptionFrequency): Date {
+  private calculateNextDelivery(frequency: SubscriptionFrequency, customDays?: any): Date {
     const now = new Date();
+    // Default start looking at tomorrow
+    now.setDate(now.getDate() + 1);
+    now.setHours(7, 0, 0, 0); // 7 AM next day
+
     switch (frequency) {
       case 'DAILY':
-        now.setDate(now.getDate() + 1);
-        now.setHours(7, 0, 0, 0); // 7 AM next day
-        break;
+        break; // already tomorrow
       case 'WEEKLY':
-        now.setDate(now.getDate() + 7);
+        now.setDate(now.getDate() + 6); // +1 above, +6 = +7
         break;
       case 'BIWEEKLY':
-        now.setDate(now.getDate() + 14);
+        now.setDate(now.getDate() + 13);
         break;
       case 'MONTHLY':
         now.setMonth(now.getMonth() + 1);
+        break;
+      case 'CUSTOM':
+        if (customDays && Array.isArray(customDays) && customDays.length > 0) {
+           for (let i = 0; i < 7; i++) {
+             const dayStr = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'][now.getDay()];
+             if (customDays.includes(dayStr)) {
+               break;
+             }
+             now.setDate(now.getDate() + 1);
+           }
+        }
         break;
     }
     return now;

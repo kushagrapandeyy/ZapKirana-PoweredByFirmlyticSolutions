@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Patch, Delete, Body, Param, UseGuards, Request, Query } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Delete, Body, Param, UseGuards, Request, Query, BadRequestException } from '@nestjs/common';
 import { AdminService } from './admin.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { Roles } from '../common/decorators/roles.decorator';
@@ -13,8 +13,24 @@ export class AdminController {
 
   // ─── Dashboard ─────────────────────────────────────
   @Get('dashboard')
-  getDashboard() {
+  async getDashboard() {
     return this.adminService.getDashboardStats();
+  }
+
+  // ─── HR & STAFF MANAGEMENT ──────────────────────────
+
+  @Get('hr/staff')
+  async getStaffList(@Query('storeId') storeId: string) {
+    if (!storeId) throw new BadRequestException('storeId is required');
+    return this.adminService.getStaffList(storeId);
+  }
+
+  // ─── ALERTS ────────────────────────────────────────
+
+  @Get('alerts')
+  async getAlerts(@Query('storeId') storeId: string) {
+    if (!storeId) throw new BadRequestException('storeId is required');
+    return this.adminService.getAlerts(storeId);
   }
 
   // ─── Stores ────────────────────────────────────────

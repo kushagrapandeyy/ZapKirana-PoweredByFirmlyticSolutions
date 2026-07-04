@@ -8,14 +8,14 @@ import axios from 'axios';
 import Animated, { useSharedValue, useAnimatedStyle, withRepeat, withTiming, Easing, withSequence } from 'react-native-reanimated';
 import { Colors } from '../../constants/theme';
 
-const hostUri = Constants.expoConfig?.hostUri;
-const ip = hostUri ? hostUri.split(':')[0] : '100.70.73.205';
-const API_URL = `http://${ip}:3000/api/v1`;
+import { API_BASE_URL } from '../../constants/api';
+const API_URL = `${API_BASE_URL}/api/v1`;
 
 export default function ScannerScreen() {
   const [permission, requestPermission] = useCameraPermissions();
   const [processing, setProcessing] = useState(false);
   const [laserPos, setLaserPos] = useState(0);
+  const [scanned, setScanned] = useState(false);
 
   // Laser Animation
   const laserTranslateY = useSharedValue(0);
@@ -37,12 +37,32 @@ export default function ScannerScreen() {
   const router = useRouter();
   const { token, storeId, deviceId, staffId } = useAuthStore();
   
-  const workflow = params.workflow || 'STOCK_AUDIT';
+  const workflowParam = params.workflow;
+  const workflow = typeof workflowParam === 'string' ? workflowParam : (workflowParam?.[0] || 'STOCK_AUDIT');
 
   useEffect(() => {
     // Reset scan state when screen focuses
     setScanned(false);
-  }, [params]);
+
+    // Scanner Telemetry Heartbeat (every 30 seconds)
+    const deviceCode = 'SCN-001'; // In production, this would be stored securely locally or fetched from Expo Constants
+    const actualToken = token || 'DUMMY_TOKEN'; // Bypass auth in dev if needed, or use actual
+    
+    const sendHeartbeat = async () => {
+      try {
+        await axios.post(`${API_URL}/scanner-management/heartbeat`, 
+          { deviceCode },
+          { headers: { Authorization: `Bearer ${actualToken}` } }
+        );
+      } catch (e) {
+        // Silently fail if offline
+      }
+    };
+
+    sendHeartbeat(); // Immediate
+    const interval = setInterval(sendHeartbeat, 30000); // Every 30s
+    return () => clearInterval(interval);
+  }, [params, token]);
 
   if (!permission) {
     // Camera permissions are still loading.
@@ -131,7 +151,7 @@ export default function ScannerScreen() {
   return (
     <View style={styles.container}>
       <CameraView
-        style={StyleSheet.absoluteFillObject}
+        style={StyleSheet.absoluteFill}
         facing="back"
         onBarcodeScanned={scanned ? undefined : handleBarcodeScanned}
         barcodeScannerSettings={{
@@ -175,7 +195,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   overlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -219,7 +239,7 @@ const styles = StyleSheet.create({
     elevation: 5,
   },
   loadingOverlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: 'rgba(0,0,0,0.85)',
     justifyContent: 'center',
     alignItems: 'center',

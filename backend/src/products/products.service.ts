@@ -69,6 +69,13 @@ export class ProductsService {
     });
   }
 
+  async updateSubscriptionDiscount(id: string, subscriptionDiscount: number) {
+    return this.prisma.product.update({
+      where: { id },
+      data: { subscriptionDiscount },
+    });
+  }
+
   /**
    * Tier 1: local DB  Tier 2: Open Food Facts  Tier 3: returns partial data
    * GET /products/enrich/:barcode?storeId=x

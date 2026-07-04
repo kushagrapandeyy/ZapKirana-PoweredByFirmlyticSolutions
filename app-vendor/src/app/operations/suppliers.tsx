@@ -1,11 +1,15 @@
 import { useState, useEffect } from 'react';
-import { StyleSheet, Text, View, SafeAreaView, TouchableOpacity, FlatList, ActivityIndicator, Image } from 'react-native';
+import { StyleSheet, Text, View, TouchableOpacity, FlatList, ActivityIndicator, Image } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
+
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Shadows, Radius } from '../../constants/theme';
 import { API_BASE_URL } from '../../constants/api';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
 export default function SuppliersScreen() {
+  const router = useRouter();
   const [suppliers, setSuppliers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -15,7 +19,7 @@ export default function SuppliersScreen() {
 
   const fetchSuppliers = async () => {
     try {
-      const res = await fetch(`${API_BASE_URL}/admin/suppliers`); // Using global suppliers for now
+      const res = await fetch(`${API_BASE_URL}/admin/suppliers`);
       if (res.ok) {
         setSuppliers(await res.json());
       }
@@ -27,81 +31,86 @@ export default function SuppliersScreen() {
   };
 
   const renderSupplier = ({ item, index }: { item: any; index: number }) => (
-    <Animated.View entering={FadeInDown.delay(index * 30).duration(400)}>
+    <Animated.View entering={FadeInDown.delay(index * 40).duration(400)}>
       <View style={styles.supplierCard}>
         <View style={styles.cardHeader}>
           <View style={styles.logoContainer}>
             {item.logoUrl ? (
               <Image source={{ uri: item.logoUrl }} style={styles.logo} />
             ) : (
-              <Ionicons name="business" size={24} color={Colors.primary} />
+              <Ionicons name="business" size={28} color={Colors.primary} />
             )}
           </View>
           <View style={styles.headerInfo}>
             <Text style={styles.supplierName}>{item.name}</Text>
             <Text style={styles.supplierCategories}>{item.categories || 'General Supplies'}</Text>
           </View>
-          <TouchableOpacity style={styles.callBtn}>
-            <Ionicons name="call" size={20} color={Colors.success} />
+          <TouchableOpacity style={styles.contactBtn}>
+            <Ionicons name="call" size={18} color={Colors.primary} />
           </TouchableOpacity>
         </View>
+
+        <View style={styles.divider} />
 
         <View style={styles.cardBody}>
           <View style={styles.infoRow}>
-            <Ionicons name="mail-outline" size={16} color={Colors.textMuted} />
-            <Text style={styles.infoText}>{item.contactEmail || 'No email provided'}</Text>
+            <Ionicons name="mail-outline" size={16} color={Colors.textSecondary} />
+            <Text style={styles.infoText}>{item.email || 'N/A'}</Text>
           </View>
           <View style={styles.infoRow}>
-            <Ionicons name="location-outline" size={16} color={Colors.textMuted} />
-            <Text style={styles.infoText} numberOfLines={1}>{item.address || 'Address not listed'}</Text>
+            <Ionicons name="location-outline" size={16} color={Colors.textSecondary} />
+            <Text style={styles.infoText}>{item.address || 'Address not provided'}</Text>
           </View>
-          {item.paymentTerms && (
-            <View style={styles.infoRow}>
-              <Ionicons name="card-outline" size={16} color={Colors.textMuted} />
-              <Text style={styles.infoText}>Terms: {item.paymentTerms}</Text>
+          
+          <View style={styles.metricsRow}>
+            <View style={styles.metricItem}>
+              <Text style={styles.metricLabel}>Credit Terms</Text>
+              <Text style={styles.metricValue}>{item.creditTerms || '0 Days'}</Text>
             </View>
-          )}
+            <View style={styles.metricItem}>
+              <Text style={styles.metricLabel}>Rating</Text>
+              <Text style={styles.metricValue}>{item.rating || '4.5'} <Ionicons name="star" size={12} color="#D97706" /></Text>
+            </View>
+            <View style={styles.metricItem}>
+              <Text style={styles.metricLabel}>Active POs</Text>
+              <Text style={[styles.metricValue, { color: Colors.primary }]}>{item.activePos || 0}</Text>
+            </View>
+          </View>
         </View>
 
-        <View style={styles.cardFooter}>
-          <View style={styles.metric}>
-            <Text style={styles.metricValue}>{item._count?.purchaseOrders || 0}</Text>
-            <Text style={styles.metricLabel}>Total POs</Text>
-          </View>
-          <View style={styles.divider} />
-          <View style={styles.metric}>
-            <Text style={styles.metricValue}>{item._count?.supplierProducts || 0}</Text>
-            <Text style={styles.metricLabel}>Products</Text>
-          </View>
-          <TouchableOpacity style={styles.catalogBtn}>
-            <Text style={styles.catalogBtnText}>View Catalog</Text>
-            <Ionicons name="arrow-forward" size={14} color={Colors.primary} />
-          </TouchableOpacity>
-        </View>
+        <TouchableOpacity style={styles.cardFooter} activeOpacity={0.8} onPress={() => router.push(`/operations/supplier/${item.id}`)}>
+          <Text style={styles.footerBtnText}>View Catalog</Text>
+          <Ionicons name="arrow-forward" size={16} color={Colors.primary} />
+        </TouchableOpacity>
       </View>
     </Animated.View>
   );
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>My Suppliers</Text>
+        <Text style={styles.headerTitle}>Suppliers</Text>
         <TouchableOpacity style={styles.addBtn}>
-          <Ionicons name="add" size={20} color="#fff" />
+          <Ionicons name="add" size={24} color={Colors.surface} />
         </TouchableOpacity>
       </View>
 
       {loading ? (
-        <View style={styles.centerContainer}>
-          <ActivityIndicator size="large" color={Colors.primary} />
-        </View>
+        <ActivityIndicator size="large" color={Colors.primary} style={{ marginTop: 50 }} />
       ) : (
         <FlatList
           data={suppliers}
-          renderItem={renderSupplier}
           keyExtractor={item => item.id}
+          renderItem={renderSupplier}
           contentContainerStyle={styles.list}
           showsVerticalScrollIndicator={false}
+          ListEmptyComponent={
+            <View style={styles.emptyContainer}>
+              <Ionicons name="business-outline" size={64} color={Colors.border} />
+              <Text style={styles.emptyTitle}>No Suppliers Found</Text>
+              <Text style={styles.emptySub}>Add your first supplier to start creating Purchase Orders.</Text>
+            </View>
+          }
         />
       )}
     </SafeAreaView>
@@ -109,32 +118,30 @@ export default function SuppliersScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.bg },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingTop: 10, paddingBottom: 16, backgroundColor: Colors.surface, borderBottomWidth: 1, borderBottomColor: Colors.borderLight },
-  headerTitle: { fontSize: 24, fontFamily: 'PlayfairDisplay_700Bold', color: Colors.textPrimary },
-  addBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: Colors.primary, justifyContent: 'center', alignItems: 'center', ...Shadows.sm },
-  
-  centerContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  
-  list: { padding: 20, gap: 16, paddingBottom: 40 },
-  supplierCard: { backgroundColor: Colors.surface, borderRadius: Radius.lg, padding: 16, ...Shadows.sm },
-  cardHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 16 },
-  logoContainer: { width: 48, height: 48, borderRadius: 24, backgroundColor: Colors.primaryGhost, justifyContent: 'center', alignItems: 'center', marginRight: 12 },
-  logo: { width: '100%', height: '100%', borderRadius: 24 },
+  container: { flex: 1, backgroundColor: '#FAF9F6' },
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingTop: 16, paddingBottom: 16 },
+  headerTitle: { fontSize: 32, fontFamily: 'PlayfairDisplay_700Bold', color: Colors.textPrimary },
+  addBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: Colors.primaryDark, justifyContent: 'center', alignItems: 'center', ...Shadows.sm },
+  list: { paddingHorizontal: 20, paddingBottom: 100 },
+  supplierCard: { backgroundColor: '#fff', borderRadius: Radius.xl, marginBottom: 20, ...Shadows.md, borderWidth: 1, borderColor: '#F1F5F9', overflow: 'hidden' },
+  cardHeader: { flexDirection: 'row', alignItems: 'center', padding: 16 },
+  logoContainer: { width: 60, height: 60, borderRadius: 16, backgroundColor: '#F8FAFC', justifyContent: 'center', alignItems: 'center', marginRight: 16, borderWidth: 1, borderColor: '#E2E8F0' },
+  logo: { width: '100%', height: '100%', borderRadius: 16, resizeMode: 'cover' },
   headerInfo: { flex: 1 },
-  supplierName: { fontSize: 16, fontFamily: 'Inter_700Bold', color: Colors.textPrimary, marginBottom: 2 },
-  supplierCategories: { fontSize: 12, fontFamily: 'Inter_500Medium', color: Colors.textSecondary },
-  callBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: Colors.successLight, justifyContent: 'center', alignItems: 'center' },
-  
-  cardBody: { gap: 8, marginBottom: 16 },
-  infoRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  infoText: { flex: 1, fontSize: 13, fontFamily: 'Inter_400Regular', color: Colors.textSecondary },
-  
-  cardFooter: { flexDirection: 'row', alignItems: 'center', paddingTop: 16, borderTopWidth: 1, borderTopColor: Colors.borderLight },
-  metric: { flex: 1, alignItems: 'center' },
-  metricValue: { fontSize: 16, fontFamily: 'Inter_700Bold', color: Colors.textPrimary },
-  metricLabel: { fontSize: 11, fontFamily: 'Inter_500Medium', color: Colors.textMuted },
-  divider: { width: 1, height: 24, backgroundColor: Colors.borderLight },
-  catalogBtn: { flex: 2, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 4, paddingVertical: 8, backgroundColor: Colors.primaryGhost, borderRadius: Radius.full, marginLeft: 16 },
-  catalogBtnText: { fontSize: 13, fontFamily: 'Inter_600SemiBold', color: Colors.primary },
+  supplierName: { fontSize: 18, fontFamily: 'Inter_700Bold', color: Colors.textPrimary, marginBottom: 4 },
+  supplierCategories: { fontSize: 13, fontFamily: 'Inter_500Medium', color: Colors.textSecondary },
+  contactBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: Colors.primaryGhost, justifyContent: 'center', alignItems: 'center' },
+  divider: { height: 1, backgroundColor: '#F1F5F9', marginHorizontal: 16 },
+  cardBody: { padding: 16 },
+  infoRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 12, gap: 10 },
+  infoText: { fontSize: 14, fontFamily: 'Inter_500Medium', color: Colors.textSecondary },
+  metricsRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 12, paddingHorizontal: 8 },
+  metricItem: { alignItems: 'center' },
+  metricLabel: { fontSize: 11, fontFamily: 'Inter_600SemiBold', color: Colors.textMuted, letterSpacing: 0.5, textTransform: 'uppercase', marginBottom: 4 },
+  metricValue: { fontSize: 15, fontFamily: 'Inter_700Bold', color: Colors.textPrimary },
+  cardFooter: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', backgroundColor: '#F8FAFC', paddingVertical: 14, borderTopWidth: 1, borderTopColor: '#F1F5F9', gap: 6 },
+  footerBtnText: { fontSize: 14, fontFamily: 'Inter_600SemiBold', color: Colors.primary },
+  emptyContainer: { alignItems: 'center', justifyContent: 'center', marginTop: 80 },
+  emptyTitle: { fontSize: 20, fontFamily: 'Inter_700Bold', color: Colors.textPrimary, marginTop: 16, marginBottom: 8 },
+  emptySub: { fontSize: 14, fontFamily: 'Inter_500Medium', color: Colors.textSecondary, textAlign: 'center', paddingHorizontal: 40 },
 });

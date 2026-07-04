@@ -66,6 +66,7 @@ export declare class PurchaseOrderController {
                 purchaseCost: number | null;
                 gstRate: number;
                 gstClass: import(".prisma/client").$Enums.GSTClass;
+                subscriptionDiscount: number;
             };
         } & {
             id: string;
@@ -127,6 +128,7 @@ export declare class PurchaseOrderController {
                 purchaseCost: number | null;
                 gstRate: number;
                 gstClass: import(".prisma/client").$Enums.GSTClass;
+                subscriptionDiscount: number;
             };
         } & {
             id: string;
@@ -208,6 +210,7 @@ export declare class PurchaseOrderController {
                 purchaseCost: number | null;
                 gstRate: number;
                 gstClass: import(".prisma/client").$Enums.GSTClass;
+                subscriptionDiscount: number;
             };
         } & {
             id: string;
@@ -289,6 +292,7 @@ export declare class PurchaseOrderController {
                 purchaseCost: number | null;
                 gstRate: number;
                 gstClass: import(".prisma/client").$Enums.GSTClass;
+                subscriptionDiscount: number;
             };
         } & {
             id: string;

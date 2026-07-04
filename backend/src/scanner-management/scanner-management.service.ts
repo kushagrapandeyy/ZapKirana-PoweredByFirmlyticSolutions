@@ -109,4 +109,15 @@ export class ScannerManagementService {
       recentSessions
     };
   }
+
+  async heartbeatDevice(storeId: string, deviceCode: string) {
+    return this.prisma.scannerDevice.update({
+      where: { deviceCode },
+      data: {
+        lastSeenAt: new Date()
+      }
+    }).catch(() => {
+      throw new NotFoundException('Scanner device not found');
+    });
+  }
 }

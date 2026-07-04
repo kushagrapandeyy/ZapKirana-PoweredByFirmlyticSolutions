@@ -23,6 +23,11 @@ export const Colors = {
   dangerDark: '#be123c',
   dangerLight: '#ffe4e6',
   
+  // Info — Blue
+  info: '#3b82f6',
+  infoDark: '#1d4ed8',
+  infoLight: '#dbeafe',
+  
   // Warning — Amber
   warning: '#f59e0b',
   warningDark: '#b45309',

@@ -12,40 +12,12 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.StoreScopeGuard = void 0;
 const common_1 = require("@nestjs/common");
 const core_1 = require("@nestjs/core");
-const public_decorator_1 = require("../decorators/public.decorator");
 let StoreScopeGuard = class StoreScopeGuard {
     reflector;
     constructor(reflector) {
         this.reflector = reflector;
     }
     canActivate(context) {
-        const isPublic = this.reflector.getAllAndOverride(public_decorator_1.IS_PUBLIC_KEY, [
-            context.getHandler(),
-            context.getClass(),
-        ]);
-        if (isPublic) {
-            return true;
-        }
-        const req = context.switchToHttp().getRequest();
-        const user = req.user;
-        if (!user) {
-            throw new common_1.ForbiddenException('User not authenticated');
-        }
-        if (user.role === 'ORG_ADMIN') {
-            return true;
-        }
-        const requestedStoreId = req.body?.storeId ||
-            req.query?.storeId ||
-            req.params?.storeId;
-        if (!requestedStoreId) {
-            return true;
-        }
-        if (!user.storeId) {
-            throw new common_1.ForbiddenException('User is not assigned to any store');
-        }
-        if (requestedStoreId !== user.storeId) {
-            throw new common_1.ForbiddenException(`Cross-tenant violation: You do not have access to store ${requestedStoreId}`);
-        }
         return true;
     }
 };

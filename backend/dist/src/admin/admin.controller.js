@@ -24,8 +24,18 @@ let AdminController = class AdminController {
     constructor(adminService) {
         this.adminService = adminService;
     }
-    getDashboard() {
+    async getDashboard() {
         return this.adminService.getDashboardStats();
+    }
+    async getStaffList(storeId) {
+        if (!storeId)
+            throw new common_1.BadRequestException('storeId is required');
+        return this.adminService.getStaffList(storeId);
+    }
+    async getAlerts(storeId) {
+        if (!storeId)
+            throw new common_1.BadRequestException('storeId is required');
+        return this.adminService.getAlerts(storeId);
     }
     getStores() {
         return this.adminService.getStores();
@@ -72,8 +82,22 @@ __decorate([
     (0, common_1.Get)('dashboard'),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", []),
-    __metadata("design:returntype", void 0)
+    __metadata("design:returntype", Promise)
 ], AdminController.prototype, "getDashboard", null);
+__decorate([
+    (0, common_1.Get)('hr/staff'),
+    __param(0, (0, common_1.Query)('storeId')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", Promise)
+], AdminController.prototype, "getStaffList", null);
+__decorate([
+    (0, common_1.Get)('alerts'),
+    __param(0, (0, common_1.Query)('storeId')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", Promise)
+], AdminController.prototype, "getAlerts", null);
 __decorate([
     (0, common_1.Get)('stores'),
     __metadata("design:type", Function),

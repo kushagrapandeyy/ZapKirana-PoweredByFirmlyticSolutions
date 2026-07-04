@@ -1,10 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image, Modal, TextInput, ActivityIndicator, Alert, SafeAreaView } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image, Modal, TextInput, ActivityIndicator, Alert, KeyboardAvoidingView, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import Animated, { FadeInDown } from 'react-native-reanimated';
 import { API_BASE_URL } from '../../constants/api';
+import { Colors, Shadows, Radius } from '../../constants/theme';
 
 // Hardcoded for now until auth context is fully connected
-const STORE_ID = 'b935e4e7-4b15-46d5-8eb6-a36746cf5cb0'; // Same test store ID used in other tabs
+const STORE_ID = '5981f6aa-23ee-4acf-bd1d-8ceb2a92ea0c'; 
 const API_URL = `${API_BASE_URL}/inventory`;
 
 type PendingProduct = {
@@ -37,11 +41,13 @@ export default function ApprovalsScreen() {
   const fetchPendingItems = async () => {
     setLoading(true);
     try {
-      const response = await fetch(`${API_URL}/pending?storeId=${STORE_ID}`);
-      const data = await response.json();
-      setPendingItems(data);
+      const response = await fetch(`${API_URL}/products?storeId=${STORE_ID}&status=PENDING_APPROVAL`);
+      if (response.ok) {
+        const data = await response.json();
+        setPendingItems(data);
+      }
     } catch (error) {
-      console.error('Error fetching pending products', error);
+      console.error('Failed to fetch pending items:', error);
     } finally {
       setLoading(false);
     }
@@ -57,374 +63,225 @@ export default function ApprovalsScreen() {
 
   const handleApprove = async () => {
     if (!selectedItem) return;
-    
+
+    if (!editName || !editSellingPrice) {
+      Alert.alert('Validation Error', 'Name and Selling Price are required.');
+      return;
+    }
+
     try {
-      const response = await fetch(`${API_URL}/pending/${selectedItem.id}/approve`, {
+      const response = await fetch(`${API_URL}/products/${selectedItem.id}/approve`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name: editName,
           category: editCategory,
-          mrp: parseFloat(editMrp) || 0,
-          sellingPrice: parseFloat(editSellingPrice) || 0,
+          mrp: parseFloat(editMrp) || null,
+          sellingPrice: parseFloat(editSellingPrice),
+          status: 'ACTIVE'
         }),
       });
 
       if (response.ok) {
-        Alert.alert('Success', 'Product approved and added to catalog.');
         setSelectedItem(null);
         fetchPendingItems();
       } else {
-        Alert.alert('Error', 'Failed to approve product');
+        Alert.alert('Error', 'Failed to approve item.');
       }
     } catch (error) {
-      Alert.alert('Error', 'Network error');
+      console.error('Error approving item:', error);
+      Alert.alert('Error', 'An unexpected error occurred.');
     }
   };
 
-  const handleReject = async (id: string) => {
-    Alert.alert('Reject Item', 'Are you sure you want to reject this scanned item?', [
-      { text: 'Cancel', style: 'cancel' },
-      { 
-        text: 'Reject', 
-        style: 'destructive',
-        onPress: async () => {
-          try {
-            const response = await fetch(`${API_URL}/pending/${id}/reject`, { method: 'POST' });
-            if (response.ok) {
-              fetchPendingItems();
-            }
-          } catch (error) {
-            Alert.alert('Error', 'Network error');
-          }
-        }
-      }
-    ]);
-  };
-
-  const renderItem = ({ item }: { item: PendingProduct }) => (
-    <TouchableOpacity style={styles.card} onPress={() => openApprovalModal(item)}>
-      <View style={styles.cardHeader}>
-        <View style={styles.barcodeTag}>
-          <Ionicons name="barcode-outline" size={14} color="#064e3b" />
-          <Text style={styles.barcodeText}>{item.barcode || 'NO BARCODE'}</Text>
+  const renderItem = ({ item, index }: { item: PendingProduct, index: number }) => (
+    <Animated.View entering={FadeInDown.delay(index * 50).duration(400)}>
+      <View style={styles.card}>
+        <View style={styles.cardHeader}>
+          <View style={styles.barcodeWrapper}>
+            <Ionicons name="barcode-outline" size={16} color={Colors.textSecondary} style={{ marginRight: 4 }} />
+            <Text style={styles.barcodeText}>{item.barcode}</Text>
+          </View>
+          <Text style={styles.timeText}>{new Date(item.createdAt).toLocaleDateString()}</Text>
         </View>
-        <Text style={styles.timeText}>{new Date(item.createdAt).toLocaleDateString()}</Text>
-      </View>
 
-      <View style={styles.cardBody}>
-        {item.imageUrl ? (
-          <Image source={{ uri: item.imageUrl }} style={styles.productImage} />
-        ) : (
-          <View style={styles.productImagePlaceholder}>
-            <Ionicons name="image-outline" size={32} color="#9ca3af" />
+        <View style={styles.cardBody}>
+          <Image 
+            source={{ uri: item.imageUrl || `https://placehold.co/100x100?text=${item.suggestedName?.substring(0,1) || '?'}` }} 
+            style={styles.productImage} 
+          />
+          <View style={styles.productInfo}>
+            <Text style={styles.productName} numberOfLines={2}>
+              {item.suggestedName || 'Unknown Product'}
+            </Text>
+            <Text style={styles.categoryText}>{item.suggestedCategory || 'Uncategorized'}</Text>
+            <View style={styles.priceRow}>
+              <Text style={styles.priceLabel}>Suggested Price: </Text>
+              <Text style={styles.priceValue}>₹{item.sellingPrice || '--'}</Text>
+            </View>
           </View>
-        )}
-        <View style={styles.productInfo}>
-          <Text style={styles.productName}>{item.suggestedName || 'Unknown Product'}</Text>
-          <Text style={styles.productCategory}>{item.suggestedCategory || 'Uncategorized'}</Text>
-          <View style={styles.priceRow}>
-            <Text style={styles.priceLabel}>Suggested: </Text>
-            <Text style={styles.priceValue}>₹{item.sellingPrice || 0}</Text>
-          </View>
-          {item.createdBy && (
-            <Text style={styles.scannedBy}>Scanned by {item.createdBy.name}</Text>
-          )}
+        </View>
+
+        <View style={styles.cardFooter}>
+          <Text style={styles.scannedByText}>
+            Scanned by: <Text style={{ fontFamily: 'Inter_700Bold' }}>{item.createdBy?.name || 'Staff'}</Text>
+          </Text>
+          <TouchableOpacity 
+            style={styles.reviewBtn}
+            onPress={() => openApprovalModal(item)}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.reviewBtnText}>Review & Approve</Text>
+            <Ionicons name="chevron-forward" size={16} color="#fff" />
+          </TouchableOpacity>
         </View>
       </View>
-      
-      <View style={styles.cardFooter}>
-        <TouchableOpacity style={styles.rejectBtn} onPress={() => handleReject(item.id)}>
-          <Text style={styles.rejectBtnText}>Reject</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.approveBtn} onPress={() => openApprovalModal(item)}>
-          <Text style={styles.approveBtnText}>Review & Approve</Text>
-        </TouchableOpacity>
-      </View>
-    </TouchableOpacity>
+    </Animated.View>
   );
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Approvals</Text>
-        <Text style={styles.headerSubtitle}>Review items scanned by your staff</Text>
+        <Text style={styles.headerSub}>{pendingItems.length} items awaiting review</Text>
       </View>
 
       {loading ? (
-        <View style={styles.center}>
-          <ActivityIndicator size="large" color="#064e3b" />
-        </View>
-      ) : pendingItems.length === 0 ? (
-        <View style={styles.emptyState}>
-          <Ionicons name="checkmark-done-circle-outline" size={64} color="#d1d5db" />
-          <Text style={styles.emptyStateText}>All caught up!</Text>
-          <Text style={styles.emptyStateSub}>No pending items to review.</Text>
-        </View>
+        <ActivityIndicator size="large" color={Colors.primary} style={{ marginTop: 50 }} />
       ) : (
         <FlatList
           data={pendingItems}
           keyExtractor={(item) => item.id}
           renderItem={renderItem}
           contentContainerStyle={styles.listContainer}
+          showsVerticalScrollIndicator={false}
+          ListEmptyComponent={
+            <View style={styles.emptyContainer}>
+              <Ionicons name="checkmark-done-circle" size={64} color={Colors.border} />
+              <Text style={styles.emptyTitle}>All caught up!</Text>
+              <Text style={styles.emptySub}>No pending items to approve.</Text>
+            </View>
+          }
         />
       )}
 
       {/* Approval Modal */}
-      <Modal visible={!!selectedItem} animationType="slide" transparent={true}>
-        <View style={styles.modalOverlay}>
+      <Modal
+        visible={!!selectedItem}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setSelectedItem(null)}
+      >
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Approve Product</Text>
-              <TouchableOpacity onPress={() => setSelectedItem(null)}>
-                <Ionicons name="close" size={24} color="#111827" />
+              <TouchableOpacity onPress={() => setSelectedItem(null)} style={styles.closeBtn}>
+                <Ionicons name="close" size={24} color={Colors.textSecondary} />
               </TouchableOpacity>
             </View>
 
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Product Name</Text>
-              <TextInput style={styles.input} value={editName} onChangeText={setEditName} placeholder="Enter official name" />
-            </View>
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Category</Text>
-              <TextInput style={styles.input} value={editCategory} onChangeText={setEditCategory} placeholder="Enter category" />
-            </View>
-            <View style={styles.row}>
-              <View style={[styles.inputGroup, { flex: 1, marginRight: 8 }]}>
-                <Text style={styles.label}>MRP (₹)</Text>
-                <TextInput style={styles.input} value={editMrp} onChangeText={setEditMrp} keyboardType="numeric" />
-              </View>
-              <View style={[styles.inputGroup, { flex: 1, marginLeft: 8 }]}>
-                <Text style={styles.label}>Selling Price (₹)</Text>
-                <TextInput style={styles.input} value={editSellingPrice} onChangeText={setEditSellingPrice} keyboardType="numeric" />
-              </View>
-            </View>
+            {selectedItem && (
+              <View style={styles.formContainer}>
+                <Image 
+                  source={{ uri: selectedItem.imageUrl || `https://placehold.co/100x100?text=?` }} 
+                  style={styles.modalImage} 
+                />
 
-            <TouchableOpacity style={styles.confirmBtn} onPress={handleApprove}>
-              <Text style={styles.confirmBtnText}>Add to Catalog</Text>
-            </TouchableOpacity>
+                <Text style={styles.label}>Product Name</Text>
+                <TextInput
+                  style={styles.input}
+                  value={editName}
+                  onChangeText={setEditName}
+                  placeholder="e.g. Tata Salt 1kg"
+                />
+
+                <Text style={styles.label}>Category</Text>
+                <TextInput
+                  style={styles.input}
+                  value={editCategory}
+                  onChangeText={setEditCategory}
+                  placeholder="e.g. Groceries"
+                />
+
+                <View style={styles.row}>
+                  <View style={{ flex: 1, marginRight: 10 }}>
+                    <Text style={styles.label}>MRP (₹)</Text>
+                    <TextInput
+                      style={styles.input}
+                      value={editMrp}
+                      onChangeText={setEditMrp}
+                      keyboardType="numeric"
+                      placeholder="0.00"
+                    />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.label}>Selling Price (₹)</Text>
+                    <TextInput
+                      style={styles.input}
+                      value={editSellingPrice}
+                      onChangeText={setEditSellingPrice}
+                      keyboardType="numeric"
+                      placeholder="0.00"
+                    />
+                  </View>
+                </View>
+
+                <TouchableOpacity style={styles.approveBtn} onPress={handleApprove} activeOpacity={0.8}>
+                  <Ionicons name="checkmark-circle" size={20} color="#fff" />
+                  <Text style={styles.approveBtnText}>Publish to Catalog</Text>
+                </TouchableOpacity>
+              </View>
+            )}
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#FAF9F6', // Warm off-white
-  },
-  header: {
-    padding: 24,
-    paddingTop: 12,
-  },
-  headerTitle: {
-    fontSize: 28,
-    fontWeight: '800',
-    color: '#111827',
-  },
-  headerSubtitle: {
-    fontSize: 14,
-    color: '#6b7280',
-    marginTop: 4,
-  },
-  center: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  listContainer: {
-    padding: 16,
-    paddingBottom: 100,
-  },
-  card: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.05,
-    shadowRadius: 12,
-    elevation: 3,
-  },
-  cardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  barcodeTag: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#ecfdf5',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
-  },
-  barcodeText: {
-    marginLeft: 4,
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#064e3b',
-  },
-  timeText: {
-    fontSize: 12,
-    color: '#9ca3af',
-  },
-  cardBody: {
-    flexDirection: 'row',
-    marginBottom: 16,
-  },
-  productImage: {
-    width: 70,
-    height: 70,
-    borderRadius: 8,
-    backgroundColor: '#f3f4f6',
-  },
-  productImagePlaceholder: {
-    width: 70,
-    height: 70,
-    borderRadius: 8,
-    backgroundColor: '#f3f4f6',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  productInfo: {
-    marginLeft: 16,
-    flex: 1,
-    justifyContent: 'center',
-  },
-  productName: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#111827',
-  },
-  productCategory: {
-    fontSize: 13,
-    color: '#6b7280',
-    marginTop: 2,
-  },
-  priceRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 6,
-  },
-  priceLabel: {
-    fontSize: 13,
-    color: '#4b5563',
-  },
-  priceValue: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#064e3b',
-  },
-  scannedBy: {
-    fontSize: 11,
-    color: '#9ca3af',
-    marginTop: 6,
-  },
-  cardFooter: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    borderTopWidth: 1,
-    borderTopColor: '#f3f4f6',
-    paddingTop: 12,
-  },
-  rejectBtn: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 8,
-    marginRight: 8,
-  },
-  rejectBtnText: {
-    color: '#ef4444',
-    fontWeight: '600',
-  },
-  approveBtn: {
-    backgroundColor: '#064e3b',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 8,
-  },
-  approveBtnText: {
-    color: '#ffffff',
-    fontWeight: '600',
-  },
-  emptyState: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  },
-  emptyStateText: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#111827',
-    marginTop: 12,
-  },
-  emptyStateSub: {
-    fontSize: 14,
-    color: '#6b7280',
-    marginTop: 4,
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.4)',
-    justifyContent: 'flex-end',
-  },
-  modalContent: {
-    backgroundColor: '#fff',
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    padding: 24,
-    minHeight: '50%',
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 24,
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#111827',
-  },
-  inputGroup: {
-    marginBottom: 16,
-  },
-  label: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#374151',
-    marginBottom: 6,
-  },
-  input: {
-    backgroundColor: '#f9fafb',
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 12,
-    fontSize: 15,
-    color: '#111827',
-  },
-  row: {
-    flexDirection: 'row',
-  },
-  confirmBtn: {
-    backgroundColor: '#064e3b',
-    borderRadius: 12,
-    padding: 16,
-    alignItems: 'center',
-    marginTop: 12,
-    marginBottom: 20,
-  },
-  confirmBtnText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '700',
-  },
+  container: { flex: 1, backgroundColor: '#FAF9F6' },
+  header: { padding: 20, paddingTop: 16, paddingBottom: 10 },
+  headerTitle: { fontSize: 32, fontFamily: 'PlayfairDisplay_700Bold', color: Colors.textPrimary },
+  headerSub: { fontSize: 14, fontFamily: 'Inter_500Medium', color: Colors.textSecondary, marginTop: 4 },
+  listContainer: { padding: 20, paddingBottom: 100 },
+  
+  card: { backgroundColor: '#fff', borderRadius: Radius.xl, marginBottom: 16, overflow: 'hidden', ...Shadows.md, borderWidth: 1, borderColor: '#F1F5F9' },
+  cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#F8FAFC', paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#F1F5F9' },
+  barcodeWrapper: { flexDirection: 'row', alignItems: 'center' },
+  barcodeText: { fontFamily: 'Inter_600SemiBold', fontSize: 13, color: Colors.textSecondary, letterSpacing: 0.5 },
+  timeText: { fontFamily: 'Inter_500Medium', fontSize: 12, color: Colors.textMuted },
+  
+  cardBody: { flexDirection: 'row', padding: 16, alignItems: 'center' },
+  productImage: { width: 64, height: 64, borderRadius: Radius.lg, backgroundColor: '#F1F5F9', marginRight: 16 },
+  productInfo: { flex: 1 },
+  productName: { fontSize: 16, fontFamily: 'Inter_700Bold', color: Colors.textPrimary, marginBottom: 4 },
+  categoryText: { fontSize: 13, fontFamily: 'Inter_500Medium', color: Colors.textSecondary, marginBottom: 8 },
+  priceRow: { flexDirection: 'row', alignItems: 'center' },
+  priceLabel: { fontSize: 13, fontFamily: 'Inter_500Medium', color: Colors.textMuted },
+  priceValue: { fontSize: 14, fontFamily: 'Inter_700Bold', color: Colors.successDark },
+
+  cardFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 16, paddingTop: 0 },
+  scannedByText: { fontSize: 12, fontFamily: 'Inter_400Regular', color: Colors.textSecondary },
+  reviewBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: Colors.info, paddingHorizontal: 16, paddingVertical: 10, borderRadius: Radius.full, gap: 4, ...Shadows.sm },
+  reviewBtnText: { color: '#fff', fontFamily: 'Inter_700Bold', fontSize: 13 },
+
+  emptyContainer: { alignItems: 'center', justifyContent: 'center', marginTop: 100 },
+  emptyTitle: { fontSize: 20, fontFamily: 'Inter_700Bold', color: Colors.textPrimary, marginTop: 16, marginBottom: 8 },
+  emptySub: { fontSize: 14, fontFamily: 'Inter_500Medium', color: Colors.textSecondary },
+
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
+  modalContent: { backgroundColor: '#FAF9F6', borderTopLeftRadius: 32, borderTopRightRadius: 32, padding: 24, paddingBottom: 40 },
+  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
+  modalTitle: { fontSize: 24, fontFamily: 'PlayfairDisplay_700Bold', color: Colors.textPrimary },
+  closeBtn: { padding: 4, backgroundColor: '#F1F5F9', borderRadius: 20 },
+  
+  formContainer: {},
+  modalImage: { width: 80, height: 80, borderRadius: Radius.lg, alignSelf: 'center', marginBottom: 24, backgroundColor: '#fff', ...Shadows.sm },
+  label: { fontSize: 13, fontFamily: 'Inter_600SemiBold', color: Colors.textSecondary, marginBottom: 8, letterSpacing: 0.5 },
+  input: { backgroundColor: '#fff', height: 50, borderRadius: Radius.md, paddingHorizontal: 16, fontSize: 15, fontFamily: 'Inter_500Medium', color: Colors.textPrimary, marginBottom: 16, borderWidth: 1, borderColor: '#E2E8F0', ...Shadows.sm },
+  row: { flexDirection: 'row' },
+  approveBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: Colors.primary, height: 56, borderRadius: Radius.xl, marginTop: 16, gap: 8, ...Shadows.md },
+  approveBtnText: { color: '#fff', fontSize: 16, fontFamily: 'Inter_700Bold', letterSpacing: 1 },
 });

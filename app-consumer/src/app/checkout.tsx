@@ -1,13 +1,14 @@
 import { useState } from 'react';
 import { StyleSheet, Text, View, ScrollView, TouchableOpacity, SafeAreaView, TextInput, Switch, ActivityIndicator } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { useCart } from '../context/CartContext';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Toast from 'react-native-toast-message';
 import Animated, { FadeIn, SlideInDown } from 'react-native-reanimated';
+import React, { useCallback } from 'react';
 import { Colors, Shadows, Radius } from '../constants/theme';
-import { API_BASE_URL } from '../constants/api';
+import { API_BASE_URL, CURRENT_STORE_ID } from '../constants/api';
 
 const CURRENT_CUSTOMER_ID = 'de283b71-1972-47b7-996f-6633d0f7b7f5'; // Mock User
 
@@ -19,9 +20,33 @@ export default function CheckoutScreen() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [requireOtp, setRequireOtp] = useState(false);
   const [instructions, setInstructions] = useState('');
+  const [address, setAddress] = useState<any>(null);
+  const [loadingAddress, setLoadingAddress] = useState(true);
 
   const deliveryFee = cartTotal > 199 ? 0 : 30;
   const grandTotal = cartTotal + deliveryFee;
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchAddresses();
+    }, [])
+  );
+
+  const fetchAddresses = async () => {
+    try {
+      setLoadingAddress(true);
+      const res = await fetch(`${API_BASE_URL}/addresses?userId=${CURRENT_CUSTOMER_ID}`);
+      if (res.ok) {
+        const data = await res.json();
+        const defaultAddr = data.find((a: any) => a.isDefault) || data[0];
+        setAddress(defaultAddr || null);
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoadingAddress(false);
+    }
+  };
 
   const handlePayment = async () => {
     if (cart.length === 0) return;
@@ -30,14 +55,20 @@ export default function CheckoutScreen() {
     try {
       const storeId = await AsyncStorage.getItem('@selected_store_id') || CURRENT_STORE_ID;
 
+      if (!address) {
+        Toast.show({ type: 'error', text1: 'Delivery Address Required', text2: 'Please add a delivery address to continue.' });
+        setIsProcessing(false);
+        return;
+      }
+
       const orderPayload = {
         storeId,
         customerId: CURRENT_CUSTOMER_ID,
         items: cart.map(item => ({ productId: item.product.id, quantity: item.qty })),
         delivery: {
-          address: 'Tower A, Flat 402, Sunshine Residences',
-          lat: 12.9750,
-          lng: 77.5950
+          address: `${address.flatNumber ? address.flatNumber + ', ' : ''}${address.streetAddress ? address.streetAddress + ', ' : ''}${address.address}`,
+          lat: address.latitude || 12.9750,
+          lng: address.longitude || 77.5950
         },
         deliverySlot,
         requireOtp,
@@ -84,23 +115,36 @@ export default function CheckoutScreen() {
         <Animated.View entering={SlideInDown.delay(100)} style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Delivery Address</Text>
-            <TouchableOpacity>
-              <Text style={styles.changeText}>Change</Text>
+            <TouchableOpacity onPress={() => router.push('/address-manager')}>
+              <Text style={styles.changeText}>{address ? 'Change' : 'Add'}</Text>
             </TouchableOpacity>
           </View>
-          <View style={styles.card}>
-            <View style={styles.addressRow}>
-              <View style={styles.addressIcon}>
-                <Ionicons name="home" size={20} color={Colors.primary} />
-              </View>
-              <View style={styles.addressInfo}>
-                <Text style={styles.addressTitle}>Home</Text>
-                <Text style={styles.addressText}>Tower A, Flat 402, Sunshine Residences</Text>
-                <Text style={styles.addressText}>Sector 45, Bangalore</Text>
-                <Text style={styles.phoneText}>+91 98765 43210</Text>
+          
+          {loadingAddress ? (
+             <ActivityIndicator size="small" color={Colors.primary} />
+          ) : address ? (
+            <View style={styles.card}>
+              <View style={styles.addressRow}>
+                <View style={styles.addressIcon}>
+                  <Ionicons name="home" size={20} color={Colors.primary} />
+                </View>
+                <View style={styles.addressInfo}>
+                  <Text style={styles.addressTitle}>{address.label}</Text>
+                  <Text style={styles.addressText}>{address.flatNumber ? `${address.flatNumber}, ` : ''}{address.streetAddress ? `${address.streetAddress}, ` : ''}{address.address}</Text>
+                  <Text style={styles.addressText}>{address.city}, {address.pincode}</Text>
+                </View>
               </View>
             </View>
-          </View>
+          ) : (
+            <TouchableOpacity style={styles.card} onPress={() => router.push('/address-manager')}>
+               <View style={[styles.addressRow, { alignItems: 'center' }]}>
+                 <View style={styles.addressIcon}>
+                   <Ionicons name="add" size={24} color={Colors.primary} />
+                 </View>
+                 <Text style={[styles.addressTitle, { marginBottom: 0 }]}>Select or add an address</Text>
+               </View>
+            </TouchableOpacity>
+          )}
         </Animated.View>
 
         {/* Delivery Slot */}

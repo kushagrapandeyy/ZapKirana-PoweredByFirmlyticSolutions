@@ -34,4 +34,9 @@ export class ScannerManagementController {
   async getAnalytics(@Request() req: any) {
     return this.scannerManagementService.getAnalytics(req.user.storeId);
   }
+
+  @Post('heartbeat')
+  async heartbeat(@Request() req: any, @Body() body: { deviceCode: string }) {
+    return this.scannerManagementService.heartbeatDevice(req.user.storeId, body.deviceCode);
+  }
 }

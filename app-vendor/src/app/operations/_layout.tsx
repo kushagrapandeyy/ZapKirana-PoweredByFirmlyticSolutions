@@ -1,6 +1,8 @@
 import { Stack, useRouter } from 'expo-router';
 import { BlurView } from 'expo-blur';
 import { StyleSheet, TouchableOpacity, Text } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+
 import { Ionicons } from '@expo/vector-icons';
 
 const DEEP_GREEN = '#064e3b';
