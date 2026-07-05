@@ -58,14 +58,14 @@ export declare class CatalogService {
         notes?: string;
     }): Promise<{
         id: string;
-        imageUrl: string | null;
-        createdAt: Date;
-        updatedAt: Date;
         storeId: string;
+        createdAt: Date;
         barcode: string | null;
         mrp: number | null;
         sellingPrice: number | null;
         gstRate: number;
+        imageUrl: string | null;
+        updatedAt: Date;
         suggestedName: string | null;
         suggestedBrand: string | null;
         suggestedCategory: string | null;
@@ -77,14 +77,14 @@ export declare class CatalogService {
     } | {
         alreadyPending: boolean;
         id: string;
-        imageUrl: string | null;
-        createdAt: Date;
-        updatedAt: Date;
         storeId: string;
+        createdAt: Date;
         barcode: string | null;
         mrp: number | null;
         sellingPrice: number | null;
         gstRate: number;
+        imageUrl: string | null;
+        updatedAt: Date;
         suggestedName: string | null;
         suggestedBrand: string | null;
         suggestedCategory: string | null;
@@ -102,14 +102,14 @@ export declare class CatalogService {
         } | null;
     } & {
         id: string;
-        imageUrl: string | null;
-        createdAt: Date;
-        updatedAt: Date;
         storeId: string;
+        createdAt: Date;
         barcode: string | null;
         mrp: number | null;
         sellingPrice: number | null;
         gstRate: number;
+        imageUrl: string | null;
+        updatedAt: Date;
         suggestedName: string | null;
         suggestedBrand: string | null;
         suggestedCategory: string | null;
@@ -136,14 +136,14 @@ export declare class CatalogService {
     }>;
     rejectPendingProduct(id: string, reason?: string): Promise<{
         id: string;
-        imageUrl: string | null;
-        createdAt: Date;
-        updatedAt: Date;
         storeId: string;
+        createdAt: Date;
         barcode: string | null;
         mrp: number | null;
         sellingPrice: number | null;
         gstRate: number;
+        imageUrl: string | null;
+        updatedAt: Date;
         suggestedName: string | null;
         suggestedBrand: string | null;
         suggestedCategory: string | null;
@@ -155,15 +155,13 @@ export declare class CatalogService {
     }>;
     getPersonalizedRecommendations(storeId: string, userId?: string): Promise<{
         id: string;
-        name: string;
-        isActive: boolean;
-        imageUrl: string | null;
-        description: string | null;
-        createdAt: Date;
-        updatedAt: Date;
         storeId: string;
+        isActive: boolean;
+        createdAt: Date;
+        name: string;
         barcode: string | null;
         internalSku: string;
+        description: string | null;
         category: string | null;
         mrp: number;
         sellingPrice: number;
@@ -171,6 +169,8 @@ export declare class CatalogService {
         gstRate: number;
         gstClass: import(".prisma/client").$Enums.GSTClass;
         subscriptionDiscount: number;
+        imageUrl: string | null;
+        updatedAt: Date;
         campaignId: string | null;
     }[]>;
 }

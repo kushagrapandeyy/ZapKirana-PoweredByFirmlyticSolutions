@@ -139,6 +139,8 @@ model Store {
   gstin               String?
   isActive            Boolean                   @default(true)
   imageUrl            String?
+  logoUrl             String?
+  bannerUrl           String?
   operatingHours      String? // JSON: {"mon": {"open": "08:00", "close": "22:00"}, ...}
   rating              Float                     @default(4.5)
   description         String?

@@ -1,9 +1,10 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { View, Text, StyleSheet, Image, ScrollView, TouchableOpacity, SafeAreaView, FlatList, Animated } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useCart } from '../../context/CartContext';
+import { Radius } from '../../../constants/theme';
+import { useCart } from '../../../context/CartContext';
 import { useRef, useEffect, useState } from 'react';
-import { API_BASE_URL, CURRENT_STORE_ID } from '../../constants/api';
+import { API_BASE_URL, CURRENT_STORE_ID } from '../../../constants/api';
 
 const ROYAL_BLUE = '#1D4ED8';
 const WHITE = '#FFFFFF';
@@ -11,7 +12,8 @@ const WHITE = '#FFFFFF';
 export default function ProductDetailsScreen() {
   const { id } = useLocalSearchParams();
   const router = useRouter();
-  const { addToCart } = useCart();
+  const { cart, addToCart, removeFromCart } = useCart();
+  const [isProcessing, setIsProcessing] = useState(false);
   
   const [product, setProduct] = useState<any>(null);
   const [similarItems, setSimilarItems] = useState<any[]>([]);
@@ -38,12 +40,25 @@ export default function ProductDetailsScreen() {
 
   const cartScale = useRef(new Animated.Value(1)).current;
 
+  const cartItem = product ? cart.find((c: any) => c.product.id === product.id) : null;
+  const qty = cartItem ? cartItem.qty : 0;
+
   const handleAddToCart = (item: any) => {
+    if (isProcessing) return;
+    setIsProcessing(true);
     addToCart(item);
     Animated.sequence([
-      Animated.timing(cartScale, { toValue: 1.2, duration: 100, useNativeDriver: true }),
+      Animated.timing(cartScale, { toValue: 1.1, duration: 100, useNativeDriver: true }),
       Animated.spring(cartScale, { toValue: 1, friction: 3, tension: 40, useNativeDriver: true })
     ]).start();
+    setTimeout(() => setIsProcessing(false), 200);
+  };
+
+  const handleRemoveFromCart = (id: string) => {
+    if (isProcessing) return;
+    setIsProcessing(true);
+    removeFromCart(id);
+    setTimeout(() => setIsProcessing(false), 200);
   };
 
   const renderSimilarItem = ({ item }: { item: any }) => (
@@ -63,7 +78,7 @@ export default function ProductDetailsScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView showsVerticalScrollIndicator={false}>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 150 }}>
         {/* Header Image & Back Button */}
         <View style={styles.imageContainer}>
           <Image source={{ uri: product.image }} style={styles.mainImage} />
@@ -116,11 +131,33 @@ export default function ProductDetailsScreen() {
 
       {/* Sticky Bottom Add to Cart */}
       <View style={styles.bottomBar}>
-        <Animated.View style={{ transform: [{ scale: cartScale }], flex: 1 }}>
-          <TouchableOpacity style={styles.addToCartBtn} onPress={() => handleAddToCart(product)}>
-            <Text style={styles.addToCartText}>Add to Cart</Text>
-          </TouchableOpacity>
-        </Animated.View>
+        {qty === 0 ? (
+          <Animated.View style={{ transform: [{ scale: cartScale }], flex: 1 }}>
+            <TouchableOpacity 
+              style={[styles.addToCartBtn, isProcessing && { opacity: 0.7 }]} 
+              onPress={() => handleAddToCart(product)}
+              disabled={isProcessing}
+            >
+              <Text style={styles.addToCartText}>Add to Cart</Text>
+            </TouchableOpacity>
+          </Animated.View>
+        ) : (
+          <View style={styles.splitBottomBar}>
+            <Animated.View style={[styles.premiumCounter, { transform: [{ scale: cartScale }] }]}>
+              <TouchableOpacity style={styles.premiumCounterBtn} onPress={() => handleRemoveFromCart(product.id)} disabled={isProcessing}>
+                <Ionicons name="remove" size={20} color={ROYAL_BLUE} />
+              </TouchableOpacity>
+              <Text style={styles.premiumCounterText}>{qty}</Text>
+              <TouchableOpacity style={styles.premiumCounterBtn} onPress={() => handleAddToCart(product)} disabled={isProcessing}>
+                <Ionicons name="add" size={20} color={ROYAL_BLUE} />
+              </TouchableOpacity>
+            </Animated.View>
+            <TouchableOpacity style={styles.viewCartBtn} onPress={() => router.push('/cart')}>
+              <Text style={styles.viewCartText}>View Cart</Text>
+              <Ionicons name="arrow-forward" size={18} color={WHITE} style={{ marginLeft: 4 }} />
+            </TouchableOpacity>
+          </View>
+        )}
       </View>
     </SafeAreaView>
   );
@@ -173,11 +210,11 @@ const styles = StyleSheet.create({
   smallAddBtnText: { color: ROYAL_BLUE, fontSize: 16, marginTop: -2, fontFamily: 'Inter_700Bold' },
   bottomBar: {
     position: 'absolute',
-    bottom: 0,
+    bottom: 70, // To stay above the tab bar
     left: 0,
     right: 0,
     padding: 20,
-    paddingBottom: 40,
+    paddingBottom: 20,
     backgroundColor: WHITE,
     borderTopWidth: 1,
     borderTopColor: '#f3f4f6',
@@ -185,13 +222,65 @@ const styles = StyleSheet.create({
   addToCartBtn: {
     backgroundColor: ROYAL_BLUE,
     paddingVertical: 16,
-    borderRadius: 30,
+    borderRadius: Radius.full,
     alignItems: 'center',
     width: '100%'
   },
   addToCartText: {
     color: WHITE,
-    fontSize: 18,
+    fontSize: 17,
     fontFamily: 'Inter_700Bold'
+  },
+  splitBottomBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  premiumCounter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#eff6ff',
+    borderWidth: 1,
+    borderColor: '#bfdbfe',
+    borderRadius: Radius.full,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    gap: 16,
+  },
+  premiumCounterBtn: {
+    padding: 4,
+    backgroundColor: WHITE,
+    borderRadius: Radius.full,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  premiumCounterText: {
+    fontSize: 16,
+    fontFamily: 'Inter_700Bold',
+    color: ROYAL_BLUE,
+    minWidth: 14,
+    textAlign: 'center',
+  },
+  viewCartBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    backgroundColor: ROYAL_BLUE,
+    paddingVertical: 16,
+    borderRadius: Radius.full,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: ROYAL_BLUE,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  viewCartText: {
+    color: WHITE,
+    fontSize: 16,
+    fontFamily: 'Inter_700Bold',
   }
 });

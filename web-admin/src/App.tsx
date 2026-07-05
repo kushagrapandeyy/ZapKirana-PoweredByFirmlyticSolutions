@@ -16,6 +16,7 @@ import NetworkAnalyticsPage from './pages/NetworkAnalyticsPage';
 import GstManagerPage from './pages/GstManagerPage';
 import ScannerManagement from './pages/ScannerManagement';
 import SupportOperations from './pages/support/SupportOperations';
+import AppControlPage from './pages/AppControlPage';
 
 function MainLayout() {
   return (
@@ -37,6 +38,7 @@ function MainLayout() {
             <Route path="/access-control" element={<ProtectedRoute allowedRoles={['ORG_ADMIN']}><AccessControlPage /></ProtectedRoute>} />
             <Route path="/audit" element={<ProtectedRoute allowedRoles={['ORG_ADMIN']}><AuditLogsPage /></ProtectedRoute>} />
             <Route path="/gst" element={<ProtectedRoute allowedRoles={['ORG_ADMIN']}><GstManagerPage /></ProtectedRoute>} />
+            <Route path="/app-control" element={<ProtectedRoute allowedRoles={['ORG_ADMIN']}><AppControlPage /></ProtectedRoute>} />
             
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>

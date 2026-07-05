@@ -22,8 +22,6 @@ export declare class InventoryService {
         staffId?: string;
     }): Promise<{
         id: string;
-        createdAt: Date;
-        updatedAt: Date;
         storeId: string;
         productId: string;
         batchNo: string | null;
@@ -32,11 +30,11 @@ export declare class InventoryService {
         reservedQty: number;
         blockedQty: number;
         lowStockThreshold: number;
+        createdAt: Date;
+        updatedAt: Date;
     }>;
     receiveStock(storeId: string, productId: string, qty: number, staffId?: string, batchNo?: string): Promise<{
         id: string;
-        createdAt: Date;
-        updatedAt: Date;
         storeId: string;
         productId: string;
         batchNo: string | null;
@@ -45,11 +43,11 @@ export declare class InventoryService {
         reservedQty: number;
         blockedQty: number;
         lowStockThreshold: number;
+        createdAt: Date;
+        updatedAt: Date;
     }>;
     reserveStockForOnlineOrder(storeId: string, productId: string, qty: number, orderId: string): Promise<{
         id: string;
-        createdAt: Date;
-        updatedAt: Date;
         storeId: string;
         productId: string;
         batchNo: string | null;
@@ -58,11 +56,11 @@ export declare class InventoryService {
         reservedQty: number;
         blockedQty: number;
         lowStockThreshold: number;
+        createdAt: Date;
+        updatedAt: Date;
     }>;
     processPosSale(storeId: string, productId: string, qty: number, billId: string, staffId: string): Promise<{
         id: string;
-        createdAt: Date;
-        updatedAt: Date;
         storeId: string;
         productId: string;
         batchNo: string | null;
@@ -71,6 +69,8 @@ export declare class InventoryService {
         reservedQty: number;
         blockedQty: number;
         lowStockThreshold: number;
+        createdAt: Date;
+        updatedAt: Date;
     }>;
     getAvailableStock(storeId: string, productId: string): Promise<{
         available: number;
@@ -78,75 +78,9 @@ export declare class InventoryService {
         reserved: number;
         blocked: number;
     }>;
-    getProducts(storeId?: string): Promise<({
-        campaign: {
-            id: string;
-            isActive: boolean;
-            description: string | null;
-            createdAt: Date;
-            updatedAt: Date;
-            storeId: string;
-            title: string;
-            discountPercentage: number;
-            animationType: string;
-            startsAt: Date;
-            endsAt: Date | null;
-        } | null;
-    } & {
-        id: string;
-        name: string;
-        isActive: boolean;
-        imageUrl: string | null;
-        description: string | null;
-        createdAt: Date;
-        updatedAt: Date;
-        storeId: string;
-        barcode: string | null;
-        internalSku: string;
-        category: string | null;
-        mrp: number;
-        sellingPrice: number;
-        purchaseCost: number | null;
-        gstRate: number;
-        gstClass: import(".prisma/client").$Enums.GSTClass;
-        subscriptionDiscount: number;
-        campaignId: string | null;
-    })[]>;
+    getProducts(storeId?: string): Promise<any[]>;
     getClearanceProducts(storeId: string): Promise<any[]>;
-    getNewProducts(storeId: string): Promise<({
-        campaign: {
-            id: string;
-            isActive: boolean;
-            description: string | null;
-            createdAt: Date;
-            updatedAt: Date;
-            storeId: string;
-            title: string;
-            discountPercentage: number;
-            animationType: string;
-            startsAt: Date;
-            endsAt: Date | null;
-        } | null;
-    } & {
-        id: string;
-        name: string;
-        isActive: boolean;
-        imageUrl: string | null;
-        description: string | null;
-        createdAt: Date;
-        updatedAt: Date;
-        storeId: string;
-        barcode: string | null;
-        internalSku: string;
-        category: string | null;
-        mrp: number;
-        sellingPrice: number;
-        purchaseCost: number | null;
-        gstRate: number;
-        gstClass: import(".prisma/client").$Enums.GSTClass;
-        subscriptionDiscount: number;
-        campaignId: string | null;
-    })[]>;
+    getNewProducts(storeId: string): Promise<any[]>;
     getPopularProducts(storeId: string): Promise<any[]>;
     getMovementHistory(storeId: string, productId?: string): Promise<({
         product: {
@@ -158,11 +92,11 @@ export declare class InventoryService {
         } | null;
     } & {
         id: string;
-        createdAt: Date;
         storeId: string;
-        type: import(".prisma/client").$Enums.MovementType;
         productId: string;
+        createdAt: Date;
         inventoryId: string;
+        type: import(".prisma/client").$Enums.MovementType;
         quantityChange: number;
         sourceType: string | null;
         sourceId: string | null;
@@ -180,14 +114,14 @@ export declare class InventoryService {
         } | null;
     } & {
         id: string;
-        imageUrl: string | null;
+        storeId: string;
         createdAt: Date;
         updatedAt: Date;
-        storeId: string;
         barcode: string | null;
         mrp: number | null;
         sellingPrice: number | null;
         gstRate: number;
+        imageUrl: string | null;
         suggestedName: string | null;
         suggestedBrand: string | null;
         suggestedCategory: string | null;
@@ -205,15 +139,13 @@ export declare class InventoryService {
         gstClass?: any;
     }): Promise<{
         id: string;
-        name: string;
-        isActive: boolean;
-        imageUrl: string | null;
-        description: string | null;
+        storeId: string;
         createdAt: Date;
         updatedAt: Date;
-        storeId: string;
+        name: string;
         barcode: string | null;
         internalSku: string;
+        description: string | null;
         category: string | null;
         mrp: number;
         sellingPrice: number;
@@ -221,18 +153,20 @@ export declare class InventoryService {
         gstRate: number;
         gstClass: import(".prisma/client").$Enums.GSTClass;
         subscriptionDiscount: number;
+        imageUrl: string | null;
+        isActive: boolean;
         campaignId: string | null;
     }>;
     rejectPendingProduct(id: string): Promise<{
         id: string;
-        imageUrl: string | null;
+        storeId: string;
         createdAt: Date;
         updatedAt: Date;
-        storeId: string;
         barcode: string | null;
         mrp: number | null;
         sellingPrice: number | null;
         gstRate: number;
+        imageUrl: string | null;
         suggestedName: string | null;
         suggestedBrand: string | null;
         suggestedCategory: string | null;

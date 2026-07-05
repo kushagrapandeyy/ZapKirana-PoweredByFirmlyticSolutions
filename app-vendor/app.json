@@ -1,18 +1,18 @@
 {
   "expo": {
-    "name": "Kwick Vendor",
-    "slug": "kwick-vendor",
+    "name": "ZapKirana Vendor",
+    "slug": "zapkirana-vendor",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "appvendor",
     "userInterfaceStyle": "automatic",
     "ios": {
-      "bundleIdentifier": "com.kwick.vendor",
+      "bundleIdentifier": "com.zapkirana.vendor",
       "icon": "./assets/expo.icon"
     },
     "android": {
-      "package": "com.kwick.vendor",
+      "package": "com.zapkirana.vendor",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/images/android-icon-foreground.png",

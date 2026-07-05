@@ -3,6 +3,7 @@ import { StyleSheet, Text, View, TouchableOpacity, SafeAreaView } from 'react-na
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import Animated, { FadeIn, FadeInDown, ZoomIn, useSharedValue, useAnimatedStyle, withSpring, withTiming, Easing, withRepeat, withSequence, withDelay } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
+import LottieView from 'lottie-react-native';
 import { Colors, Shadows, Radius } from '../constants/theme';
 
 export default function OrderConfirmationScreen() {
@@ -46,10 +47,12 @@ export default function OrderConfirmationScreen() {
         
         {/* Creative Animation Container */}
         <View style={styles.animationContainer}>
-          <Animated.View style={[styles.glowRing, animatedRingStyle]} />
-          <Animated.View entering={ZoomIn.duration(800).easing(Easing.out(Easing.back(1.5)))} style={styles.iconCircle}>
-            <Ionicons name="checkmark" size={60} color="#fff" />
-          </Animated.View>
+          <LottieView 
+            source={require('../../assets/lottie/payment-success.json')}
+            autoPlay
+            loop={false}
+            style={{ width: 160, height: 160 }}
+          />
         </View>
 
         <Animated.View entering={FadeInDown.delay(300).duration(600).easing(Easing.out(Easing.cubic))} style={{ alignItems: 'center', width: '100%' }}>

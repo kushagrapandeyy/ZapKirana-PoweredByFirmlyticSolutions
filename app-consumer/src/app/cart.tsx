@@ -16,7 +16,7 @@ export default function CartScreen() {
     cart.forEach(item => {
       const sId = item.product.storeId || 'unknown';
       if (!groups[sId]) {
-        groups[sId] = { storeName: item.product.storeName || 'Kwick Store', items: [] };
+        groups[sId] = { storeName: item.product.storeName || 'ZapKirana Store', items: [] };
       }
       groups[sId].items.push(item);
     });
@@ -107,7 +107,7 @@ export default function CartScreen() {
             <Text style={styles.deliveryInfoText} numberOfLines={1}>
               {storeCount > 1 
                 ? `Fulfilling from ${storeCount} stores` 
-                : `From ${Object.values(groupedCart)[0]?.storeName || 'Kwick Local Store'}`}
+                : `From ${Object.values(groupedCart)[0]?.storeName || 'ZapKirana Local Store'}`}
             </Text>
           </View>
         </View>
@@ -125,11 +125,17 @@ export default function CartScreen() {
                 key={item.product.id + '-' + index} 
                 style={styles.cartItem}
               >
-                <Image source={{ uri: item.product.image }} style={styles.itemImage} />
-                <View style={styles.itemDetails}>
-                  <Text style={styles.itemName} numberOfLines={2}>{item.product.name}</Text>
-                  <Text style={styles.itemPrice}>₹{item.product.price || 0}</Text>
-                </View>
+                <TouchableOpacity 
+                  style={{ flexDirection: 'row', flex: 1, alignItems: 'center' }} 
+                  onPress={() => router.push(`/product/${item.product.id}`)}
+                  activeOpacity={0.7}
+                >
+                  <Image source={{ uri: item.product.image }} style={styles.itemImage} />
+                  <View style={styles.itemDetails}>
+                    <Text style={styles.itemName} numberOfLines={2}>{item.product.name}</Text>
+                    <Text style={styles.itemPrice}>₹{item.product.price || 0}</Text>
+                  </View>
+                </TouchableOpacity>
                 <View style={styles.qtyControls}>
                   <TouchableOpacity style={styles.qtyBtn} onPress={() => removeFromCart(item.product.id)}>
                     <Ionicons name={item.qty === 1 ? "trash-outline" : "remove"} size={16} color={item.qty === 1 ? Colors.danger : Colors.primary} />
@@ -244,9 +250,37 @@ const styles = StyleSheet.create({
   itemDetails: { flex: 1 },
   itemName: { fontSize: 14, fontFamily: 'Inter_600SemiBold', color: Colors.textPrimary, marginBottom: 6 },
   itemPrice: { fontSize: 15, fontFamily: 'Inter_700Bold', color: Colors.textPrimary },
-  qtyControls: { flexDirection: 'row', alignItems: 'center', backgroundColor: Colors.primaryGhost, borderRadius: Radius.full, borderWidth: 1, borderColor: Colors.primaryLight },
-  qtyBtn: { width: 32, height: 32, justifyContent: 'center', alignItems: 'center' },
-  qtyText: { fontSize: 14, fontFamily: 'Inter_700Bold', color: Colors.textPrimary, width: 24, textAlign: 'center' },
+  qtyControls: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    backgroundColor: '#eff6ff', 
+    borderWidth: 1, 
+    borderColor: '#bfdbfe', 
+    borderRadius: Radius.full, 
+    paddingVertical: 6, 
+    paddingHorizontal: 8, 
+    gap: 10,
+  },
+  qtyBtn: { 
+    width: 28, 
+    height: 28, 
+    justifyContent: 'center', 
+    alignItems: 'center',
+    backgroundColor: Colors.surface,
+    borderRadius: Radius.full,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  qtyText: { 
+    fontSize: 15, 
+    fontFamily: 'Inter_700Bold', 
+    color: '#1D4ED8', 
+    minWidth: 20, 
+    textAlign: 'center' 
+  },
   
   couponCard: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: Colors.surface, padding: 16, borderRadius: Radius.lg, ...Shadows.sm },
   couponLeft: { flexDirection: 'row', alignItems: 'center', gap: 10 },

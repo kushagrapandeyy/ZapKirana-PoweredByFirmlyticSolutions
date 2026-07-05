@@ -8,13 +8,13 @@ import { useState } from 'react';
 import { TouchableOpacity } from 'react-native';
 
 import { useAuth } from '../../context/AuthContext';
-import CommandOverlay from '../../components/CommandOverlay';
+import CommandStrip from '../../components/CommandStrip';
 
 const DEEP_GREEN = '#064e3b'; // Premium grocery green
 
 export default function TabLayout() {
   const { role } = useAuth();
-  const [hubVisible, setHubVisible] = useState(false);
+  
   
   
   const isDelivery = role === 'DELIVERY';
@@ -23,6 +23,7 @@ export default function TabLayout() {
 
   return (
     <>
+      {(isManagerOrOwner || isStaff) && <View style={{paddingTop: 45, backgroundColor: '#fff'}}><CommandStrip /></View>}
       <Tabs
         screenOptions={{
         headerShown: false,
@@ -185,7 +186,7 @@ export default function TabLayout() {
       />
       </Tabs>
       
-      <CommandOverlay visible={hubVisible} onClose={() => setHubVisible(false)} />
+      
     </>
   );
 }

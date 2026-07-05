@@ -47,7 +47,7 @@ export default function LoginScreen() {
     <View style={styles.container}>
       <View style={styles.logoContainer}>
         <ScanBarcode size={64} color="#0EA5E9" />
-        <Text style={styles.title}>Kwick Scanner</Text>
+        <Text style={styles.title}>ZapKirana Scanner</Text>
         <Text style={styles.subtitle}>Kirana Operating System</Text>
       </View>
 

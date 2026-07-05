@@ -41,8 +41,8 @@ export default function StoreSelector() {
       console.error('Failed to find nearby stores:', err);
       // Fallback: mock a store if backend is unreachable
       setStores([{
-        id: 'mock-kwick-1',
-        name: 'Kwick Society Store',
+        id: 'mock-zapkirana-1',
+        name: 'ZapKirana Society Store',
         distanceKm: 0.8,
         categories: ['Fresh produce', 'Dairy', 'Snacks', 'Daily essentials'],
         rating: 4.8,
@@ -145,7 +145,7 @@ export default function StoreSelector() {
             <Animated.View entering={FadeIn.delay(500)} style={styles.footerPlaceholder}>
               <Text style={styles.footerTitle}>Your active grocery store</Text>
               <Text style={styles.footerText}>
-                {stores[0]?.name || 'Kwick Society Store'} is currently the only verified store serving this location. 
+                {stores[0]?.name || 'ZapKirana Society Store'} is currently the only verified store serving this location. 
                 Multi-store ordering is coming soon.
               </Text>
             </Animated.View>

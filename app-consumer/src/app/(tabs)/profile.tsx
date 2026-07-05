@@ -18,8 +18,10 @@ export default function ProfileScreen() {
 
   const menuGroups = [
     {
-      title: 'Food & Orders',
+      title: 'ZipKirana Services',
       items: [
+        { icon: 'wallet-outline', label: 'ZipPay & ZipCredits', route: null },
+        { icon: 'pricetags-outline', label: 'ZipOffers', route: null },
         { icon: 'receipt-outline', label: 'Your Orders', route: '/(tabs)/orders' },
         { icon: 'calendar-outline', label: 'Subscriptions', route: '/subscriptions', badge: 'New' },
         { icon: 'heart-outline', label: 'Favorite Items', route: null },
@@ -28,6 +30,7 @@ export default function ProfileScreen() {
     {
       title: 'Account Settings',
       items: [
+        { icon: 'notifications-outline', label: 'Dynamic Notification Engine', route: '/(tabs)/notifications-settings', badge: 'New' },
         { icon: 'person-outline', label: 'Personal Information', route: null },
         { icon: 'location-outline', label: 'Saved Addresses', route: null },
         { icon: 'card-outline', label: 'Payment Methods', route: null },
@@ -72,7 +75,7 @@ export default function ProfileScreen() {
           <View style={styles.statBox}>
             <Ionicons name="wallet-outline" size={24} color={Colors.primary} style={styles.statIcon} />
             <Text style={styles.statValue}>₹450</Text>
-            <Text style={styles.statLabel}>Kwick Wallet</Text>
+            <Text style={styles.statLabel}>ZipCash</Text>
           </View>
           <View style={styles.statDivider} />
           <View style={styles.statBox}>
@@ -122,7 +125,7 @@ export default function ProfileScreen() {
             <Ionicons name="log-out-outline" size={20} color={Colors.danger} />
             <Text style={styles.logoutText}>Log Out</Text>
           </TouchableOpacity>
-          <Text style={styles.versionText}>Kwick App v1.0.0</Text>
+          <Text style={styles.versionText}>ZipKirana OS v1.0.0</Text>
         </Animated.View>
 
         <View style={{ height: 100 }} />

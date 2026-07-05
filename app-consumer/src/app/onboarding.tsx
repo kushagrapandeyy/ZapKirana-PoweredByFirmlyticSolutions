@@ -43,7 +43,7 @@ export default function BrandWelcomeScreen() {
             <View style={styles.logoBadge}>
               <Ionicons name="basket" size={42} color={Colors.surface} />
             </View>
-            <Text style={styles.brandName}>Kwick</Text>
+            <Text style={styles.brandName}>ZapKirana</Text>
           </Animated.View>
 
           <Animated.View style={[styles.textContainer, heroAnim]}>

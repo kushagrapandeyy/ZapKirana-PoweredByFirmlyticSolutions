@@ -8,11 +8,11 @@
     "scheme": "appscanner",
     "userInterfaceStyle": "automatic",
     "ios": {
-      "bundleIdentifier": "com.kwick.scanner",
+      "bundleIdentifier": "com.zapkirana.scanner",
       "icon": "./assets/expo.icon"
     },
     "android": {
-      "package": "com.kwick.scanner",
+      "package": "com.zapkirana.scanner",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/images/android-icon-foreground.png",

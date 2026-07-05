@@ -23,7 +23,7 @@ async function main() {
     update: {},
     create: {
       id: 'synth-org',
-      name: 'Kwick Synthetic Network',
+      name: 'ZapKirana Synthetic Network',
       plan: 'PRO'
     }
   });
@@ -38,9 +38,9 @@ async function main() {
     update: { role: 'OWNER' },
     create: {
       id: mockUserId,
-      email: 'mock.dev@kwick.com',
+      email: 'mock.dev@zapkirana.com',
       password: defaultPassword,
-      name: 'Kwick Mock User',
+      name: 'ZapKirana Mock User',
       phone: '+919999999999',
       role: 'OWNER',
       organizationId: org.id
@@ -162,7 +162,7 @@ async function main() {
   // Since our schema maps products per store, we should insert them into the global store or copy to each store.
   // The synthetic JSON has store_inventory referencing item_id. 
   // Let's create these as global products or duplicate per store. 
-  // Wait, in Zapkirana/Kwick, products are store-scoped. Let's create them for every store!
+  // Wait, in Zapkirana/ZapKirana, products are store-scoped. Let's create them for every store!
   const totalItems = data.catalog_items.length;
   for (let i = 0; i < totalItems; i += 50) {
     const chunk = data.catalog_items.slice(i, i + 50);
@@ -303,7 +303,7 @@ async function main() {
             totalAmount,
             deliveryFee: 30,
             gstAmount: totalAmount * 0.05,
-            deliveryAddress: 'Mock Delivery Address, Sector 4, Kwick City',
+            deliveryAddress: 'Mock Delivery Address, Sector 4, ZapKirana City',
             deliveryLat: 28.5,
             deliveryLng: 77.2,
             requireOtp: status === 'OUT_FOR_DELIVERY',

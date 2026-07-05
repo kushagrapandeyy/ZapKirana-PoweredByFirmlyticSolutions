@@ -28,6 +28,7 @@ export default function Sidebar() {
             <Link to="/access-control" className={`nav-item ${active === '/access-control' ? 'active' : ''}`}><ShieldAlert size={20} /> Access Control</Link>
             <Link to="/audit" className={`nav-item ${active === '/audit' ? 'active' : ''}`}><ShieldCheck size={20} /> Audit Trail</Link>
             <Link to="/gst" className={`nav-item ${active === '/gst' ? 'active' : ''}`}><Calculator size={20} /> GST Manager</Link>
+            <Link to="/app-control" className={`nav-item ${active === '/app-control' ? 'active' : ''}`}><LayoutDashboard size={20} /> App Control Center</Link>
           </>
         )}
       </nav>

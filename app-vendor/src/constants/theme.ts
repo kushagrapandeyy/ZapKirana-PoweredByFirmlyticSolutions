@@ -1,4 +1,4 @@
-// Kwick Design System — Premium Grocery OS
+// ZapKirana Design System — Premium Grocery OS
 // Warm off-white, Deep Green, Muted Gold
 
 export const Colors = {

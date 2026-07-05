@@ -190,36 +190,41 @@ export class InventoryService {
   }
 
   async getProducts(storeId?: string) {
-    return this.prisma.product.findMany({
+    const cacheKey = `inventory:products:${storeId || 'all'}`;
+    const cached = await this.cache.get<any[]>(cacheKey);
+    if (cached) return cached;
+
+    const products = await this.prisma.product.findMany({
       where: storeId ? { storeId, isActive: true } : { isActive: true },
       include: {
         campaign: true,
       }
     });
+
+    await this.cache.set(cacheKey, products, 300); // Cache for 5 minutes
+    return products;
   }
 
   async getClearanceProducts(storeId: string) {
-    // Return products that have inventory expiring within 3 days
+    const cacheKey = `inventory:clearance:${storeId}`;
+    const cached = await this.cache.get<any[]>(cacheKey);
+    if (cached) return cached;
+
     const threeDaysFromNow = new Date();
     threeDaysFromNow.setDate(threeDaysFromNow.getDate() + 3);
 
     const expiringInventory = await this.prisma.inventory.findMany({
       where: {
         storeId,
-        expiryDate: {
-          lte: threeDaysFromNow,
-          gte: new Date(),
-        },
+        expiryDate: { lte: threeDaysFromNow, gte: new Date() },
         onHandQty: { gt: 0 },
       },
       include: { product: true },
     });
 
-    // Deduplicate products if they have multiple expiring batches
     const productMap = new Map();
     for (const inv of expiringInventory) {
       if (!productMap.has(inv.productId)) {
-        // Automatically calculate a clearance selling price (e.g., 30% off standard selling price)
         const clearanceProduct = {
           ...inv.product,
           originalPrice: inv.product.sellingPrice,
@@ -231,28 +236,32 @@ export class InventoryService {
       }
     }
 
-    return Array.from(productMap.values());
+    const result = Array.from(productMap.values());
+    await this.cache.set(cacheKey, result, 600); // Cache for 10 minutes
+    return result;
   }
 
   async getNewProducts(storeId: string) {
-    // Return products added in the last 7 days
+    const cacheKey = `inventory:new:${storeId}`;
+    const cached = await this.cache.get<any[]>(cacheKey);
+    if (cached) return cached;
+
     const sevenDaysAgo = new Date();
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
-    return this.prisma.product.findMany({
+    const result = await this.prisma.product.findMany({
       where: {
         storeId,
         isActive: true,
-        createdAt: {
-          gte: sevenDaysAgo,
-        },
+        createdAt: { gte: sevenDaysAgo },
       },
       orderBy: { createdAt: 'desc' },
       take: 15,
-      include: {
-        campaign: true,
-      }
+      include: { campaign: true }
     });
+
+    await this.cache.set(cacheKey, result, 600); // Cache for 10 minutes
+    return result;
   }
 
   async getPopularProducts(storeId: string) {

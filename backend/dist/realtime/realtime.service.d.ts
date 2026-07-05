@@ -4,4 +4,5 @@ export declare class RealtimeService {
     constructor();
     broadcastOrderUpdate(storeId: string, orderId: string, payload: any): Promise<void>;
     broadcastInventoryUpdate(storeId: string, productId: string, payload: any): Promise<void>;
+    broadcastSubscriptionUpdate(storeId: string, payload: any): Promise<void>;
 }

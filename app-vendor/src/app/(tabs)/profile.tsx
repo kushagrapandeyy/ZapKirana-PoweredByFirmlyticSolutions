@@ -2,6 +2,7 @@ import React from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
+import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth, Role } from '@/context/AuthContext';
 
@@ -10,6 +11,7 @@ const WHITE = '#FFFFFF';
 
 export default function ProfileScreen() {
   const { role, phone, tenantId, logout, updateRole } = useAuth();
+  const router = useRouter();
 
   const handleRoleChange = async (newRole: Role) => {
     await updateRole(newRole);
@@ -46,12 +48,15 @@ export default function ProfileScreen() {
             </View>
             <View style={styles.infoRow}>
               <Text style={styles.infoLabel}>Store Name</Text>
-              <Text style={styles.infoValue}>Kwick Main Store</Text>
+              <Text style={styles.infoValue}>ZapKirana Main Store</Text>
             </View>
             <View style={styles.infoRow}>
               <Text style={styles.infoLabel}>GST Number</Text>
               <Text style={styles.infoValue}>29GGGGG1314R9Z6</Text>
             </View>
+            <TouchableOpacity style={{ marginTop: 16, backgroundColor: '#eff6ff', padding: 12, borderRadius: 8, alignItems: 'center' }} onPress={() => router.push('/store-branding')}>
+              <Text style={{ color: '#1D4ED8', fontFamily: 'Inter_600SemiBold' }}>Store Branding Settings</Text>
+            </TouchableOpacity>
           </View>
         )}
 

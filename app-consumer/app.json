@@ -1,18 +1,18 @@
 {
   "expo": {
-    "name": "Kwick",
-    "slug": "kwick-consumer",
+    "name": "ZapKirana",
+    "slug": "zapkirana-consumer",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "appconsumer",
     "userInterfaceStyle": "automatic",
     "ios": {
-      "bundleIdentifier": "com.kwick.consumer",
+      "bundleIdentifier": "com.zapkirana.consumer",
       "icon": "./assets/expo.icon"
     },
     "android": {
-      "package": "com.kwick.consumer",
+      "package": "com.zapkirana.consumer",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/images/android-icon-foreground.png",

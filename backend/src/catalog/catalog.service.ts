@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
+import { CacheService } from '../cache/cache.service';
 
 const OPEN_FOOD_FACTS_URL = 'https://world.openfoodfacts.org/api/v2/product';
 

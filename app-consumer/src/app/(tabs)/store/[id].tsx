@@ -1,30 +1,25 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { StyleSheet, Text, View, ScrollView, TouchableOpacity, Image, SafeAreaView, FlatList, Dimensions, RefreshControl } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { useCart } from '../../context/CartContext';
+import { useCart } from '../../../context/CartContext';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown, FadeIn, useSharedValue, useAnimatedStyle, withSpring, withSequence } from 'react-native-reanimated';
-import { Colors, Shadows, Radius } from '../../constants/theme';
-import { API_BASE_URL, SUPABASE_URL, SUPABASE_ANON_KEY } from '../../constants/api';
+import { Colors, Shadows, Radius } from '../../../constants/theme';
+import { API_BASE_URL, SUPABASE_URL, SUPABASE_ANON_KEY } from '../../../constants/api';
 import { createClient } from '@supabase/supabase-js';
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 const { width } = Dimensions.get('window');
 
-const CATEGORIES = [
-  { name: 'All', icon: 'grid-outline' },
-  { name: 'Offers', icon: 'pricetag-outline' },
-  { name: 'Dairy & Eggs', icon: 'water-outline' },
-  { name: 'Bakery', icon: 'cafe-outline' },
-  { name: 'Snacks', icon: 'fast-food-outline' },
-];
+// Dynamic categories will be computed in the component based on products.
 
 export default function StoreScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams();
   const storeId = Array.isArray(id) ? id[0] : id;
   const { cart, addToCart, removeFromCart, cartItemsCount } = useCart();
+  const [isProcessing, setIsProcessing] = useState(false);
   
   const [products, setProducts] = useState<any[]>([]);
   const [store, setStore] = useState<any>(null);
@@ -67,7 +62,7 @@ export default function StoreScreen() {
         setStore(await storeRes.json());
       } else {
         // Fallback mock store if API fails
-        setStore({ id: storeId, name: 'Kwick Partner Store', categories: ['General'] });
+        setStore({ id: storeId, name: 'ZapKirana Partner Store', categories: ['General'] });
         setProducts([
           { id: 'p1', name: 'Fresh Milk 1L', price: 65, category: 'Dairy & Eggs', image: 'https://placehold.co/300x300/f1f5f9/64748b?text=Milk', gstClass: 'EXEMPT' },
           { id: 'p2', name: 'Whole Wheat Bread', price: 40, category: 'Bakery', image: 'https://placehold.co/300x300/f1f5f9/64748b?text=Bread', gstClass: 'EXEMPT' },
@@ -76,7 +71,7 @@ export default function StoreScreen() {
       }
     } catch (err) {
       console.error(err);
-      setStore({ id: storeId, name: 'Kwick Partner Store (Offline)' });
+      setStore({ id: storeId, name: 'ZapKirana Partner Store (Offline)' });
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -113,21 +108,49 @@ export default function StoreScreen() {
 
 
   const handleAddToCart = (product: any) => {
+    if (isProcessing) return;
+    setIsProcessing(true);
     const productWithStore = {
       ...product,
       storeId: storeId,
-      storeName: store?.name || 'Kwick Store',
+      storeName: store?.name || 'ZapKirana Store',
     };
     addToCart(productWithStore);
     cartScale.value = withSequence(
       withSpring(1.3, { damping: 4 }),
       withSpring(1)
     );
+    setTimeout(() => setIsProcessing(false), 200);
   };
+  
+  const handleRemoveFromCart = (productId: string) => {
+    if (isProcessing) return;
+    setIsProcessing(true);
+    removeFromCart(productId);
+    setTimeout(() => setIsProcessing(false), 200);
+  };
+
+  const dynamicCategories = useMemo(() => {
+    const uniqueCats = Array.from(new Set(products.map(p => p.category))).filter(Boolean);
+    const getIcon = (catName: string) => {
+      const l = catName.toLowerCase();
+      if (l.includes('dairy') || l.includes('egg')) return 'water-outline';
+      if (l.includes('offer')) return 'pricetag-outline';
+      if (l.includes('bake')) return 'cafe-outline';
+      if (l.includes('snack')) return 'fast-food-outline';
+      if (l.includes('grocery')) return 'basket-outline';
+      if (l.includes('fresh')) return 'leaf-outline';
+      return 'grid-outline';
+    };
+    return [
+      { name: 'All', icon: 'grid-outline' },
+      ...uniqueCats.map(c => ({ name: c as string, icon: getIcon(c as string) }))
+    ];
+  }, [products]);
 
   const filteredProducts = activeCategory === 0 
     ? products 
-    : products.filter(p => p.category === CATEGORIES[activeCategory].name);
+    : products.filter(p => p.category === dynamicCategories[activeCategory]?.name);
 
   const renderProduct = ({ item, index }: { item: any; index: number }) => {
     const cartItem = cart.find(c => c.product.id === item.id);
@@ -156,15 +179,17 @@ export default function StoreScreen() {
           <Text style={styles.productCategory}>{item.category}</Text>
           <Text style={styles.productName} numberOfLines={2}>{item.name}</Text>
           <View style={styles.productFooter}>
-            <Text style={styles.productPrice}>₹{item.price}</Text>
+            <View style={{ flexShrink: 1, marginRight: 8 }}>
+              <Text style={styles.productPrice} adjustsFontSizeToFit numberOfLines={1}>₹{item.price}</Text>
+            </View>
             {qty > 0 ? (
               <View style={styles.qtyControls}>
-                <TouchableOpacity style={styles.qtyBtn} onPress={() => removeFromCart(item.id)}>
-                  <Ionicons name="remove" size={16} color={Colors.primary} />
+                <TouchableOpacity style={styles.qtyBtn} onPress={() => handleRemoveFromCart(item.id)} disabled={isProcessing}>
+                  <Ionicons name="remove" size={16} color="#1D4ED8" />
                 </TouchableOpacity>
                 <Text style={styles.qtyText}>{qty}</Text>
-                <TouchableOpacity style={[styles.qtyBtn, styles.qtyBtnAdd]} onPress={() => { if (item.stockStatus !== 'OUT_OF_STOCK') handleAddToCart(item); }}>
-                  <Ionicons name="add" size={16} color="#fff" />
+                <TouchableOpacity style={[styles.qtyBtn, styles.qtyBtnAdd]} onPress={() => { if (item.stockStatus !== 'OUT_OF_STOCK') handleAddToCart(item); }} disabled={isProcessing}>
+                  <Ionicons name="add" size={16} color="#1D4ED8" />
                 </TouchableOpacity>
               </View>
             ) : (
@@ -208,7 +233,7 @@ export default function StoreScreen() {
         ListHeaderComponent={
           <View>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.categoryScroll} contentContainerStyle={styles.categoryContent}>
-              {CATEGORIES.map((cat, idx) => (
+              {dynamicCategories.map((cat, idx) => (
                 <TouchableOpacity 
                   key={idx} 
                   style={[styles.categoryChip, idx === activeCategory && styles.categoryChipActive]}
@@ -224,7 +249,7 @@ export default function StoreScreen() {
 
             <View style={styles.sectionHeader}>
               <Text style={styles.sectionTitle}>
-                {activeCategory === 0 ? 'All Products' : CATEGORIES[activeCategory].name}
+                {activeCategory === 0 ? 'All Products' : dynamicCategories[activeCategory]?.name}
               </Text>
               <Text style={styles.sectionCount}>{filteredProducts.length} items</Text>
             </View>
@@ -272,10 +297,10 @@ const styles = StyleSheet.create({
   productName: { fontSize: 14, color: Colors.textPrimary, fontFamily: 'Inter_600SemiBold', marginBottom: 8, lineHeight: 18, height: 36 },
   productFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   productPrice: { fontSize: 16, color: Colors.textPrimary, fontFamily: 'Inter_700Bold' },
-  addBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: Colors.primaryGhost, paddingHorizontal: 12, paddingVertical: 7, borderRadius: Radius.md, borderWidth: 1, borderColor: 'rgba(6, 78, 59, 0.1)' },
-  addBtnText: { color: Colors.primary, fontSize: 13, fontFamily: 'Inter_600SemiBold' },
-  qtyControls: { flexDirection: 'row', alignItems: 'center', backgroundColor: Colors.primaryGhost, borderRadius: Radius.md, overflow: 'hidden', borderWidth: 1, borderColor: 'rgba(6, 78, 59, 0.1)' },
-  qtyBtn: { width: 30, height: 30, justifyContent: 'center', alignItems: 'center' },
-  qtyBtnAdd: { backgroundColor: Colors.primary },
-  qtyText: { fontSize: 14, fontFamily: 'Inter_700Bold', color: Colors.primaryDark, paddingHorizontal: 8 },
+  addBtn: { flexShrink: 0, flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: '#eff6ff', paddingHorizontal: 12, paddingVertical: 7, borderRadius: Radius.full, borderWidth: 1, borderColor: '#bfdbfe' },
+  addBtnText: { color: '#1D4ED8', fontSize: 13, fontFamily: 'Inter_600SemiBold' },
+  qtyControls: { flexShrink: 0, flexDirection: 'row', alignItems: 'center', backgroundColor: '#eff6ff', borderRadius: Radius.full, borderWidth: 1, borderColor: '#bfdbfe', gap: 6, paddingVertical: 4, paddingHorizontal: 6 },
+  qtyBtn: { width: 26, height: 26, justifyContent: 'center', alignItems: 'center', backgroundColor: '#fff', borderRadius: Radius.full, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.1, shadowRadius: 2, elevation: 2 },
+  qtyBtnAdd: { }, // removed primary background
+  qtyText: { fontSize: 13, fontFamily: 'Inter_700Bold', color: '#1D4ED8', paddingHorizontal: 4, minWidth: 16, textAlign: 'center' },
 });

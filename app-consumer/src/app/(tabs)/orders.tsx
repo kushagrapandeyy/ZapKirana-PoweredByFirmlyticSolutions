@@ -81,12 +81,7 @@ export default function OrdersScreen() {
     }
   };
 
-  const renderOrder = ({ item, index }: { item: any; index: number }) => {
-    const isDelivered = item.status === 'DELIVERED';
-    const statusColor = getStatusColor(item.status);
-
-    
-  const renderSubscription = ({ item, index }: { item: any; index: number }) => (
+  const renderSubscriptionItem = ({ item, index }: { item: any; index: number }) => (
     <Animated.View entering={FadeInDown.delay(index * 100).springify()} style={styles.orderCard}>
       <View style={styles.orderHeader}>
         <Text style={styles.storeName}>{item.store?.name || 'Store'}</Text>
@@ -123,7 +118,11 @@ export default function OrdersScreen() {
     </Animated.View>
   );
 
-  return (
+  const renderOrder = ({ item, index }: { item: any; index: number }) => {
+    const isDelivered = item.status === 'DELIVERED';
+    const statusColor = getStatusColor(item.status);
+
+    return (
       <Animated.View entering={FadeInDown.delay(index * 100).springify()}>
         <TouchableOpacity 
           style={styles.orderCard} 
@@ -132,7 +131,7 @@ export default function OrdersScreen() {
         >
           <View style={styles.orderHeader}>
             <View>
-              <Text style={styles.storeName}>Kwick Local Store</Text>
+              <Text style={styles.storeName}>ZapKirana Local Store</Text>
               <Text style={styles.orderDate}>
                 {new Date(item.createdAt).toLocaleDateString('en-IN', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
               </Text>
@@ -218,7 +217,7 @@ export default function OrdersScreen() {
       ) : displayData.length > 0 ? (
         <FlatList
           data={displayData}
-          renderItem={activeTab === 'SUBS' ? renderSubscription : renderOrder}
+          renderItem={activeTab === 'SUBS' ? renderSubscriptionItem : renderOrder}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}

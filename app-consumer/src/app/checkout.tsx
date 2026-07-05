@@ -420,7 +420,7 @@ export default function CheckoutScreen() {
           <Animated.View entering={FadeIn.duration(200)} exiting={FadeOut.duration(200)} style={styles.rzOverlay}>
             <TouchableOpacity style={StyleSheet.absoluteFill} activeOpacity={1} onPress={() => setShowRazorpay(false)} />
             
-            <Animated.View entering={SlideInDown.springify().damping(20)} exiting={SlideOutDown.duration(200)} style={styles.rzSheet}>
+            <Animated.View entering={SlideInDown.duration(300)} exiting={SlideOutDown.duration(200)} style={styles.rzSheet}>
               <View style={styles.rzHeader}>
                 <View style={styles.rzLogo}>
                   <Text style={styles.rzLogoText}>₹</Text>

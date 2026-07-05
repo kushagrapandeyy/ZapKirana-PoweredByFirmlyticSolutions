@@ -59,7 +59,7 @@ export default function RegisterScreen() {
 
           <Animated.View entering={FadeInDown} style={styles.titleSection}>
             <Text style={styles.title}>Create Account</Text>
-            <Text style={styles.subtitle}>Join Kwick to get fresh groceries delivered</Text>
+            <Text style={styles.subtitle}>Join ZapKirana to get fresh groceries delivered</Text>
           </Animated.View>
 
           <Animated.View entering={FadeInDown.delay(100)} style={styles.form}>

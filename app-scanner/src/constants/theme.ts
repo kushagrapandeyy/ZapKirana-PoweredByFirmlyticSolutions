@@ -1,4 +1,4 @@
-// Kwick Design System — Scanner Dark Utility Mode
+// ZapKirana Design System — Scanner Dark Utility Mode
 // True black, high contrast, neon green accents
 
 import { Platform } from 'react-native';

@@ -48,7 +48,7 @@ export const startDeliveryTracking = async () => {
         deferredUpdatesInterval: 1000,
         showsBackgroundLocationIndicator: true, // Required for iOS
         foregroundService: {
-          notificationTitle: "Kwick Delivery",
+          notificationTitle: "ZapKirana Delivery",
           notificationBody: "Tracking your active delivery",
           notificationColor: "#10b981", // Brand Green
         }

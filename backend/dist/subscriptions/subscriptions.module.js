@@ -8,6 +8,7 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.SubscriptionsModule = void 0;
 const common_1 = require("@nestjs/common");
+const realtime_module_1 = require("../realtime/realtime.module");
 const subscriptions_service_1 = require("./subscriptions.service");
 const subscriptions_controller_1 = require("./subscriptions.controller");
 const prisma_service_1 = require("../prisma.service");
@@ -17,7 +18,7 @@ let SubscriptionsModule = class SubscriptionsModule {
 exports.SubscriptionsModule = SubscriptionsModule;
 exports.SubscriptionsModule = SubscriptionsModule = __decorate([
     (0, common_1.Module)({
-        imports: [event_emitter_1.EventEmitterModule.forRoot()],
+        imports: [realtime_module_1.RealtimeModule, event_emitter_1.EventEmitterModule.forRoot()],
         providers: [subscriptions_service_1.SubscriptionsService, prisma_service_1.PrismaService],
         controllers: [subscriptions_controller_1.SubscriptionsController],
         exports: [subscriptions_service_1.SubscriptionsService],

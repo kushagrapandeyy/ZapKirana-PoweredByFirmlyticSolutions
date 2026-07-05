@@ -24,6 +24,23 @@ export class AppController {
   }
 
   @Public()
+  @Post('stores/:id')
+  async updateStore(@Param('id') id: string, @Query('logoUrl') logoUrl: string, @Query('bannerUrl') bannerUrl: string, @Query('imageUrl') imageUrl: string, @Query('name') name: string) {
+    // In a real app we would use a DTO and Body, but here we can just update what's passed for quick prototyping
+    const data: any = {};
+    if (logoUrl) data.logoUrl = logoUrl;
+    if (bannerUrl) data.bannerUrl = bannerUrl;
+    if (imageUrl) data.imageUrl = imageUrl;
+    if (name) data.name = name;
+
+    const store = await this.prisma.store.update({
+      where: { id },
+      data
+    });
+    return store;
+  }
+
+  @Public()
   @Get('stores/:id/staff')
   async getStoreStaff(@Param('id') storeId: string) {
     return this.prisma.user.findMany({

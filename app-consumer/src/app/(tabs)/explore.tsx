@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, Dimensions, StatusBar, Image, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import Animated, { FadeInDown, FadeIn, SlideInRight } from 'react-native-reanimated';
 import { Colors, Shadows, Radius } from '../../constants/theme';
 import { API_BASE_URL } from '../../constants/api';
@@ -49,7 +50,7 @@ export default function ExploreScreen() {
             const prodRes = await fetch(`${API_BASE_URL}/inventory/products?storeId=${store.id}`);
             if (prodRes.ok) {
               const prodData = await prodRes.json();
-              productsMap[store.id] = prodData.slice(0, 4); // Keep top 4
+              productsMap[store.id] = prodData; // Keep all products for filtering
             }
           } catch (e) {
             // silent fail
@@ -70,6 +71,11 @@ export default function ExploreScreen() {
 
   const navigateToProduct = (productId: string, storeId: string) => {
     router.push(`/product/${productId}`);
+  };
+
+  const setAsHomeStore = async (storeId: string) => {
+    await AsyncStorage.setItem('@selected_store_id', storeId);
+    router.replace('/');
   };
 
   const renderProductCard = (product: any, storeId: string) => (
@@ -144,13 +150,17 @@ export default function ExploreScreen() {
               
               // Filter products based on active filter if it's not the default
               const allItems = storeProducts[store.id] || [];
-              const featuredItems = activeFilter === FILTERS[0] || activeFilter === 'Fastest Delivery' 
+              const isGenericFilter = activeFilter === FILTERS[0] || activeFilter === 'Fastest Delivery' || activeFilter === 'Top Rated' || activeFilter === 'Offers';
+              
+              const categoryItems = isGenericFilter 
                 ? allItems
-                : allItems.filter((p: any) => p.category === activeFilter);
+                : allItems.filter((p: any) => p.category?.toLowerCase() === activeFilter.toLowerCase());
+
+              const featuredItems = categoryItems.slice(0, 4);
 
               // If there's a filter selected and no products match, we can either hide the store 
               // or just not show products. For a feed, hiding the store makes sense if it doesn't match the filter category
-              if (activeFilter !== 'Fastest Delivery' && activeFilter !== 'Top Rated' && activeFilter !== 'Offers' && featuredItems.length === 0) {
+              if (!isGenericFilter && featuredItems.length === 0) {
                 return null;
               }
 
@@ -172,13 +182,21 @@ export default function ExploreScreen() {
                     </TouchableOpacity>
 
                     {/* Store Info */}
-                    <TouchableOpacity activeOpacity={0.9} onPress={() => navigateToStore(store.id)} style={styles.storeInfo}>
-                      <View style={styles.storeHeaderRow}>
-                        <Text style={styles.storeName}>{store.name}</Text>
-                        <Ionicons name="arrow-forward-circle" size={24} color={Colors.primaryGhost} />
-                      </View>
-                      <Text style={styles.storeMetaText}>{store.distanceKm.toFixed(1)} km · Free Delivery</Text>
-                    </TouchableOpacity>
+                    <View style={styles.storeInfo}>
+                      <TouchableOpacity activeOpacity={0.9} onPress={() => navigateToStore(store.id)} style={{ flex: 1 }}>
+                        <View style={styles.storeHeaderRow}>
+                          <Text style={styles.storeName}>{store.name}</Text>
+                          <Ionicons name="arrow-forward-circle" size={24} color={Colors.primaryGhost} />
+                        </View>
+                        <Text style={styles.storeMetaText}>{store.distanceKm.toFixed(1)} km · Free Delivery</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity 
+                        style={{ marginTop: 12, backgroundColor: '#eff6ff', paddingVertical: 8, paddingHorizontal: 12, borderRadius: Radius.md, alignSelf: 'flex-start', borderWidth: 1, borderColor: '#bfdbfe' }}
+                        onPress={() => setAsHomeStore(store.id)}
+                      >
+                        <Text style={{ color: '#1D4ED8', fontFamily: 'Inter_600SemiBold', fontSize: 13 }}>Make this my Home Store</Text>
+                      </TouchableOpacity>
+                    </View>
 
                     {/* Featured Products Scroll (Zomato Style) */}
                     {featuredItems.length > 0 && (

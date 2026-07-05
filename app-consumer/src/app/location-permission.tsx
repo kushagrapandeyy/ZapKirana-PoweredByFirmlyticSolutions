@@ -73,7 +73,7 @@ export default function LocationPermissionScreen() {
             {hasConsent && <Ionicons name="checkmark" size={14} color={Colors.surface} />}
           </View>
           <Text style={styles.consentText}>
-            I consent to Kwick's <Text style={styles.link}>Privacy Policy</Text> and <Text style={styles.link}>Terms of Use</Text>. 
+            I consent to ZapKirana's <Text style={styles.link}>Privacy Policy</Text> and <Text style={styles.link}>Terms of Use</Text>. 
             Personal data is redacted; only usage behavior is tracked for performance improvements.
           </Text>
         </TouchableOpacity>

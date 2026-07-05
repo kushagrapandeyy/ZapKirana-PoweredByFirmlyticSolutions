@@ -5,7 +5,7 @@ import { useRouter } from 'expo-router';
 import { useCart } from '../../context/CartContext';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import Animated, { FadeInDown, FadeIn, useSharedValue, useAnimatedStyle, withSpring, withSequence, Easing, withTiming } from 'react-native-reanimated';
+import Animated, { FadeInDown, FadeIn, useSharedValue, useAnimatedStyle, withSpring, withSequence, Easing, withTiming, withRepeat, interpolateColor } from 'react-native-reanimated';
 import { Colors, Shadows, Radius } from '../../constants/theme';
 import { API_BASE_URL, SUPABASE_URL, SUPABASE_ANON_KEY } from '../../constants/api';
 import { createClient } from '@supabase/supabase-js';
@@ -63,13 +63,15 @@ export default function HomeFeed() {
   const [clearanceProducts, setClearanceProducts] = useState<any[]>([]);
   const [newProducts, setNewProducts] = useState<any[]>([]);
   const [popularProducts, setPopularProducts] = useState<any[]>([]);
-  const [activeCampaign, setActiveCampaign] = useState<any>(null);
+  const [activeCampaigns, setActiveCampaigns] = useState<any[]>([]);
 
   // Cart badge animation
   const cartScale = useSharedValue(1);
   const cartBadgeStyle = useAnimatedStyle(() => ({
     transform: [{ scale: cartScale.value }],
   }));
+
+  // Removed animated background in favor of stock image
 
   useEffect(() => {
     loadStoreAndProducts();
@@ -94,7 +96,7 @@ export default function HomeFeed() {
         fetch(`${API_BASE_URL}/stores/${currentStoreId}`),
         fetch(`${API_BASE_URL}/inventory/clearance?storeId=${currentStoreId}`),
         fetch(`${API_BASE_URL}/inventory/new?storeId=${currentStoreId}`),
-        fetch(`${API_BASE_URL}/catalog/personalized?storeId=${currentStoreId}`),
+        fetch(`${API_BASE_URL}/api/v1/catalog/personalized?storeId=${currentStoreId}`),
         fetch(`${API_BASE_URL}/campaigns?storeId=${currentStoreId}`)
       ]);
 
@@ -126,7 +128,7 @@ export default function HomeFeed() {
 
       if (campaignRes.ok) {
         const campaigns = await campaignRes.json();
-        if (campaigns.length > 0) setActiveCampaign(campaigns[0]);
+        setActiveCampaigns(campaigns);
       }
 
       if (storeRes.ok) {
@@ -185,14 +187,14 @@ export default function HomeFeed() {
     );
   };
 
-  const renderProductCard = (item: any, index: number, widthScale: number = 0.45) => {
+  const renderProductCard = (item: any, index: number, widthScale: number = 0.45, keyPrefix: string = 'card') => {
     const cartItem = cart.find(c => c.product.id === item.id);
     const qty = cartItem ? cartItem.qty : 0;
 
     return (
       <Animated.View 
-        key={item.id} 
-        entering={FadeInDown.delay(Math.min(index, 8) * 60).duration(400).easing(Easing.out(Easing.cubic))}
+        key={`${keyPrefix}-${item.id}`} 
+        entering={FadeInDown.delay(Math.max(10, Math.min(index, 8) * 60)).duration(400).easing(Easing.out(Easing.cubic))}
         style={{ width: widthScale === 0.44 ? '48%' : width * widthScale, marginRight: widthScale === 0.44 ? 0 : 16, marginBottom: widthScale === 0.44 ? 16 : 0 }}
       >
         <TouchableOpacity style={styles.productCard} activeOpacity={0.9} onPress={() => router.push(`/product/${item.id}`)}>
@@ -218,10 +220,10 @@ export default function HomeFeed() {
           <Text style={styles.productName} numberOfLines={2}>{toTitleCase(item.name)}</Text>
           
           <View style={styles.productFooter}>
-            <View>
-              <Text style={styles.productPrice}>₹{item.price}</Text>
+            <View style={{ flexShrink: 1, marginRight: 8 }}>
+              <Text style={styles.productPrice} adjustsFontSizeToFit numberOfLines={1}>₹{item.price}</Text>
               {item.originalPrice && item.originalPrice > item.price && (
-                <Text style={{ fontSize: 11, textDecorationLine: 'line-through', color: Colors.textMuted }}>₹{item.originalPrice}</Text>
+                <Text style={{ fontSize: 11, textDecorationLine: 'line-through', color: Colors.textMuted }} adjustsFontSizeToFit numberOfLines={1}>₹{item.originalPrice}</Text>
               )}
             </View>
             {qty > 0 ? (
@@ -259,8 +261,8 @@ export default function HomeFeed() {
             <Ionicons name="location" size={16} color={Colors.danger} />
           </View>
           <View>
-            <Text style={styles.deliveryLabel}>Delivering to <Ionicons name="chevron-down" size={12} /></Text>
-            <Text style={styles.storeName} numberOfLines={1}>{store?.name || 'Loading...'}</Text>
+            <Text style={styles.deliveryLabel}>Delivering to Home <Ionicons name="chevron-down" size={12} /></Text>
+            <Text style={styles.storeName} numberOfLines={1}>B-22, Sector 50, Noida</Text>
           </View>
         </TouchableOpacity>
         
@@ -310,26 +312,61 @@ export default function HomeFeed() {
         {!loading && (
           <View style={styles.pageContent}>
             
-            {/* Store Campaign Native Banner (Replaces static Banners if active) */}
-            {activeCampaign ? (
+            {/* Store Hero Branding Section */}
+            {store && (
+              <Animated.View entering={FadeInDown.springify().damping(15)} style={styles.storeHeroContainer}>
+                {store.bannerUrl ? (
+                  <Image source={{ uri: store.bannerUrl }} style={styles.storeHeroBanner} />
+                ) : (
+                  <Image source={{ uri: 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80&w=800' }} style={styles.storeHeroBanner} />
+                )}
+                <View style={styles.storeHeroOverlay} />
+                <View style={styles.storeHeroContent}>
+                  {store.logoUrl ? (
+                    <Image source={{ uri: store.logoUrl }} style={styles.storeHeroLogo} />
+                  ) : (
+                    <View style={[styles.storeHeroLogo, { justifyContent: 'center', alignItems: 'center', backgroundColor: Colors.surface }]}>
+                      <Ionicons name="storefront" size={24} color={Colors.primary} />
+                    </View>
+                  )}
+                  <View style={styles.storeHeroTextContainer}>
+                    <Text style={styles.storeHeroName}>{store.name}</Text>
+                    <View style={styles.storeHeroRating}>
+                      <Ionicons name="star" size={14} color="#FBBF24" />
+                      <Text style={styles.storeHeroRatingText}>{store.rating || 4.5} Rating</Text>
+                    </View>
+                  </View>
+                </View>
+                {store.description && (
+                  <Text style={styles.storeHeroDesc} numberOfLines={2}>{store.description}</Text>
+                )}
+              </Animated.View>
+            )}
+            
+            {/* Active Campaigns Carousels */}
+            {activeCampaigns.map((camp, idx) => (
               <Animated.View 
-                entering={FadeInDown.springify().mass(1).damping(12).stiffness(100)} 
+                key={camp.id || idx}
+                entering={FadeInDown.springify().delay(idx * 100).mass(1).damping(12).stiffness(100)} 
                 style={styles.bannerContainer}
               >
-                <View style={[styles.banner, { backgroundColor: activeCampaign.animationType === 'FLASH_SALE' ? Colors.danger : Colors.primary }]}>
+                <View style={[styles.banner, { backgroundColor: camp.animationType === 'FLASH_SALE' ? Colors.danger : (camp.animationType === 'FESTIVAL' ? Colors.warning : Colors.primary) }]}>
                   <View style={styles.bannerContent}>
-                    <Text style={styles.bannerTitle}>{activeCampaign.title}</Text>
-                    <Text style={styles.bannerSubtitle}>Store Specific Deal! Get {activeCampaign.discountPercentage}% OFF on selected items.</Text>
+                    <Text style={styles.bannerTitle}>{camp.title}</Text>
+                    <Text style={styles.bannerSubtitle}>{camp.description || `Get ${camp.discountPercentage}% OFF on selected items.`}</Text>
                     <TouchableOpacity style={styles.bannerBtn}>
                       <Text style={styles.bannerBtnText}>Shop Now</Text>
                     </TouchableOpacity>
                   </View>
                   <View style={styles.bannerIconCircle}>
-                    <Ionicons name={activeCampaign.animationType === 'FLASH_SALE' ? 'flash' : 'megaphone'} size={40} color="rgba(255,255,255,0.9)" />
+                    <Ionicons name={camp.animationType === 'FLASH_SALE' ? 'flash' : (camp.animationType === 'FESTIVAL' ? 'gift' : 'megaphone')} size={40} color="rgba(255,255,255,0.9)" />
                   </View>
                 </View>
               </Animated.View>
-            ) : (
+            ))}
+
+            {/* Static Fallback Banners if no campaigns */}
+            {activeCampaigns.length === 0 && (
               <Animated.View entering={FadeInDown.delay(100).springify().damping(15)} style={styles.bannerContainer}>
                 <View style={[styles.banner, { backgroundColor: BANNERS[bannerIndex].bg[0] }]}>
                   <View style={styles.bannerContent}>
@@ -358,7 +395,7 @@ export default function HomeFeed() {
                   <Text style={styles.sectionTitle}>{categories[activeCategory].name}</Text>
                   <View style={styles.gridWrapper}>
                     {products.filter(p => p.category === categories[activeCategory].original).map((p, i) => (
-                      renderProductCard(p, i, 0.44) 
+                      renderProductCard(p, i, 0.44, 'grid') 
                     ))}
                   </View>
                 </Animated.View>
@@ -382,7 +419,7 @@ export default function HomeFeed() {
                       </View>
                     </View>
                     <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={[styles.carouselContent, { paddingHorizontal: 0 }]}>
-                      {clearanceProducts.map((p, i) => renderProductCard(p, i, 0.40))}
+                      {clearanceProducts.map((p, i) => renderProductCard(p, i, 0.40, 'clearance'))}
                     </ScrollView>
                   </View>
                 )}
@@ -395,7 +432,7 @@ export default function HomeFeed() {
                       <TouchableOpacity><Text style={styles.seeAllText}>See All</Text></TouchableOpacity>
                     </View>
                     <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.carouselContent}>
-                      {products.filter(p => p.subscriptionDiscount > 0).slice(0, 5).map((p, i) => renderProductCard(p, i, 0.40))}
+                      {products.filter(p => p.subscriptionDiscount > 0).slice(0, 5).map((p, i) => renderProductCard(p, i, 0.40, 'sub'))}
                     </ScrollView>
                   </View>
                 )}
@@ -408,7 +445,7 @@ export default function HomeFeed() {
                       <TouchableOpacity><Text style={styles.seeAllText}>See All</Text></TouchableOpacity>
                     </View>
                     <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.carouselContent}>
-                      {newProducts.slice(0, 8).map((p, i) => renderProductCard(p, i, 0.40))}
+                      {newProducts.slice(0, 8).map((p, i) => renderProductCard(p, i, 0.40, 'new'))}
                     </ScrollView>
                   </View>
                 )}
@@ -421,7 +458,7 @@ export default function HomeFeed() {
                     <TouchableOpacity><Text style={styles.seeAllText}>See All</Text></TouchableOpacity>
                   </View>
                   <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.carouselContent}>
-                    {popularProducts.map((p, i) => renderProductCard(p, i, 0.40))}
+                    {popularProducts.map((p, i) => renderProductCard(p, i, 0.40, 'popular'))}
                   </ScrollView>
                 </View>
                 )}
@@ -440,11 +477,11 @@ export default function HomeFeed() {
                   <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.organicScroll}>
                     {/* Filter for organic or fallback to random 4 */}
                     {products.filter(p => p.name.toLowerCase().includes('organic') || p.category.toLowerCase().includes('fresh')).slice(0, 6).map((p, i) => 
-                      renderProductCard(p, i, 0.40)
+                      renderProductCard(p, i, 0.40, 'organic')
                     )}
                     {/* Fallback if no organic items */}
                     {products.filter(p => p.name.toLowerCase().includes('organic') || p.category.toLowerCase().includes('fresh')).length === 0 && 
-                      products.slice(0, 4).map((p, i) => renderProductCard(p, i, 0.40))
+                      products.slice(0, 4).map((p, i) => renderProductCard(p, i, 0.40, 'organic'))
                     }
                   </ScrollView>
                 </View>
@@ -456,9 +493,9 @@ export default function HomeFeed() {
                     <TouchableOpacity><Text style={styles.seeAllText}>See All</Text></TouchableOpacity>
                   </View>
                   <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.carouselContent}>
-                    {products.filter(p => p.category.toLowerCase().includes('dairy') || p.category.toLowerCase().includes('bakery')).slice(0, 5).map((p, i) => renderProductCard(p, i, 0.40))}
+                    {products.filter(p => p.category.toLowerCase().includes('dairy') || p.category.toLowerCase().includes('bakery')).slice(0, 5).map((p, i) => renderProductCard(p, i, 0.40, 'organic'))}
                     {products.filter(p => p.category.toLowerCase().includes('dairy') || p.category.toLowerCase().includes('bakery')).length === 0 && 
-                      products.slice(4, 8).map((p, i) => renderProductCard(p, i, 0.40))
+                      products.slice(4, 8).map((p, i) => renderProductCard(p, i, 0.40, 'organic'))
                     }
                   </ScrollView>
                 </View>
@@ -468,7 +505,7 @@ export default function HomeFeed() {
                   <Text style={styles.sectionTitle}>All Products</Text>
                   <View style={styles.gridWrapper}>
                     {products.map((p, i) => (
-                      renderProductCard(p, i, 0.44) 
+                      renderProductCard(p, i, 0.44, 'grid') 
                     ))}
                   </View>
                 </View>
@@ -509,7 +546,17 @@ const styles = StyleSheet.create({
   categoryText: { fontSize: 13, fontFamily: 'Inter_600SemiBold', color: Colors.textSecondary },
   categoryTextActive: { color: '#fff' },
 
-  pageContent: { paddingTop: 16 },
+  pageContent: { paddingBottom: 100 },
+  storeHeroContainer: { marginHorizontal: 20, marginTop: 16, marginBottom: 10, borderRadius: Radius.xl, backgroundColor: Colors.surface, overflow: 'hidden', ...Shadows.md },
+  storeHeroBanner: { width: '100%', height: 120, resizeMode: 'cover' },
+  storeHeroOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.3)', height: 120 },
+  storeHeroContent: { flexDirection: 'row', alignItems: 'flex-end', paddingHorizontal: 16, marginTop: -30, marginBottom: 12 },
+  storeHeroLogo: { width: 60, height: 60, borderRadius: 30, borderWidth: 3, borderColor: Colors.surface, backgroundColor: Colors.surface },
+  storeHeroTextContainer: { marginLeft: 12, flex: 1, paddingBottom: 4 },
+  storeHeroName: { fontSize: 18, fontFamily: 'PlayfairDisplay_700Bold', color: Colors.textPrimary },
+  storeHeroRating: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2 },
+  storeHeroRatingText: { fontSize: 12, fontFamily: 'Inter_600SemiBold', color: Colors.textSecondary },
+  storeHeroDesc: { fontSize: 13, fontFamily: 'Inter_400Regular', color: Colors.textSecondary, paddingHorizontal: 16, paddingBottom: 16 },
 
   // Banner
   bannerContainer: { paddingHorizontal: 20, marginBottom: 24 },
@@ -545,12 +592,12 @@ const styles = StyleSheet.create({
   productName: { fontSize: 14, color: Colors.textPrimary, fontFamily: 'Inter_600SemiBold', marginBottom: 8, lineHeight: 18, height: 36 },
   productFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   productPrice: { fontSize: 16, color: Colors.textPrimary, fontFamily: 'Inter_700Bold' },
-  addBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: Colors.primaryGhost, paddingHorizontal: 12, paddingVertical: 7, borderRadius: Radius.md, borderWidth: 1, borderColor: 'rgba(6, 78, 59, 0.1)' },
+  addBtn: { flexShrink: 0, flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: Colors.primaryGhost, paddingHorizontal: 12, paddingVertical: 7, borderRadius: Radius.md, borderWidth: 1, borderColor: 'rgba(6, 78, 59, 0.1)' },
   addBtnText: { color: Colors.primary, fontSize: 13, fontFamily: 'Inter_600SemiBold' },
-  qtyControls: { flexDirection: 'row', alignItems: 'center', backgroundColor: Colors.primaryGhost, borderRadius: Radius.md, overflow: 'hidden', borderWidth: 1, borderColor: 'rgba(6, 78, 59, 0.1)' },
+  qtyControls: { flexShrink: 0, flexDirection: 'row', alignItems: 'center', backgroundColor: Colors.primaryGhost, borderRadius: Radius.md, overflow: 'hidden', borderWidth: 1, borderColor: 'rgba(6, 78, 59, 0.1)' },
   qtyBtn: { width: 28, height: 28, justifyContent: 'center', alignItems: 'center' },
   qtyBtnAdd: { backgroundColor: Colors.primary },
-  qtyText: { fontSize: 13, fontFamily: 'Inter_700Bold', color: Colors.primaryDark, paddingHorizontal: 8 },
+  qtyText: { fontSize: 13, fontFamily: 'Inter_700Bold', color: Colors.primaryDark, paddingHorizontal: 6, minWidth: 20, textAlign: 'center' },
 
   // Organic Zone
   organicZone: { backgroundColor: '#F0FDF4', marginHorizontal: 0, paddingVertical: 24, marginBottom: 30, borderTopWidth: 1, borderBottomWidth: 1, borderColor: '#DCFCE7' },

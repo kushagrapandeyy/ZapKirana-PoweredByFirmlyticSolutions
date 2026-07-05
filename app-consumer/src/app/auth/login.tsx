@@ -99,7 +99,7 @@ export default function LoginScreen() {
 
           <Animated.View entering={FadeInDown} style={styles.titleSection}>
             <Text style={styles.title}>Welcome back</Text>
-            <Text style={styles.subtitle}>Sign in to continue to Kwick</Text>
+            <Text style={styles.subtitle}>Sign in to continue to ZapKirana</Text>
           </Animated.View>
 
           {!showOtp ? (

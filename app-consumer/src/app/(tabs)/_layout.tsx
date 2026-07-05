@@ -64,6 +64,8 @@ export default function TabLayout() {
         <Tabs.Screen name="search" options={{ title: 'Search' }} />
         <Tabs.Screen name="orders" options={{ title: 'Orders' }} />
         <Tabs.Screen name="profile" options={{ title: 'Profile' }} />
+        <Tabs.Screen name="store/[id]" options={{ href: null }} />
+        <Tabs.Screen name="product/[id]" options={{ href: null }} />
       </Tabs>
       <SmartStatusBar />
     </>

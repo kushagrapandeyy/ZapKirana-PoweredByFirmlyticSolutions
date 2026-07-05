@@ -49,6 +49,19 @@ let RealtimeService = RealtimeService_1 = class RealtimeService {
             this.logger.error(`Error broadcasting inventory update: ${error}`);
         }
     }
+    async broadcastSubscriptionUpdate(storeId, payload) {
+        try {
+            await this.supabase.channel(`store:${storeId}:subscriptions`).send({
+                type: 'broadcast',
+                event: 'subscription_update',
+                payload,
+            });
+            this.logger.log(`Broadcasted subscription update for store ${storeId}`);
+        }
+        catch (error) {
+            this.logger.error(`Error broadcasting subscription update: ${error}`);
+        }
+    }
 };
 exports.RealtimeService = RealtimeService;
 exports.RealtimeService = RealtimeService = RealtimeService_1 = __decorate([

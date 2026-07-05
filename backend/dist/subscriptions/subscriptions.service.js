@@ -15,14 +15,17 @@ const common_1 = require("@nestjs/common");
 const schedule_1 = require("@nestjs/schedule");
 const event_emitter_1 = require("@nestjs/event-emitter");
 const prisma_service_1 = require("../prisma.service");
+const realtime_service_1 = require("../realtime/realtime.service");
 const client_1 = require("@prisma/client");
 let SubscriptionsService = SubscriptionsService_1 = class SubscriptionsService {
     prisma;
     eventEmitter;
+    realtimeService;
     logger = new common_1.Logger(SubscriptionsService_1.name);
-    constructor(prisma, eventEmitter) {
+    constructor(prisma, eventEmitter, realtimeService) {
         this.prisma = prisma;
         this.eventEmitter = eventEmitter;
+        this.realtimeService = realtimeService;
     }
     async createSubscription(data) {
         if (!data.items || data.items.length === 0) {
@@ -158,44 +161,59 @@ let SubscriptionsService = SubscriptionsService_1 = class SubscriptionsService {
             },
         });
         const results = [];
+        const groupedSubs = new Map();
         for (const sub of dueSubscriptions) {
+            const key = `${sub.storeId}_${sub.customerId}`;
+            if (!groupedSubs.has(key))
+                groupedSubs.set(key, []);
+            groupedSubs.get(key).push(sub);
+        }
+        for (const [key, subs] of groupedSubs.entries()) {
             try {
-                const defaultAddress = sub.customer.savedAddresses.find((a) => a.isDefault);
-                const orderItems = sub.items.map((item) => ({
-                    productId: item.productId,
-                    quantity: item.quantity,
-                    priceAtOrder: 0,
-                    gstAtOrder: 0,
-                }));
-                const order = await this.prisma.order.create({
+                const firstSub = subs[0];
+                const defaultAddress = firstSub.customer.savedAddresses.find((a) => a.isDefault) || firstSub.customer.savedAddresses[0];
+                const combinedItems = [];
+                let totalAmount = 0;
+                let totalSavings = 0;
+                for (const sub of subs) {
+                    for (const item of sub.items) {
+                        combinedItems.push({
+                            productId: item.productId,
+                            quantity: item.quantity,
+                            priceAtOrder: 0,
+                            gstAtOrder: 0,
+                        });
+                    }
+                }
+                const bundledOrder = await this.prisma.order.create({
                     data: {
-                        storeId: sub.storeId,
-                        customerId: sub.customerId,
+                        storeId: firstSub.storeId,
+                        customerId: firstSub.customerId,
                         status: client_1.OrderStatus.PAYMENT_PENDING,
                         totalAmount: 0,
-                        subscriptionId: sub.id,
+                        subscriptionId: firstSub.id,
                         deliveryAddress: defaultAddress?.address,
                         deliveryLat: defaultAddress?.latitude,
                         deliveryLng: defaultAddress?.longitude,
-                        items: { create: orderItems },
+                        items: { create: combinedItems },
                     },
-                    include: { items: true },
                 });
-                const nextDeliveryDate = this.calculateNextDelivery(sub.frequency);
-                await this.prisma.subscription.update({
-                    where: { id: sub.id },
-                    data: { nextDeliveryDate },
+                results.push(bundledOrder);
+                for (const sub of subs) {
+                    const nextDate = this.calculateNextDelivery(sub.frequency, sub.customDays);
+                    await this.prisma.subscription.update({
+                        where: { id: sub.id },
+                        data: { nextDeliveryDate: nextDate },
+                    });
+                }
+                this.realtimeService.broadcastSubscriptionUpdate(firstSub.storeId, {
+                    orderId: bundledOrder.id,
+                    bundleSize: subs.length,
+                    customerName: firstSub.customer.name
                 });
-                this.eventEmitter.emit('subscription.order_created', {
-                    customerId: sub.customerId,
-                    orderId: order.id,
-                    productCount: sub.items.length,
-                });
-                results.push({ subscriptionId: sub.id, orderId: order.id, status: 'processed', nextDeliveryDate });
             }
-            catch (err) {
-                this.logger.error(`Failed to process subscription ${sub.id}: ${err.message}`);
-                results.push({ subscriptionId: sub.id, status: 'failed', error: err.message });
+            catch (error) {
+                this.logger.error(`Failed to process bundled subscription for key ${key}`, error);
             }
         }
         return results;
@@ -235,6 +253,7 @@ __decorate([
 exports.SubscriptionsService = SubscriptionsService = SubscriptionsService_1 = __decorate([
     (0, common_1.Injectable)(),
     __metadata("design:paramtypes", [prisma_service_1.PrismaService,
-        event_emitter_1.EventEmitter2])
+        event_emitter_1.EventEmitter2,
+        realtime_service_1.RealtimeService])
 ], SubscriptionsService);
 //# sourceMappingURL=subscriptions.service.js.map

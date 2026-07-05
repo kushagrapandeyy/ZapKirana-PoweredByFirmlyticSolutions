@@ -51,7 +51,7 @@ export default function SmartStatusBar() {
     transform: [{ scale: scale.value }],
   }));
 
-  const isDarkScreen = (segments as string[]).includes('cart') || (segments as string[]).includes('checkout');
+  const isDarkScreen = (segments as string[]).includes('cart') || (segments as string[]).includes('checkout') || (segments as string[]).includes('product');
 
   if (isDarkScreen || (cartItemsCount === 0 && !activeOrder)) {
     return null;

@@ -2,6 +2,7 @@ import { Injectable, NotFoundException, BadRequestException, Logger } from '@nes
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { PrismaService } from '../prisma.service';
+import { RealtimeService } from '../realtime/realtime.service';
 import { SubscriptionFrequency, SubscriptionStatus, OrderStatus } from '@prisma/client';
 
 @Injectable()
@@ -11,6 +12,7 @@ export class SubscriptionsService {
   constructor(
     private prisma: PrismaService,
     private eventEmitter: EventEmitter2,
+    private realtimeService: RealtimeService,
   ) {}
 
   async createSubscription(data: {
@@ -172,53 +174,71 @@ export class SubscriptionsService {
       },
     });
 
-    const results: any[] = [];
+    const results = [];
+    
+    // Group by store and customer to create "Bundles"
+    const groupedSubs = new Map<string, any[]>();
     for (const sub of dueSubscriptions) {
+      const key = `${sub.storeId}_${sub.customerId}`;
+      if (!groupedSubs.has(key)) groupedSubs.set(key, []);
+      groupedSubs.get(key)!.push(sub);
+    }
+
+    for (const [key, subs] of groupedSubs.entries()) {
       try {
-        // 1. Find default delivery address
-        const defaultAddress = sub.customer.savedAddresses.find((a) => a.isDefault);
+        const firstSub = subs[0];
+        const defaultAddress = firstSub.customer.savedAddresses.find((a: any) => a.isDefault) || firstSub.customer.savedAddresses[0];
 
-        // 2. Create the actual order
-        const orderItems = sub.items.map((item) => ({
-          productId: item.productId,
-          quantity: item.quantity,
-          priceAtOrder: 0, // Will be resolved in order creation
-          gstAtOrder: 0,
-        }));
+        // Combine items from all subscriptions in this bundle
+        const combinedItems: any[] = [];
+        let totalAmount = 0;
+        let totalSavings = 0;
+        
+        for (const sub of subs) {
+          for (const item of sub.items) {
+            combinedItems.push({
+              productId: item.productId,
+              quantity: item.quantity,
+              priceAtOrder: 0,
+              gstAtOrder: 0,
+            });
+          }
+        }
 
-        const order = await this.prisma.order.create({
+        const bundledOrder = await this.prisma.order.create({
           data: {
-            storeId: sub.storeId,
-            customerId: sub.customerId,
+            storeId: firstSub.storeId,
+            customerId: firstSub.customerId,
             status: OrderStatus.PAYMENT_PENDING,
-            totalAmount: 0, // Recalculated below
-            subscriptionId: sub.id,
+            totalAmount: 0, 
+            subscriptionId: firstSub.id, // Primary reference
             deliveryAddress: defaultAddress?.address,
             deliveryLat: defaultAddress?.latitude,
             deliveryLng: defaultAddress?.longitude,
-            items: { create: orderItems },
+            items: { create: combinedItems },
           },
-          include: { items: true },
         });
 
-        // 3. Advance nextDeliveryDate
-        const nextDeliveryDate = this.calculateNextDelivery(sub.frequency);
-        await this.prisma.subscription.update({
-          where: { id: sub.id },
-          data: { nextDeliveryDate },
+        results.push(bundledOrder);
+
+        // Update next delivery dates
+        for (const sub of subs) {
+          const nextDate = this.calculateNextDelivery(sub.frequency, sub.customDays);
+          await this.prisma.subscription.update({
+            where: { id: sub.id },
+            data: { nextDeliveryDate: nextDate },
+          });
+        }
+        
+        // Notify Vendor App about bundled subscription order
+        this.realtimeService.broadcastSubscriptionUpdate(firstSub.storeId, {
+          orderId: bundledOrder.id,
+          bundleSize: subs.length,
+          customerName: firstSub.customer.name
         });
 
-        // 4. Fire push notification event
-        this.eventEmitter.emit('subscription.order_created', {
-          customerId: sub.customerId,
-          orderId: order.id,
-          productCount: sub.items.length,
-        });
-
-        results.push({ subscriptionId: sub.id, orderId: order.id, status: 'processed', nextDeliveryDate });
-      } catch (err: any) {
-        this.logger.error(`Failed to process subscription ${sub.id}: ${err.message}`);
-        results.push({ subscriptionId: sub.id, status: 'failed', error: err.message });
+      } catch (error) {
+        this.logger.error(`Failed to process bundled subscription for key ${key}`, error);
       }
     }
     return results;

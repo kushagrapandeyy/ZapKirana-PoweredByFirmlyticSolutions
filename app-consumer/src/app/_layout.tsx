@@ -17,28 +17,53 @@ import { Dimensions } from 'react-native';
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 function AnimatedSplashScreen({ onFinish }: { onFinish: () => void }) {
-  const scale = useSharedValue(0.5);
-  const opacity = useSharedValue(0);
+  const basketX = useSharedValue(-200);
+  const cloudOpacity = useSharedValue(0);
+  const logoOpacity = useSharedValue(0);
+  const logoScale = useSharedValue(0.5);
   const overlayOpacity = useSharedValue(1);
 
   useEffect(() => {
-    // 1. Zoom in and fade in
-    scale.value = withSpring(1, { damping: 10, stiffness: 80 });
-    opacity.value = withTiming(1, { duration: 800 });
+    // 1. Basket runs in quickly
+    basketX.value = withTiming(0, { duration: 600, easing: Easing.out(Easing.back(1.5)) });
 
-    // 2. Wait and fade out whole overlay
+    // 2. Screeching cloud appears
     setTimeout(() => {
-      overlayOpacity.value = withTiming(0, { duration: 600 }, (isFinished) => {
-        if (isFinished) {
-          runOnJS(onFinish)();
-        }
-      });
-    }, 2000);
+      cloudOpacity.value = withTiming(1, { duration: 200 });
+      basketX.value = withTiming(20, { duration: 200, easing: Easing.out(Easing.ease) }); // slight bump
+    }, 600);
+
+    // 3. Transform into ZipKirana
+    setTimeout(() => {
+      cloudOpacity.value = withTiming(0, { duration: 300 });
+      logoOpacity.value = withTiming(1, { duration: 400, easing: Easing.out(Easing.exp) });
+      logoScale.value = withSpring(1, { damping: 12, stiffness: 90 });
+    }, 1100);
+
+    // 4. Smooth blend into UI/UX
+    setTimeout(() => {
+      logoScale.value = withTiming(1.1, { duration: 400, easing: Easing.in(Easing.ease) });
+      logoOpacity.value = withTiming(0, { duration: 300, easing: Easing.in(Easing.ease) });
+      overlayOpacity.value = withDelay(150, withTiming(0, { duration: 500, easing: Easing.inOut(Easing.ease) }, (isFinished) => {
+        if (isFinished) runOnJS(onFinish)();
+      }));
+    }, 2500);
   }, []);
 
+  const basketStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: basketX.value }],
+    opacity: 1 - logoOpacity.value
+  }));
+
+  const cloudStyle = useAnimatedStyle(() => ({
+    opacity: cloudOpacity.value,
+    transform: [{ translateX: basketX.value - 20 }]
+  }));
+
   const logoStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: scale.value }],
-    opacity: opacity.value,
+    transform: [{ scale: logoScale.value }],
+    opacity: logoOpacity.value,
+    position: 'absolute'
   }));
 
   const overlayStyle = useAnimatedStyle(() => ({
@@ -47,12 +72,21 @@ function AnimatedSplashScreen({ onFinish }: { onFinish: () => void }) {
 
   return (
     <Animated.View style={[{ position: 'absolute', top: 0, left: 0, width: SCREEN_WIDTH, height: SCREEN_HEIGHT, backgroundColor: '#064E3B', justifyContent: 'center', alignItems: 'center', zIndex: 9999 }, overlayStyle]}>
-      <Animated.View style={[{ alignItems: 'center' }, logoStyle]}>
-        <View style={{ width: 100, height: 100, borderRadius: 24, backgroundColor: '#fff', justifyContent: 'center', alignItems: 'center', marginBottom: 20 }}>
-          <Text style={{ fontSize: 48 }}>🛒</Text>
+      
+      {/* Basket Running */}
+      <Animated.View style={[{ position: 'absolute', flexDirection: 'row', alignItems: 'center' }, basketStyle]}>
+        <Animated.View style={[cloudStyle, { marginRight: 10 }]}>
+          <Text style={{ fontSize: 32 }}>💨</Text>
+        </Animated.View>
+        <View style={{ width: 80, height: 80, borderRadius: 20, backgroundColor: '#fff', justifyContent: 'center', alignItems: 'center', shadowColor: '#000', shadowOpacity: 0.3, shadowRadius: 10 }}>
+          <Text style={{ fontSize: 42 }}>🛒</Text>
         </View>
-        <Text style={{ fontSize: 42, fontFamily: 'PlayfairDisplay_700Bold', color: '#fff' }}>ZapKirana</Text>
-        <Text style={{ fontSize: 16, fontFamily: 'Inter_500Medium', color: 'rgba(255,255,255,0.8)', marginTop: 8 }}>Groceries in 10 Minutes</Text>
+      </Animated.View>
+
+      {/* ZipKirana Final Reveal */}
+      <Animated.View style={[{ alignItems: 'center' }, logoStyle]}>
+        <Text style={{ fontSize: 52, fontFamily: 'PlayfairDisplay_700Bold', color: '#fff', letterSpacing: 1.5 }}>ZipKirana</Text>
+        <Text style={{ fontSize: 16, fontFamily: 'Inter_500Medium', color: '#10B981', marginTop: 8, letterSpacing: 3, textTransform: 'uppercase' }}>Superfast OS</Text>
       </Animated.View>
     </Animated.View>
   );
