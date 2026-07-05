@@ -11,8 +11,8 @@ export declare class SupportService {
         storeId: string | null;
         assignedToId: string | null;
         customerId: string | null;
-        orderId: string | null;
         title: string;
+        orderId: string | null;
         priority: import(".prisma/client").$Enums.TicketPriority;
     }>;
     getTickets(query: any): Promise<({
@@ -77,8 +77,8 @@ export declare class SupportService {
         storeId: string | null;
         assignedToId: string | null;
         customerId: string | null;
-        orderId: string | null;
         title: string;
+        orderId: string | null;
         priority: import(".prisma/client").$Enums.TicketPriority;
     })[]>;
     getTicket(id: string): Promise<{
@@ -152,8 +152,8 @@ export declare class SupportService {
         storeId: string | null;
         assignedToId: string | null;
         customerId: string | null;
-        orderId: string | null;
         title: string;
+        orderId: string | null;
         priority: import(".prisma/client").$Enums.TicketPriority;
     }>;
     updateTicketStatus(id: string, status: any): Promise<{
@@ -165,8 +165,8 @@ export declare class SupportService {
         storeId: string | null;
         assignedToId: string | null;
         customerId: string | null;
-        orderId: string | null;
         title: string;
+        orderId: string | null;
         priority: import(".prisma/client").$Enums.TicketPriority;
     }>;
     interveneOrder(orderId: string, status: any, reason: string, adminId: string): Promise<{
