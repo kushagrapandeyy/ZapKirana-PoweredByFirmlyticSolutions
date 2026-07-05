@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { fetchWithAuth } from '../AuthContext';
 import { ShieldAlert, Plus, X } from 'lucide-react';
 
-const API_BASE = 'http://localhost:3000';
+const API_BASE = 'https://zapkirana-poweredbyfirmlyticsolutions.onrender.com';
 
 export default function AccessControlPage() {
   const [staff, setStaff] = useState<any[]>([]);

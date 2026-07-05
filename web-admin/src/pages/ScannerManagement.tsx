@@ -23,9 +23,9 @@ export default function ScannerManagement() {
     setLoading(true);
     try {
       const [staffRes, devicesRes, analyticsRes] = await Promise.all([
-        fetchWithAuth('http://localhost:3000/api/v1/scanner-management/staff'),
-        fetchWithAuth('http://localhost:3000/api/v1/scanner-management/devices'),
-        fetchWithAuth('http://localhost:3000/api/v1/scanner-management/analytics')
+        fetchWithAuth('https://zapkirana-poweredbyfirmlyticsolutions.onrender.com/api/v1/scanner-management/staff'),
+        fetchWithAuth('https://zapkirana-poweredbyfirmlyticsolutions.onrender.com/api/v1/scanner-management/devices'),
+        fetchWithAuth('https://zapkirana-poweredbyfirmlyticsolutions.onrender.com/api/v1/scanner-management/analytics')
       ]);
       setStaff(await staffRes.json());
       setDevices(await devicesRes.json());
@@ -39,7 +39,7 @@ export default function ScannerManagement() {
 
   const createStaff = async () => {
     try {
-      await fetchWithAuth('http://localhost:3000/api/v1/scanner-management/staff', {
+      await fetchWithAuth('https://zapkirana-poweredbyfirmlyticsolutions.onrender.com/api/v1/scanner-management/staff', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(staffForm)
@@ -54,7 +54,7 @@ export default function ScannerManagement() {
 
   const createDevice = async () => {
     try {
-      await fetchWithAuth('http://localhost:3000/api/v1/scanner-management/devices', {
+      await fetchWithAuth('https://zapkirana-poweredbyfirmlyticsolutions.onrender.com/api/v1/scanner-management/devices', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(deviceForm)

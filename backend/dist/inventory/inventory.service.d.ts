@@ -2,11 +2,13 @@ import { PrismaService } from '../prisma.service';
 import { MovementType } from '@prisma/client';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { CacheService } from '../cache/cache.service';
+import { RealtimeService } from '../realtime/realtime.service';
 export declare class InventoryService {
     private prisma;
     private eventEmitter;
     private cache;
-    constructor(prisma: PrismaService, eventEmitter: EventEmitter2, cache: CacheService);
+    private realtimeService;
+    constructor(prisma: PrismaService, eventEmitter: EventEmitter2, cache: CacheService, realtimeService: RealtimeService);
     recordMovement(data: {
         storeId: string;
         productId: string;

@@ -88,4 +88,16 @@ export class CatalogController {
   ) {
     return this.catalogService.rejectPendingProduct(id, body.reason);
   }
+
+  /**
+   * GET /api/v1/catalog/personalized
+   * Get personalized recommendations for a user.
+   */
+  @Get('personalized')
+  getPersonalizedRecommendations(
+    @Query('storeId') storeId: string,
+    @Query('userId') userId?: string,
+  ) {
+    return this.catalogService.getPersonalizedRecommendations(storeId, userId);
+  }
 }

@@ -228,6 +228,59 @@ let CatalogService = class CatalogService {
             data: { status: 'REJECTED', notes: reason ?? pending.notes ?? null },
         });
     }
+    async getPersonalizedRecommendations(storeId, userId) {
+        if (!userId) {
+            return this.prisma.product.findMany({
+                where: { storeId, isActive: true },
+                take: 8,
+            });
+        }
+        const pastOrders = await this.prisma.order.findMany({
+            where: {
+                storeId,
+                customerId: userId,
+                status: 'DELIVERED'
+            },
+            include: {
+                items: true
+            }
+        });
+        if (pastOrders.length === 0) {
+            return this.prisma.product.findMany({
+                where: { storeId, isActive: true },
+                take: 8,
+            });
+        }
+        const productCounts = {};
+        pastOrders.forEach(order => {
+            order.items.forEach((item) => {
+                productCounts[item.productId] = (productCounts[item.productId] || 0) + item.qty;
+            });
+        });
+        const sortedProductIds = Object.entries(productCounts)
+            .sort((a, b) => b[1] - a[1])
+            .map(entry => entry[0])
+            .slice(0, 8);
+        const personalizedProducts = await this.prisma.product.findMany({
+            where: {
+                storeId,
+                id: { in: sortedProductIds },
+                isActive: true,
+            }
+        });
+        if (personalizedProducts.length < 8) {
+            const fillProducts = await this.prisma.product.findMany({
+                where: {
+                    storeId,
+                    isActive: true,
+                    id: { notIn: sortedProductIds }
+                },
+                take: 8 - personalizedProducts.length,
+            });
+            personalizedProducts.push(...fillProducts);
+        }
+        return personalizedProducts;
+    }
 };
 exports.CatalogService = CatalogService;
 exports.CatalogService = CatalogService = __decorate([

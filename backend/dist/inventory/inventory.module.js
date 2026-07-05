@@ -12,12 +12,13 @@ const inventory_service_1 = require("./inventory.service");
 const inventory_controller_1 = require("./inventory.controller");
 const prisma_service_1 = require("../prisma.service");
 const cache_module_1 = require("../cache/cache.module");
+const realtime_module_1 = require("../realtime/realtime.module");
 let InventoryModule = class InventoryModule {
 };
 exports.InventoryModule = InventoryModule;
 exports.InventoryModule = InventoryModule = __decorate([
     (0, common_1.Module)({
-        imports: [cache_module_1.CacheModule],
+        imports: [cache_module_1.CacheModule, realtime_module_1.RealtimeModule],
         controllers: [inventory_controller_1.InventoryController],
         providers: [inventory_service_1.InventoryService, prisma_service_1.PrismaService],
         exports: [inventory_service_1.InventoryService],

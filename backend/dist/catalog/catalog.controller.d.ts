@@ -154,4 +154,24 @@ export declare class CatalogController {
         approvedProductId: string | null;
         notes: string | null;
     }>;
+    getPersonalizedRecommendations(storeId: string, userId?: string): Promise<{
+        id: string;
+        name: string;
+        isActive: boolean;
+        imageUrl: string | null;
+        description: string | null;
+        createdAt: Date;
+        updatedAt: Date;
+        storeId: string;
+        barcode: string | null;
+        internalSku: string;
+        category: string | null;
+        mrp: number;
+        sellingPrice: number;
+        purchaseCost: number | null;
+        gstRate: number;
+        gstClass: import(".prisma/client").$Enums.GSTClass;
+        subscriptionDiscount: number;
+        campaignId: string | null;
+    }[]>;
 }

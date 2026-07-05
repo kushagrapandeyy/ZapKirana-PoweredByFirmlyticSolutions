@@ -2,7 +2,7 @@ import { useState, useEffect, } from 'react';
 import { fetchWithAuth } from '../../AuthContext';
 import { Send, ShieldAlert } from 'lucide-react';
 
-const API_BASE = 'http://localhost:3000';
+const API_BASE = 'https://zapkirana-poweredbyfirmlyticsolutions.onrender.com';
 
 export default function SupportOperations({ user }: { user: any }) {
   const [tickets, setTickets] = useState<any[]>([]);

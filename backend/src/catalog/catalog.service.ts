@@ -291,4 +291,81 @@ export class CatalogService {
       data: { status: 'REJECTED', notes: reason ?? pending.notes ?? null },
     });
   }
+
+  /**
+   * Get personalized recommendations for a user based on their order history.
+   * If they have no history, falls back to top selling products in the store.
+   * 
+   * GET /api/v1/catalog/personalized?storeId=x&userId=y
+   */
+  async getPersonalizedRecommendations(storeId: string, userId?: string) {
+    // Basic fallback: just return 8 random active products for now, or you could do top sellers
+    // But since the request is for personalization based on history:
+    
+    if (!userId) {
+      // Fallback for non-logged in users: return top 8 active products
+      return this.prisma.product.findMany({
+        where: { storeId, isActive: true },
+        take: 8,
+      });
+    }
+
+    // 1. Fetch user's past completed orders in this store
+    const pastOrders = await this.prisma.order.findMany({
+      where: { 
+        storeId, 
+        customerId: userId,
+        status: 'DELIVERED'
+      },
+      include: {
+        items: true
+      }
+    });
+
+    if (pastOrders.length === 0) {
+      // Fallback for users with no history
+      return this.prisma.product.findMany({
+        where: { storeId, isActive: true },
+        take: 8,
+      });
+    }
+
+    // 2. Count product frequencies
+    const productCounts: Record<string, number> = {};
+    pastOrders.forEach(order => {
+      order.items.forEach((item: any) => {
+        productCounts[item.productId] = (productCounts[item.productId] || 0) + item.qty;
+      });
+    });
+
+    // 3. Sort by frequency descending
+    const sortedProductIds = Object.entries(productCounts)
+      .sort((a, b) => b[1] - a[1])
+      .map(entry => entry[0])
+      .slice(0, 8); // Top 8 personalized products
+
+    // 4. Fetch the actual product details for these IDs
+    const personalizedProducts = await this.prisma.product.findMany({
+      where: {
+        storeId,
+        id: { in: sortedProductIds },
+        isActive: true,
+      }
+    });
+
+    // 5. Fill with random products if less than 8
+    if (personalizedProducts.length < 8) {
+      const fillProducts = await this.prisma.product.findMany({
+        where: { 
+          storeId, 
+          isActive: true,
+          id: { notIn: sortedProductIds }
+        },
+        take: 8 - personalizedProducts.length,
+      });
+      personalizedProducts.push(...fillProducts);
+    }
+
+    return personalizedProducts;
+  }
 }

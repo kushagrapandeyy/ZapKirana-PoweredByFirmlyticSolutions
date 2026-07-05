@@ -36,6 +36,9 @@ let CatalogController = class CatalogController {
     rejectPendingProduct(id, body) {
         return this.catalogService.rejectPendingProduct(id, body.reason);
     }
+    getPersonalizedRecommendations(storeId, userId) {
+        return this.catalogService.getPersonalizedRecommendations(storeId, userId);
+    }
 };
 exports.CatalogController = CatalogController;
 __decorate([
@@ -78,6 +81,14 @@ __decorate([
     __metadata("design:paramtypes", [String, Object]),
     __metadata("design:returntype", void 0)
 ], CatalogController.prototype, "rejectPendingProduct", null);
+__decorate([
+    (0, common_1.Get)('personalized'),
+    __param(0, (0, common_1.Query)('storeId')),
+    __param(1, (0, common_1.Query)('userId')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, String]),
+    __metadata("design:returntype", void 0)
+], CatalogController.prototype, "getPersonalizedRecommendations", null);
 exports.CatalogController = CatalogController = __decorate([
     (0, common_1.Controller)('api/v1/catalog'),
     __metadata("design:paramtypes", [catalog_service_1.CatalogService])

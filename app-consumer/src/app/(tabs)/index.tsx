@@ -7,13 +7,38 @@ import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Animated, { FadeInDown, FadeIn, useSharedValue, useAnimatedStyle, withSpring, withSequence, Easing, withTiming } from 'react-native-reanimated';
 import { Colors, Shadows, Radius } from '../../constants/theme';
-import { API_BASE_URL } from '../../constants/api';
+import { API_BASE_URL, SUPABASE_URL, SUPABASE_ANON_KEY } from '../../constants/api';
+import { createClient } from '@supabase/supabase-js';
+
+const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 const { width } = Dimensions.get('window');
 
 const toTitleCase = (str: string) => {
   if (!str) return '';
   return str.replace(/_/g, ' ').replace(/\w\S*/g, (txt) => txt.charAt(0).toUpperCase() + txt.substring(1).toLowerCase());
+};
+
+
+const normalizeProduct = (p: any) => {
+  let finalImage = p.imageUrl || p.image;
+  // Fallback for missing or invalid (html) image URLs
+  if (!finalImage || finalImage.includes('bigbasket.com/pd/')) {
+    finalImage = `https://placehold.co/300x300/f1f5f9/64748b?text=${encodeURIComponent(p.name?.substring(0, 6) || 'Item')}`;
+  }
+
+  return {
+    id: p.id,
+    name: p.name,
+    price: p.sellingPrice || p.price,
+    originalPrice: p.mrp || p.originalPrice,
+    category: p.category || 'General',
+    image: finalImage,
+    description: p.description,
+    subscriptionDiscount: p.subscriptionDiscount || 0,
+    clearanceReason: p.clearanceReason,
+    stockStatus: p.stockStatus
+  };
 };
 
 const BANNERS = [
@@ -37,6 +62,7 @@ export default function HomeFeed() {
 
   const [clearanceProducts, setClearanceProducts] = useState<any[]>([]);
   const [newProducts, setNewProducts] = useState<any[]>([]);
+  const [popularProducts, setPopularProducts] = useState<any[]>([]);
   const [activeCampaign, setActiveCampaign] = useState<any>(null);
 
   // Cart badge animation
@@ -63,26 +89,18 @@ export default function HomeFeed() {
       const currentStoreId = savedStoreId || 'f15b0af3-3667-429a-ae2e-9f85d25e9c2f';
       setStoreId(currentStoreId);
 
-      const [productsRes, storeRes, clearanceRes, newRes, campaignRes] = await Promise.all([
+      const [productsRes, storeRes, clearanceRes, newRes, popularRes, campaignRes] = await Promise.all([
         fetch(`${API_BASE_URL}/inventory/products?storeId=${currentStoreId}`),
         fetch(`${API_BASE_URL}/stores/${currentStoreId}`),
         fetch(`${API_BASE_URL}/inventory/clearance?storeId=${currentStoreId}`),
         fetch(`${API_BASE_URL}/inventory/new?storeId=${currentStoreId}`),
-        fetch(`${API_BASE_URL}/campaigns?storeId=${currentStoreId}`),
+        fetch(`${API_BASE_URL}/catalog/personalized?storeId=${currentStoreId}`),
+        fetch(`${API_BASE_URL}/campaigns?storeId=${currentStoreId}`)
       ]);
 
       if (productsRes.ok) {
         const data = await productsRes.json();
-        const mapped = data.map((p: any) => ({
-          id: p.id,
-          name: p.name,
-          price: p.sellingPrice,
-          originalPrice: p.mrp,
-          category: p.category || 'General',
-          image: p.imageUrl || `https://placehold.co/300x300/f1f5f9/64748b?text=${encodeURIComponent(p.name?.substring(0, 6) || 'Item')}`,
-          description: p.description,
-          subscriptionDiscount: p.subscriptionDiscount || 0,
-        }));
+        const mapped = data.map(normalizeProduct);
         setProducts(mapped);
         
         const uniqueCats = Array.from(new Set(mapped.map((p: any) => p.category))) as string[];
@@ -95,19 +113,15 @@ export default function HomeFeed() {
 
       if (clearanceRes.ok) {
         const data = await clearanceRes.json();
-        setClearanceProducts(data.map((p: any) => ({
-          id: p.id,
-          name: p.name,
-          price: p.sellingPrice,
-          originalPrice: p.originalPrice,
-          category: p.category || 'General',
-          image: p.imageUrl,
-          clearanceReason: p.clearanceReason,
-        })));
+        setClearanceProducts(data.map(normalizeProduct));
+      }
+
+      if (popularRes.ok) {
+        const popData = await popularRes.json(); setPopularProducts(popData.map(normalizeProduct));
       }
 
       if (newRes.ok) {
-        setNewProducts(await newRes.json());
+        const newData = await newRes.json(); setNewProducts(newData.map(normalizeProduct));
       }
 
       if (campaignRes.ok) {
@@ -134,6 +148,30 @@ export default function HomeFeed() {
     loadStoreAndProducts();
   }, []);
 
+  
+  useEffect(() => {
+    if (!storeId) return;
+    
+    const channel = supabase.channel(`store:${storeId}:inventory`)
+      .on('broadcast', { event: 'inventory_update' }, (payload) => {
+        const { productId, onHandQty, availableQty } = payload.payload;
+        
+        // Update products array
+        setProducts(prev => prev.map(p => {
+          if (p.id === productId) {
+            return { ...p, stockStatus: availableQty <= 0 ? 'OUT_OF_STOCK' : 'IN_STOCK' };
+          }
+          return p;
+        }));
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [storeId]);
+
+
   const handleAddToCart = (product: any) => {
     const productWithStore = {
       ...product,
@@ -154,14 +192,20 @@ export default function HomeFeed() {
     return (
       <Animated.View 
         key={item.id} 
-        entering={FadeInDown.delay(index * 60).duration(400).easing(Easing.out(Easing.cubic))}
+        entering={FadeInDown.delay(Math.min(index, 8) * 60).duration(400).easing(Easing.out(Easing.cubic))}
         style={{ width: widthScale === 0.44 ? '48%' : width * widthScale, marginRight: widthScale === 0.44 ? 0 : 16, marginBottom: widthScale === 0.44 ? 16 : 0 }}
       >
         <TouchableOpacity style={styles.productCard} activeOpacity={0.9} onPress={() => router.push(`/product/${item.id}`)}>
           <View style={styles.productImageContainer}>
             <Image source={{ uri: item.image }} style={styles.productImage} />
-            <Image source={{ uri: item.image }} style={styles.productImage} />
             
+            
+            {item.stockStatus === 'OUT_OF_STOCK' && (
+              <View style={[styles.subBadge, { backgroundColor: '#fee2e2', bottom: 30 }]}>
+                <Text style={[styles.subBadgeText, { color: '#b91c1c' }]}>Out of Stock</Text>
+              </View>
+            )}
+
             {item.subscriptionDiscount > 0 && (
               <View style={styles.subBadge}>
                 <Ionicons name="repeat" size={10} color="#1e40af" />
@@ -186,7 +230,7 @@ export default function HomeFeed() {
                   <Ionicons name="remove" size={16} color={Colors.primary} />
                 </TouchableOpacity>
                 <Text style={styles.qtyText}>{qty}</Text>
-                <TouchableOpacity style={[styles.qtyBtn, styles.qtyBtnAdd]} onPress={(e) => { e.stopPropagation(); handleAddToCart(item); }}>
+                <TouchableOpacity style={[styles.qtyBtn, styles.qtyBtnAdd]} onPress={(e) => { e.stopPropagation(); if (item.stockStatus !== 'OUT_OF_STOCK') handleAddToCart(item); }}>
                   <Ionicons name="add" size={16} color="#fff" />
                 </TouchableOpacity>
               </View>
@@ -309,14 +353,21 @@ export default function HomeFeed() {
 
             {/* If a category is selected, just show a grid for that category */}
             {activeCategory !== 0 ? (
-              <Animated.View entering={FadeInDown.duration(400)} style={styles.categoryGrid}>
-                <Text style={styles.sectionTitle}>{categories[activeCategory].name}</Text>
-                <View style={styles.gridWrapper}>
-                  {products.filter(p => p.category === categories[activeCategory].original).map((p, i) => (
-                    renderProductCard(p, i, 0.44) 
-                  ))}
+              products.filter(p => p.category === categories[activeCategory].original).length > 0 ? (
+                <Animated.View entering={FadeInDown.duration(400)} style={styles.categoryGrid}>
+                  <Text style={styles.sectionTitle}>{categories[activeCategory].name}</Text>
+                  <View style={styles.gridWrapper}>
+                    {products.filter(p => p.category === categories[activeCategory].original).map((p, i) => (
+                      renderProductCard(p, i, 0.44) 
+                    ))}
+                  </View>
+                </Animated.View>
+              ) : (
+                <View style={{ padding: 40, alignItems: 'center' }}>
+                  <Ionicons name="basket-outline" size={48} color={Colors.textMuted} />
+                  <Text style={{ marginTop: 16, fontFamily: 'Inter_500Medium', color: Colors.textSecondary }}>No products in this category.</Text>
                 </View>
-              </Animated.View>
+              )
             ) : (
               /* If 'All', show beautiful thematic carousels and Organic Zone */
               <Animated.View entering={FadeInDown.delay(150).springify().damping(15)}>
@@ -363,15 +414,17 @@ export default function HomeFeed() {
                 )}
 
                 {/* Thematic Carousel 2: Bestsellers */}
+                {popularProducts.length > 0 && (
                 <View style={styles.carouselSection}>
                   <View style={styles.carouselHeader}>
-                    <Text style={styles.sectionTitle}>Bestsellers 🔥</Text>
+                    <Text style={styles.sectionTitle}>Recommended For You 🎯</Text>
                     <TouchableOpacity><Text style={styles.seeAllText}>See All</Text></TouchableOpacity>
                   </View>
                   <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.carouselContent}>
-                    {products.slice(0, 8).sort(() => 0.5 - Math.random()).map((p, i) => renderProductCard(p, i, 0.40))}
+                    {popularProducts.map((p, i) => renderProductCard(p, i, 0.40))}
                   </ScrollView>
                 </View>
+                )}
 
                 {/* SPECIAL ZONE: The Organic Zone */}
                 <View style={styles.organicZone}>

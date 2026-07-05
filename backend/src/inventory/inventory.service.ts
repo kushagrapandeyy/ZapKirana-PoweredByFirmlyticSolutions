@@ -3,6 +3,7 @@ import { PrismaService } from '../prisma.service';
 import { MovementType } from '@prisma/client';
 import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
 import { CacheService } from '../cache/cache.service';
+import { RealtimeService } from '../realtime/realtime.service';
 
 @Injectable()
 export class InventoryService {
@@ -10,6 +11,7 @@ export class InventoryService {
     private prisma: PrismaService,
     private eventEmitter: EventEmitter2,
     private cache: CacheService,
+    private realtimeService: RealtimeService,
   ) {}
 
   /**
@@ -124,6 +126,12 @@ export class InventoryService {
         onHandQty: result.updatedInventory.onHandQty
       });
     }
+
+    // 6. Broadcast Realtime Update
+    this.realtimeService.broadcastInventoryUpdate(data.storeId, data.productId, {
+      onHandQty: result.updatedInventory.onHandQty,
+      availableQty: result.updatedInventory.onHandQty - result.updatedInventory.reservedQty - result.updatedInventory.blockedQty,
+    });
 
     return result.updatedInventory;
   }

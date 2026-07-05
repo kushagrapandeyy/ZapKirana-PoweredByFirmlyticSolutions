@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { ShieldCheck, Clock, CheckCircle, AlertTriangle, Info, User } from 'lucide-react';
 import { fetchWithAuth } from '../AuthContext';
 
-const API_BASE = 'http://localhost:3000';
+const API_BASE = 'https://zapkirana-poweredbyfirmlyticsolutions.onrender.com';
 
 export default function AuditLogsPage() {
   const [audits, setAudits] = useState<any[]>([]);

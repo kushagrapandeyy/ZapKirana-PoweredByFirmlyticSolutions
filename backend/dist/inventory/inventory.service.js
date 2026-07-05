@@ -14,14 +14,17 @@ const common_1 = require("@nestjs/common");
 const prisma_service_1 = require("../prisma.service");
 const event_emitter_1 = require("@nestjs/event-emitter");
 const cache_service_1 = require("../cache/cache.service");
+const realtime_service_1 = require("../realtime/realtime.service");
 let InventoryService = class InventoryService {
     prisma;
     eventEmitter;
     cache;
-    constructor(prisma, eventEmitter, cache) {
+    realtimeService;
+    constructor(prisma, eventEmitter, cache, realtimeService) {
         this.prisma = prisma;
         this.eventEmitter = eventEmitter;
         this.cache = cache;
+        this.realtimeService = realtimeService;
     }
     async recordMovement(data) {
         const result = await this.prisma.$transaction(async (tx) => {
@@ -104,6 +107,10 @@ let InventoryService = class InventoryService {
                 onHandQty: result.updatedInventory.onHandQty
             });
         }
+        this.realtimeService.broadcastInventoryUpdate(data.storeId, data.productId, {
+            onHandQty: result.updatedInventory.onHandQty,
+            availableQty: result.updatedInventory.onHandQty - result.updatedInventory.reservedQty - result.updatedInventory.blockedQty,
+        });
         return result.updatedInventory;
     }
     async receiveStock(storeId, productId, qty, staffId, batchNo) {
@@ -308,6 +315,7 @@ exports.InventoryService = InventoryService = __decorate([
     (0, common_1.Injectable)(),
     __metadata("design:paramtypes", [prisma_service_1.PrismaService,
         event_emitter_1.EventEmitter2,
-        cache_service_1.CacheService])
+        cache_service_1.CacheService,
+        realtime_service_1.RealtimeService])
 ], InventoryService);
 //# sourceMappingURL=inventory.service.js.map

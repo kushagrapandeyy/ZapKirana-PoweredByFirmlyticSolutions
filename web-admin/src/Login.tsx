@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useAuth } from './AuthContext';
 import { Shield, Building, Lock, Mail } from 'lucide-react';
 
-const API_BASE = 'http://localhost:3000';
+const API_BASE = 'https://zapkirana-poweredbyfirmlyticsolutions.onrender.com';
 
 export default function Login() {
   const { login } = useAuth();

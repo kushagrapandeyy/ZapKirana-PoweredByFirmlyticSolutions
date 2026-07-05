@@ -3,7 +3,7 @@ import { Receipt, Search, Filter } from 'lucide-react';
 import { fetchWithAuth } from '../AuthContext';
 import DataGrid from '../components/DataGrid';
 
-const API_BASE = 'http://localhost:3000';
+const API_BASE = 'https://zapkirana-poweredbyfirmlyticsolutions.onrender.com';
 
 export default function MasterOrdersPage() {
   const [orders, setOrders] = useState<any[]>([]);

@@ -8,7 +8,55 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import Toast from 'react-native-toast-message';
 import { StatusBar, View, StyleSheet } from 'react-native';
 import { supabase } from '../lib/supabase';
-import Animated, { FadeIn, ZoomIn, SlideInDown } from 'react-native-reanimated';
+import Animated, { FadeIn, ZoomIn, SlideInDown, useSharedValue, useAnimatedStyle, withSpring, withTiming, runOnJS, Easing, withDelay, withSequence } from 'react-native-reanimated';
+import { Text } from 'react-native';
+
+
+import { Dimensions } from 'react-native';
+
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
+
+function AnimatedSplashScreen({ onFinish }: { onFinish: () => void }) {
+  const scale = useSharedValue(0.5);
+  const opacity = useSharedValue(0);
+  const overlayOpacity = useSharedValue(1);
+
+  useEffect(() => {
+    // 1. Zoom in and fade in
+    scale.value = withSpring(1, { damping: 10, stiffness: 80 });
+    opacity.value = withTiming(1, { duration: 800 });
+
+    // 2. Wait and fade out whole overlay
+    setTimeout(() => {
+      overlayOpacity.value = withTiming(0, { duration: 600 }, (isFinished) => {
+        if (isFinished) {
+          runOnJS(onFinish)();
+        }
+      });
+    }, 2000);
+  }, []);
+
+  const logoStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+    opacity: opacity.value,
+  }));
+
+  const overlayStyle = useAnimatedStyle(() => ({
+    opacity: overlayOpacity.value,
+  }));
+
+  return (
+    <Animated.View style={[{ position: 'absolute', top: 0, left: 0, width: SCREEN_WIDTH, height: SCREEN_HEIGHT, backgroundColor: '#064E3B', justifyContent: 'center', alignItems: 'center', zIndex: 9999 }, overlayStyle]}>
+      <Animated.View style={[{ alignItems: 'center' }, logoStyle]}>
+        <View style={{ width: 100, height: 100, borderRadius: 24, backgroundColor: '#fff', justifyContent: 'center', alignItems: 'center', marginBottom: 20 }}>
+          <Text style={{ fontSize: 48 }}>🛒</Text>
+        </View>
+        <Text style={{ fontSize: 42, fontFamily: 'PlayfairDisplay_700Bold', color: '#fff' }}>ZapKirana</Text>
+        <Text style={{ fontSize: 16, fontFamily: 'Inter_500Medium', color: 'rgba(255,255,255,0.8)', marginTop: 8 }}>Groceries in 10 Minutes</Text>
+      </Animated.View>
+    </Animated.View>
+  );
+}
 
 export default function RootLayout() {
   const [fontsLoaded] = useFonts({
@@ -20,6 +68,7 @@ export default function RootLayout() {
   });
   
   const [hasOnboarded, setHasOnboarded] = useState<boolean | null>(null);
+  const [splashVisible, setSplashVisible] = useState(true);
   const [session, setSession] = useState<any>(null);
   const router = useRouter();
   const segments = useSegments();
@@ -69,6 +118,7 @@ export default function RootLayout() {
 
   return (
     <CartProvider>
+      {splashVisible && <AnimatedSplashScreen onFinish={() => setSplashVisible(false)} />}
       <StatusBar barStyle="dark-content" />
       <GestureHandlerRootView style={{ flex: 1 }}>
         <Animated.View style={{ flex: 1 }} entering={FadeIn.duration(800)}>

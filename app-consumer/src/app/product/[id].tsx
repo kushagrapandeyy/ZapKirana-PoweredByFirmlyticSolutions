@@ -78,12 +78,15 @@ export default function ProductDetailsScreen() {
           <Text style={styles.title}>{product.name}</Text>
           <Text style={styles.price}>₹{product.price}</Text>
           
-          {product.subscriptionDiscount > 0 && (
-            <View style={styles.subscribeBanner}>
+          <View style={styles.subscribeBanner}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                 <Ionicons name="repeat" size={20} color={ROYAL_BLUE} />
                 <View>
-                  <Text style={styles.subscribeTitle}>Subscribe & Save {product.subscriptionDiscount}%</Text>
+                  <Text style={styles.subscribeTitle}>
+                    {product.subscriptionDiscount > 0 
+                      ? `Subscribe & Save ${product.subscriptionDiscount}%` 
+                      : 'Subscribe for recurring delivery'}
+                  </Text>
                   <Text style={styles.subscribeDesc}>Get this delivered daily or weekly.</Text>
                 </View>
               </View>
@@ -91,7 +94,6 @@ export default function ProductDetailsScreen() {
                 <Text style={styles.subscribeBtnText}>Setup</Text>
               </TouchableOpacity>
             </View>
-          )}
 
           <Text style={styles.sectionTitle}>Description</Text>
           <Text style={styles.description}>{product.description}</Text>

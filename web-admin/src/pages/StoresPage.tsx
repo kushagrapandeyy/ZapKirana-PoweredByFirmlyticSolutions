@@ -5,7 +5,7 @@ import DataGrid from '../components/DataGrid';
 import GlassModal from '../components/GlassModal';
 import OnboardingWizard from '../components/OnboardingWizard';
 
-const API_BASE = 'http://localhost:3000';
+const API_BASE = 'https://zapkirana-poweredbyfirmlyticsolutions.onrender.com';
 
 export default function StoresPage() {
   const [stores, setStores] = useState<any[]>([]);

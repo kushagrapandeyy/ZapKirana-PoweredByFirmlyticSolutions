@@ -12,13 +12,46 @@ export default function OrdersScreen() {
   const router = useRouter();
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'ACTIVE' | 'PAST'>('ACTIVE');
+  const [activeTab, setActiveTab] = useState<'ACTIVE' | 'PAST' | 'SUBS'>('ACTIVE');
+  const [subscriptions, setSubscriptions] = useState<any[]>([]);
 
   useFocusEffect(
     useCallback(() => {
       fetchOrders();
+      fetchSubscriptions();
     }, [])
   );
+
+  
+  const fetchSubscriptions = async () => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/subscriptions?customerId=${CURRENT_CUSTOMER_ID}`);
+      if (res.ok) {
+        const data = await res.json();
+        setSubscriptions(data);
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const handlePauseSub = async (id: string, isPaused: boolean) => {
+    const endpoint = isPaused ? 'resume' : 'pause';
+    try {
+      setLoading(true);
+      await fetch(`${API_BASE_URL}/subscriptions/${id}/${endpoint}`, { method: 'PATCH' });
+      await fetchSubscriptions();
+    } catch (e) {
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const formatDate = (dateString: string) => {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  };
 
   const fetchOrders = async () => {
     try {
@@ -37,7 +70,7 @@ export default function OrdersScreen() {
   const activeOrders = orders.filter(o => o.status !== 'DELIVERED' && o.status !== 'CANCELLED');
   const pastOrders = orders.filter(o => o.status === 'DELIVERED' || o.status === 'CANCELLED');
 
-  const displayData = activeTab === 'ACTIVE' ? activeOrders : pastOrders;
+  const displayData = activeTab === 'ACTIVE' ? activeOrders : activeTab === 'PAST' ? pastOrders : subscriptions;
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -52,7 +85,45 @@ export default function OrdersScreen() {
     const isDelivered = item.status === 'DELIVERED';
     const statusColor = getStatusColor(item.status);
 
-    return (
+    
+  const renderSubscription = ({ item, index }: { item: any; index: number }) => (
+    <Animated.View entering={FadeInDown.delay(index * 100).springify()} style={styles.orderCard}>
+      <View style={styles.orderHeader}>
+        <Text style={styles.storeName}>{item.store?.name || 'Store'}</Text>
+        <View style={[styles.statusBadge, { backgroundColor: item.status === 'PAUSED' ? '#fef08a' : '#dcfce7' }]}>
+          <Text style={[styles.statusText, { color: item.status === 'PAUSED' ? '#ca8a04' : '#15803d' }]}>{item.status}</Text>
+        </View>
+      </View>
+      <View style={styles.divider} />
+      <View style={{ marginBottom: 12 }}>
+        {item.items?.map((prod: any, idx: number) => (
+          <Text key={idx} style={{ fontSize: 14, color: Colors.textSecondary, marginBottom: 4 }}>• {prod.productName} (Qty: {prod.quantity})</Text>
+        ))}
+      </View>
+      <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 16 }}>
+        <View>
+          <Text style={{ fontSize: 12, color: Colors.textMuted }}>Frequency</Text>
+          <Text style={{ fontSize: 14, fontFamily: 'Inter_600SemiBold', color: Colors.textPrimary }}>{item.frequency}</Text>
+        </View>
+        <View>
+          <Text style={{ fontSize: 12, color: Colors.textMuted }}>Next Delivery</Text>
+          <Text style={{ fontSize: 14, fontFamily: 'Inter_600SemiBold', color: Colors.textPrimary }}>{formatDate(item.nextDeliveryDate)}</Text>
+        </View>
+      </View>
+      <View style={{ flexDirection: 'row', justifyContent: 'flex-end' }}>
+        <TouchableOpacity 
+          style={{ paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, borderWidth: 1, borderColor: item.status === 'PAUSED' ? Colors.primary : Colors.border, backgroundColor: item.status === 'PAUSED' ? Colors.primary : 'transparent' }}
+          onPress={() => handlePauseSub(item.id, item.status === 'PAUSED')}
+        >
+          <Text style={{ fontSize: 13, fontFamily: 'Inter_600SemiBold', color: item.status === 'PAUSED' ? '#fff' : Colors.textSecondary }}>
+            {item.status === 'PAUSED' ? 'Resume' : 'Pause'}
+          </Text>
+        </TouchableOpacity>
+      </View>
+    </Animated.View>
+  );
+
+  return (
       <Animated.View entering={FadeInDown.delay(index * 100).springify()}>
         <TouchableOpacity 
           style={styles.orderCard} 
@@ -130,7 +201,13 @@ export default function OrdersScreen() {
           style={[styles.tab, activeTab === 'PAST' && styles.tabActive]}
           onPress={() => setActiveTab('PAST')}
         >
-          <Text style={[styles.tabText, activeTab === 'PAST' && styles.tabTextActive]}>Past ({pastOrders.length})</Text>
+          <Text style={[styles.tabText, activeTab === 'PAST' && styles.tabTextActive]}>Past</Text>
+        </TouchableOpacity>
+        <TouchableOpacity 
+          style={[styles.tab, activeTab === 'SUBS' && styles.tabActive]}
+          onPress={() => setActiveTab('SUBS')}
+        >
+          <Text style={[styles.tabText, activeTab === 'SUBS' && styles.tabTextActive]}>Subscriptions</Text>
         </TouchableOpacity>
       </View>
 
@@ -141,7 +218,7 @@ export default function OrdersScreen() {
       ) : displayData.length > 0 ? (
         <FlatList
           data={displayData}
-          renderItem={renderOrder}
+          renderItem={activeTab === 'SUBS' ? renderSubscription : renderOrder}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
@@ -151,7 +228,7 @@ export default function OrdersScreen() {
           <View style={styles.emptyIconCircle}>
             <Ionicons name="receipt-outline" size={64} color={Colors.border} />
           </View>
-          <Text style={styles.emptyTitle}>No {activeTab.toLowerCase()} orders</Text>
+          <Text style={styles.emptyTitle}>{activeTab === 'SUBS' ? 'No active subscriptions' : `No ${activeTab.toLowerCase()} orders`}</Text>
           <Text style={styles.emptyText}>
             {activeTab === 'ACTIVE' 
               ? "You don't have any ongoing orders at the moment."

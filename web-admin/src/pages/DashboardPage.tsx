@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Store, Users, Building, Receipt } from 'lucide-react';
 import { fetchWithAuth } from '../AuthContext';
 
-const API_BASE = 'http://localhost:3000';
+const API_BASE = 'https://zapkirana-poweredbyfirmlyticsolutions.onrender.com';
 
 export default function DashboardPage() {
   const [stats, setStats] = useState<any>(null);

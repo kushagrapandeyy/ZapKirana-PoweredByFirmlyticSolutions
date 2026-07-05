@@ -5,7 +5,10 @@ import { useCart } from '../../context/CartContext';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown, FadeIn, useSharedValue, useAnimatedStyle, withSpring, withSequence } from 'react-native-reanimated';
 import { Colors, Shadows, Radius } from '../../constants/theme';
-import { API_BASE_URL } from '../../constants/api';
+import { API_BASE_URL, SUPABASE_URL, SUPABASE_ANON_KEY } from '../../constants/api';
+import { createClient } from '@supabase/supabase-js';
+
+const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 const { width } = Dimensions.get('window');
 
@@ -85,6 +88,30 @@ export default function StoreScreen() {
     loadStoreAndProducts();
   }, [storeId]);
 
+  
+  useEffect(() => {
+    if (!storeId) return;
+    
+    const channel = supabase.channel(`store:${storeId}:inventory`)
+      .on('broadcast', { event: 'inventory_update' }, (payload) => {
+        const { productId, onHandQty, availableQty } = payload.payload;
+        
+        // Update products array
+        setProducts(prev => prev.map(p => {
+          if (p.id === productId) {
+            return { ...p, stockStatus: availableQty <= 0 ? 'OUT_OF_STOCK' : 'IN_STOCK' };
+          }
+          return p;
+        }));
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [storeId]);
+
+
   const handleAddToCart = (product: any) => {
     const productWithStore = {
       ...product,
@@ -108,9 +135,16 @@ export default function StoreScreen() {
 
     return (
       <Animated.View entering={FadeInDown.delay(index * 60).springify().damping(14).mass(0.8)}>
-        <TouchableOpacity style={styles.productCard} activeOpacity={0.9}>
+        <TouchableOpacity style={styles.productCard} activeOpacity={0.9} onPress={() => router.push(`/product/${item.id}`)}>
           <View style={styles.productImageContainer}>
             <Image source={{ uri: item.image }} style={styles.productImage} />
+            
+            {item.stockStatus === 'OUT_OF_STOCK' && (
+              <View style={[styles.subBadge, { backgroundColor: '#fee2e2', bottom: 6, left: 6, right: 'auto', top: 'auto' }]}>
+                <Text style={[styles.subBadgeText, { color: '#b91c1c' }]}>Out of Stock</Text>
+              </View>
+            )}
+
             {item.gstClass && item.gstClass !== 'EXEMPT' && (
               <View style={styles.gstBadge}>
                 <Text style={styles.gstBadgeText}>
@@ -129,7 +163,7 @@ export default function StoreScreen() {
                   <Ionicons name="remove" size={16} color={Colors.primary} />
                 </TouchableOpacity>
                 <Text style={styles.qtyText}>{qty}</Text>
-                <TouchableOpacity style={[styles.qtyBtn, styles.qtyBtnAdd]} onPress={() => handleAddToCart(item)}>
+                <TouchableOpacity style={[styles.qtyBtn, styles.qtyBtnAdd]} onPress={() => { if (item.stockStatus !== 'OUT_OF_STOCK') handleAddToCart(item); }}>
                   <Ionicons name="add" size={16} color="#fff" />
                 </TouchableOpacity>
               </View>
@@ -232,6 +266,8 @@ const styles = StyleSheet.create({
   productImage: { width: '100%', height: 130, borderRadius: Radius.lg, backgroundColor: Colors.surfaceAlt },
   gstBadge: { position: 'absolute', top: 6, right: 6, backgroundColor: 'rgba(0,0,0,0.6)', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 },
   gstBadgeText: { fontSize: 9, color: '#fff', fontFamily: 'Inter_600SemiBold' },
+  subBadge: { position: 'absolute', paddingHorizontal: 6, paddingVertical: 4, borderRadius: 6, flexDirection: 'row', alignItems: 'center', gap: 4 },
+  subBadgeText: { fontSize: 10, fontFamily: 'Inter_700Bold' },
   productCategory: { fontSize: 11, color: Colors.primary, fontFamily: 'Inter_600SemiBold', marginBottom: 2, textTransform: 'uppercase' },
   productName: { fontSize: 14, color: Colors.textPrimary, fontFamily: 'Inter_600SemiBold', marginBottom: 8, lineHeight: 18, height: 36 },
   productFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },

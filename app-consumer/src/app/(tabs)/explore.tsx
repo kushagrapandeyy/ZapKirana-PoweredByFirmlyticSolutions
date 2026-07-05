@@ -69,9 +69,7 @@ export default function ExploreScreen() {
   };
 
   const navigateToProduct = (productId: string, storeId: string) => {
-    // We can just navigate to the store or if there's a product modal we can open it.
-    // For now, navigating to the store is standard.
-    router.push(`/store/${storeId}`);
+    router.push(`/product/${productId}`);
   };
 
   const renderProductCard = (product: any, storeId: string) => (
@@ -157,7 +155,7 @@ export default function ExploreScreen() {
               }
 
               return (
-                <Animated.View key={store.id} entering={FadeInDown.delay(index * 150).springify()}>
+                <Animated.View key={store.id} entering={FadeInDown.delay(Math.min(index, 5) * 150).springify()}>
                   <View style={styles.storeCard}>
                     {/* Store Cover Image */}
                     <TouchableOpacity activeOpacity={0.9} onPress={() => navigateToStore(store.id)}>
