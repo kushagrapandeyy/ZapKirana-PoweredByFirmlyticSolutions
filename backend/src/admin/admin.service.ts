@@ -28,8 +28,8 @@ export class AdminService {
   }
 
   async createStore(data: any, adminId: string) {
-    if (!data.name || !data.address) {
-      throw new BadRequestException('Store name and address are required');
+    if (!data.name || (!data.address && !data.location)) {
+      throw new BadRequestException('Store name and address/location are required');
     }
 
     const store = await this.prisma.store.create({

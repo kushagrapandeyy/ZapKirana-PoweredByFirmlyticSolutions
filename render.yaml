@@ -1,0 +1,38 @@
+services:
+  - type: web
+    name: zapkirana-backend
+    env: node
+    # Point Render to your backend directory
+    rootDir: backend
+    
+    # We use npm install, generate Prisma client, and build NestJS
+    buildCommand: npm install && npx prisma generate && npm run build
+    
+    # Start the compiled production build
+    startCommand: npm run start:prod
+    
+    # Render's free/starter tier is usually fine for early dev
+    plan: free
+    
+    envVars:
+      - key: NODE_ENV
+        value: production
+      # We tell Render to sync the environment variables you set in the Render Dashboard
+      - key: DATABASE_URL
+        sync: false
+      - key: DIRECT_URL
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_ANON_KEY
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: SUPABASE_JWT_SECRET
+        sync: false
+      - key: UPSTASH_REDIS_REST_URL
+        sync: false
+      - key: UPSTASH_REDIS_REST_TOKEN
+        sync: false

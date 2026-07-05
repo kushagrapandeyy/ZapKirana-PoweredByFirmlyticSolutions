@@ -12,13 +12,14 @@ const support_service_1 = require("./support.service");
 const support_controller_1 = require("./support.controller");
 const support_gateway_1 = require("./support.gateway");
 const prisma_service_1 = require("../prisma.service");
+const jwt_1 = require("@nestjs/jwt");
 let SupportModule = class SupportModule {
 };
 exports.SupportModule = SupportModule;
 exports.SupportModule = SupportModule = __decorate([
     (0, common_1.Module)({
         controllers: [support_controller_1.SupportController],
-        providers: [support_service_1.SupportService, support_gateway_1.SupportGateway, prisma_service_1.PrismaService],
+        providers: [support_service_1.SupportService, support_gateway_1.SupportGateway, prisma_service_1.PrismaService, jwt_1.JwtService],
     })
 ], SupportModule);
 //# sourceMappingURL=support.module.js.map
