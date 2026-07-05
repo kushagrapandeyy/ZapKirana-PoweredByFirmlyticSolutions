@@ -6,9 +6,11 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { Colors, Shadows, Radius } from '../../constants/theme';
-import { API_BASE_URL, CURRENT_STORE_ID } from '../../constants/api';
+import { API_BASE_URL } from '../../constants/api';
+import { useAuth } from '../../context/AuthContext';
 
 export default function DeviceFleetTracker() {
+  const { tenantId } = useAuth();
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -16,7 +18,7 @@ export default function DeviceFleetTracker() {
 
   const loadData = async () => {
     try {
-      const res = await fetch(`${API_BASE_URL}/scanner-management/devices`, {
+      const res = await fetch(`${API_BASE_URL}/scanner-management/devices?storeId=${tenantId}`, {
         headers: { 'Authorization': `Bearer DUMMY_TOKEN_FOR_NOW` }
       });
       
@@ -92,7 +94,7 @@ export default function DeviceFleetTracker() {
             {devices.map((device, index) => {
               const online = isOnline(device.lastSeenAt);
               return (
-                <Animated.View key={device.id} entering={FadeInDown.delay(index * 50).duration(400)}>
+                <Animated.View key={device.id} entering={FadeInDown.delay(index * 50).springify().damping(15)}>
                   <View style={styles.card}>
                     <View style={styles.cardHeader}>
                       <View style={styles.deviceInfo}>
@@ -101,23 +103,41 @@ export default function DeviceFleetTracker() {
                         </View>
                         <View>
                           <Text style={styles.deviceName}>{device.deviceName || 'Unknown Device'}</Text>
-                          <Text style={styles.deviceCode}>{device.deviceCode}</Text>
+                          <Text style={styles.deviceCode}>ID: {device.deviceCode}</Text>
                         </View>
                       </View>
-                      <Ionicons name="ellipsis-horizontal" size={20} color={Colors.textMuted} />
+                      <TouchableOpacity style={styles.pingBtn}>
+                        <Ionicons name="radio" size={16} color={online ? Colors.primary : Colors.textMuted} />
+                        <Text style={[styles.pingText, { color: online ? Colors.primary : Colors.textMuted }]}>Ping</Text>
+                      </TouchableOpacity>
                     </View>
                     
+                    <View style={styles.telemetryRow}>
+                      <View style={styles.telemetryItem}>
+                        <Ionicons name="battery-half" size={16} color={online ? Colors.success : Colors.textMuted} />
+                        <Text style={styles.telemetryText}>{online ? '78%' : '--'}</Text>
+                      </View>
+                      <View style={styles.telemetryItem}>
+                        <Ionicons name="wifi" size={16} color={online ? Colors.primary : Colors.textMuted} />
+                        <Text style={styles.telemetryText}>{online ? 'Strong' : 'Lost'}</Text>
+                      </View>
+                      <View style={styles.telemetryItem}>
+                        <Ionicons name="sync" size={16} color={Colors.textSecondary} />
+                        <Text style={styles.telemetryText}>v1.2.4</Text>
+                      </View>
+                    </View>
+
                     <View style={styles.divider} />
 
                     <View style={styles.cardFooter}>
                       <View style={styles.statusRow}>
                         <View style={[styles.pulseDot, { backgroundColor: online ? Colors.success : Colors.textMuted }]} />
                         <Text style={[styles.statusText, { color: online ? Colors.successDark : Colors.textSecondary }]}>
-                          {online ? 'Online' : 'Offline'}
+                          {online ? 'Active Connection' : 'Offline'}
                         </Text>
                       </View>
                       <Text style={styles.lastSeenText}>
-                        Last ping: {device.lastSeenAt ? new Date(device.lastSeenAt).toLocaleTimeString() : 'Never'}
+                        Last sync: {device.lastSeenAt ? new Date(device.lastSeenAt).toLocaleTimeString() : 'Never'}
                       </Text>
                     </View>
                   </View>
@@ -150,7 +170,12 @@ const styles = StyleSheet.create({
   deviceInfo: { flexDirection: 'row', gap: 12, alignItems: 'center' },
   iconBox: { width: 48, height: 48, borderRadius: 12, justifyContent: 'center', alignItems: 'center' },
   deviceName: { fontSize: 16, fontFamily: 'Inter_700Bold', color: Colors.textPrimary, marginBottom: 2 },
-  deviceCode: { fontSize: 13, fontFamily: 'Inter_500Medium', color: Colors.textSecondary },
+  deviceCode: { fontSize: 12, fontFamily: 'Inter_600SemiBold', color: Colors.textMuted, textTransform: 'uppercase', letterSpacing: 0.5 },
+  pingBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: Colors.primaryGhost, paddingHorizontal: 12, paddingVertical: 6, borderRadius: Radius.full, gap: 4 },
+  pingText: { fontSize: 12, fontFamily: 'Inter_600SemiBold' },
+  telemetryRow: { flexDirection: 'row', justifyContent: 'space-around', paddingVertical: 12, backgroundColor: '#F8FAFC', marginHorizontal: 16, borderRadius: Radius.md, marginBottom: 16 },
+  telemetryItem: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  telemetryText: { fontSize: 13, fontFamily: 'Inter_600SemiBold', color: Colors.textSecondary },
   divider: { height: 1, backgroundColor: '#F1F5F9', marginHorizontal: 16 },
   cardFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 16, backgroundColor: '#FAFAFA', borderBottomLeftRadius: Radius.xl, borderBottomRightRadius: Radius.xl },
   statusRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },

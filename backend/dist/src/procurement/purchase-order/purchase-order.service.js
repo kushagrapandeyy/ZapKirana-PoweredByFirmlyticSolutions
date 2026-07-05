@@ -159,7 +159,7 @@ let PurchaseOrderService = class PurchaseOrderService {
       <body>
         <div class="header">
           <div>
-            <div class="logo">Basko</div>
+            <div class="logo">Zapkirana</div>
             <div class="logo-sub">Purchase Order Document</div>
           </div>
           <div class="po-badge">
@@ -206,7 +206,7 @@ let PurchaseOrderService = class PurchaseOrderService {
         </div>
 
         <div class="footer">
-          This is a system-generated purchase order from Basko – Powered by Firmlytic Solutions.<br>
+          This is a system-generated purchase order from Zapkirana – Powered by Firmlytic Solutions.<br>
           Generated on ${new Date().toLocaleString('en-IN')} | Document ID: ${po.id}
         </div>
       </body>

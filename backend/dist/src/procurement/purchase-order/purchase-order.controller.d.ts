@@ -67,13 +67,14 @@ export declare class PurchaseOrderController {
                 gstRate: number;
                 gstClass: import(".prisma/client").$Enums.GSTClass;
                 subscriptionDiscount: number;
+                campaignId: string | null;
             };
         } & {
             id: string;
             createdAt: Date;
             updatedAt: Date;
-            productId: string;
             quantity: number;
+            productId: string;
             purchasePrice: number;
             acceptedQuantity: number;
             receivedQuantity: number;
@@ -85,8 +86,8 @@ export declare class PurchaseOrderController {
         createdAt: Date;
         updatedAt: Date;
         storeId: string;
-        supplierId: string;
         totalAmount: number;
+        supplierId: string;
         notes: string | null;
         expectedDeliveryDate: Date | null;
         shareToken: string | null;
@@ -129,13 +130,14 @@ export declare class PurchaseOrderController {
                 gstRate: number;
                 gstClass: import(".prisma/client").$Enums.GSTClass;
                 subscriptionDiscount: number;
+                campaignId: string | null;
             };
         } & {
             id: string;
             createdAt: Date;
             updatedAt: Date;
-            productId: string;
             quantity: number;
+            productId: string;
             purchasePrice: number;
             acceptedQuantity: number;
             receivedQuantity: number;
@@ -147,8 +149,8 @@ export declare class PurchaseOrderController {
         createdAt: Date;
         updatedAt: Date;
         storeId: string;
-        supplierId: string;
         totalAmount: number;
+        supplierId: string;
         notes: string | null;
         expectedDeliveryDate: Date | null;
         shareToken: string | null;
@@ -211,13 +213,14 @@ export declare class PurchaseOrderController {
                 gstRate: number;
                 gstClass: import(".prisma/client").$Enums.GSTClass;
                 subscriptionDiscount: number;
+                campaignId: string | null;
             };
         } & {
             id: string;
             createdAt: Date;
             updatedAt: Date;
-            productId: string;
             quantity: number;
+            productId: string;
             purchasePrice: number;
             acceptedQuantity: number;
             receivedQuantity: number;
@@ -229,8 +232,8 @@ export declare class PurchaseOrderController {
         createdAt: Date;
         updatedAt: Date;
         storeId: string;
-        supplierId: string;
         totalAmount: number;
+        supplierId: string;
         notes: string | null;
         expectedDeliveryDate: Date | null;
         shareToken: string | null;
@@ -293,13 +296,14 @@ export declare class PurchaseOrderController {
                 gstRate: number;
                 gstClass: import(".prisma/client").$Enums.GSTClass;
                 subscriptionDiscount: number;
+                campaignId: string | null;
             };
         } & {
             id: string;
             createdAt: Date;
             updatedAt: Date;
-            productId: string;
             quantity: number;
+            productId: string;
             purchasePrice: number;
             acceptedQuantity: number;
             receivedQuantity: number;
@@ -311,8 +315,8 @@ export declare class PurchaseOrderController {
         createdAt: Date;
         updatedAt: Date;
         storeId: string;
-        supplierId: string;
         totalAmount: number;
+        supplierId: string;
         notes: string | null;
         expectedDeliveryDate: Date | null;
         shareToken: string | null;
@@ -324,8 +328,8 @@ export declare class PurchaseOrderController {
             id: string;
             createdAt: Date;
             updatedAt: Date;
-            productId: string;
             quantity: number;
+            productId: string;
             purchasePrice: number;
             acceptedQuantity: number;
             receivedQuantity: number;
@@ -337,8 +341,8 @@ export declare class PurchaseOrderController {
         createdAt: Date;
         updatedAt: Date;
         storeId: string;
-        supplierId: string;
         totalAmount: number;
+        supplierId: string;
         notes: string | null;
         expectedDeliveryDate: Date | null;
         shareToken: string | null;
@@ -350,8 +354,8 @@ export declare class PurchaseOrderController {
         createdAt: Date;
         updatedAt: Date;
         storeId: string;
-        supplierId: string;
         totalAmount: number;
+        supplierId: string;
         notes: string | null;
         expectedDeliveryDate: Date | null;
         shareToken: string | null;
@@ -368,8 +372,8 @@ export declare class PurchaseOrderController {
             id: string;
             createdAt: Date;
             updatedAt: Date;
-            productId: string;
             quantity: number;
+            productId: string;
             purchasePrice: number;
             acceptedQuantity: number;
             receivedQuantity: number;
@@ -381,8 +385,8 @@ export declare class PurchaseOrderController {
         createdAt: Date;
         updatedAt: Date;
         storeId: string;
-        supplierId: string;
         totalAmount: number;
+        supplierId: string;
         notes: string | null;
         expectedDeliveryDate: Date | null;
         shareToken: string | null;

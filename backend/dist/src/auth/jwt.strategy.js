@@ -20,16 +20,40 @@ let JwtStrategy = class JwtStrategy extends (0, passport_1.PassportStrategy)(pas
         super({
             jwtFromRequest: passport_jwt_1.ExtractJwt.fromAuthHeaderAsBearerToken(),
             ignoreExpiration: false,
-            secretOrKey: process.env.JWT_SECRET || 'SUPER_SECRET_KEY',
+            secretOrKey: process.env.SUPABASE_JWT_SECRET || 'SUPER_SECRET_KEY',
         });
         this.prisma = prisma;
     }
     async validate(payload) {
-        const user = await this.prisma.user.findUnique({ where: { id: payload.sub } });
+        let user = null;
+        user = await this.prisma.user.findFirst({
+            where: {
+                OR: [
+                    { id: payload.sub },
+                    ...(payload.email ? [{ email: payload.email }] : []),
+                    ...(payload.phone ? [{ phone: payload.phone }] : []),
+                ]
+            }
+        });
         if (!user) {
-            throw new common_1.UnauthorizedException('User not found');
+            user = await this.prisma.user.create({
+                data: {
+                    id: payload.sub,
+                    email: payload.email || `${payload.phone || payload.sub}@phone.zapkirana.app`,
+                    phone: payload.phone || null,
+                    name: payload.user_metadata?.name || 'Zapkirana User',
+                    role: payload.app_metadata?.role || 'CUSTOMER',
+                    isVerified: true,
+                }
+            });
         }
-        return { id: payload.sub, email: payload.email, role: payload.role, storeId: payload.storeId, sessionId: payload.sessionId };
+        return {
+            id: user.id,
+            email: user.email,
+            role: user.role,
+            storeId: user.storeId,
+            supabaseId: payload.sub
+        };
     }
 };
 exports.JwtStrategy = JwtStrategy;

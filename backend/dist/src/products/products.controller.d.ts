@@ -4,10 +4,15 @@ export declare class ProductsController {
     constructor(productsService: ProductsService);
     createProduct(body: any): Promise<{
         id: string;
+        name: string;
+        createdAt: Date;
+        updatedAt: Date;
+        isActive: boolean;
+        imageUrl: string | null;
+        description: string | null;
+        storeId: string;
         barcode: string | null;
         internalSku: string;
-        name: string;
-        description: string | null;
         category: string | null;
         mrp: number;
         sellingPrice: number;
@@ -15,18 +20,19 @@ export declare class ProductsController {
         gstRate: number;
         gstClass: import(".prisma/client").$Enums.GSTClass;
         subscriptionDiscount: number;
-        imageUrl: string | null;
-        isActive: boolean;
-        createdAt: Date;
-        updatedAt: Date;
-        storeId: string;
+        campaignId: string | null;
     }>;
     findAll(storeId: string): Promise<{
         id: string;
+        name: string;
+        createdAt: Date;
+        updatedAt: Date;
+        isActive: boolean;
+        imageUrl: string | null;
+        description: string | null;
+        storeId: string;
         barcode: string | null;
         internalSku: string;
-        name: string;
-        description: string | null;
         category: string | null;
         mrp: number;
         sellingPrice: number;
@@ -34,20 +40,21 @@ export declare class ProductsController {
         gstRate: number;
         gstClass: import(".prisma/client").$Enums.GSTClass;
         subscriptionDiscount: number;
-        imageUrl: string | null;
-        isActive: boolean;
-        createdAt: Date;
-        updatedAt: Date;
-        storeId: string;
+        campaignId: string | null;
     }[]> | {
         error: string;
     };
     findByBarcode(barcode: string, storeId: string): Promise<{
         id: string;
+        name: string;
+        createdAt: Date;
+        updatedAt: Date;
+        isActive: boolean;
+        imageUrl: string | null;
+        description: string | null;
+        storeId: string;
         barcode: string | null;
         internalSku: string;
-        name: string;
-        description: string | null;
         category: string | null;
         mrp: number;
         sellingPrice: number;
@@ -55,20 +62,21 @@ export declare class ProductsController {
         gstRate: number;
         gstClass: import(".prisma/client").$Enums.GSTClass;
         subscriptionDiscount: number;
-        imageUrl: string | null;
-        isActive: boolean;
-        createdAt: Date;
-        updatedAt: Date;
-        storeId: string;
+        campaignId: string | null;
     }> | {
         error: string;
     };
     findOne(id: string): Promise<{
         id: string;
+        name: string;
+        createdAt: Date;
+        updatedAt: Date;
+        isActive: boolean;
+        imageUrl: string | null;
+        description: string | null;
+        storeId: string;
         barcode: string | null;
         internalSku: string;
-        name: string;
-        description: string | null;
         category: string | null;
         mrp: number;
         sellingPrice: number;
@@ -76,21 +84,22 @@ export declare class ProductsController {
         gstRate: number;
         gstClass: import(".prisma/client").$Enums.GSTClass;
         subscriptionDiscount: number;
-        imageUrl: string | null;
-        isActive: boolean;
-        createdAt: Date;
-        updatedAt: Date;
-        storeId: string;
+        campaignId: string | null;
     }>;
     updatePrice(id: string, body: {
         mrp: number;
         sellingPrice: number;
     }): Promise<{
         id: string;
+        name: string;
+        createdAt: Date;
+        updatedAt: Date;
+        isActive: boolean;
+        imageUrl: string | null;
+        description: string | null;
+        storeId: string;
         barcode: string | null;
         internalSku: string;
-        name: string;
-        description: string | null;
         category: string | null;
         mrp: number;
         sellingPrice: number;
@@ -98,20 +107,21 @@ export declare class ProductsController {
         gstRate: number;
         gstClass: import(".prisma/client").$Enums.GSTClass;
         subscriptionDiscount: number;
-        imageUrl: string | null;
-        isActive: boolean;
-        createdAt: Date;
-        updatedAt: Date;
-        storeId: string;
+        campaignId: string | null;
     }>;
     updateSubscriptionDiscount(id: string, body: {
         discount: number;
     }): Promise<{
         id: string;
+        name: string;
+        createdAt: Date;
+        updatedAt: Date;
+        isActive: boolean;
+        imageUrl: string | null;
+        description: string | null;
+        storeId: string;
         barcode: string | null;
         internalSku: string;
-        name: string;
-        description: string | null;
         category: string | null;
         mrp: number;
         sellingPrice: number;
@@ -119,19 +129,20 @@ export declare class ProductsController {
         gstRate: number;
         gstClass: import(".prisma/client").$Enums.GSTClass;
         subscriptionDiscount: number;
-        imageUrl: string | null;
-        isActive: boolean;
-        createdAt: Date;
-        updatedAt: Date;
-        storeId: string;
+        campaignId: string | null;
     }>;
     enrichBarcode(barcode: string, storeId: string): Promise<{
         source: string;
         id: string;
+        name: string;
+        createdAt: Date;
+        updatedAt: Date;
+        isActive: boolean;
+        imageUrl: string | null;
+        description: string | null;
+        storeId: string;
         barcode: string | null;
         internalSku: string;
-        name: string;
-        description: string | null;
         category: string | null;
         mrp: number;
         sellingPrice: number;
@@ -139,11 +150,7 @@ export declare class ProductsController {
         gstRate: number;
         gstClass: import(".prisma/client").$Enums.GSTClass;
         subscriptionDiscount: number;
-        imageUrl: string | null;
-        isActive: boolean;
-        createdAt: Date;
-        updatedAt: Date;
-        storeId: string;
+        campaignId: string | null;
         brand?: undefined;
     } | {
         source: string;
@@ -172,10 +179,15 @@ export declare class ProductsController {
     };
     createFromBarcode(body: any): Promise<{
         id: string;
+        name: string;
+        createdAt: Date;
+        updatedAt: Date;
+        isActive: boolean;
+        imageUrl: string | null;
+        description: string | null;
+        storeId: string;
         barcode: string | null;
         internalSku: string;
-        name: string;
-        description: string | null;
         category: string | null;
         mrp: number;
         sellingPrice: number;
@@ -183,10 +195,6 @@ export declare class ProductsController {
         gstRate: number;
         gstClass: import(".prisma/client").$Enums.GSTClass;
         subscriptionDiscount: number;
-        imageUrl: string | null;
-        isActive: boolean;
-        createdAt: Date;
-        updatedAt: Date;
-        storeId: string;
+        campaignId: string | null;
     }>;
 }

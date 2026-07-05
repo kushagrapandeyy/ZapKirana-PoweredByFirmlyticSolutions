@@ -13,12 +13,15 @@ exports.InventoryService = void 0;
 const common_1 = require("@nestjs/common");
 const prisma_service_1 = require("../prisma.service");
 const event_emitter_1 = require("@nestjs/event-emitter");
+const cache_service_1 = require("../cache/cache.service");
 let InventoryService = class InventoryService {
     prisma;
     eventEmitter;
-    constructor(prisma, eventEmitter) {
+    cache;
+    constructor(prisma, eventEmitter, cache) {
         this.prisma = prisma;
         this.eventEmitter = eventEmitter;
+        this.cache = cache;
     }
     async recordMovement(data) {
         const result = await this.prisma.$transaction(async (tx) => {
@@ -150,8 +153,73 @@ let InventoryService = class InventoryService {
     }
     async getProducts(storeId) {
         return this.prisma.product.findMany({
-            where: storeId ? { storeId } : undefined,
+            where: storeId ? { storeId, isActive: true } : { isActive: true },
+            include: {
+                campaign: true,
+            }
         });
+    }
+    async getClearanceProducts(storeId) {
+        const threeDaysFromNow = new Date();
+        threeDaysFromNow.setDate(threeDaysFromNow.getDate() + 3);
+        const expiringInventory = await this.prisma.inventory.findMany({
+            where: {
+                storeId,
+                expiryDate: {
+                    lte: threeDaysFromNow,
+                    gte: new Date(),
+                },
+                onHandQty: { gt: 0 },
+            },
+            include: { product: true },
+        });
+        const productMap = new Map();
+        for (const inv of expiringInventory) {
+            if (!productMap.has(inv.productId)) {
+                const clearanceProduct = {
+                    ...inv.product,
+                    originalPrice: inv.product.sellingPrice,
+                    sellingPrice: Number((inv.product.sellingPrice * 0.7).toFixed(2)),
+                    clearanceReason: 'Expiring Soon',
+                    expiryDate: inv.expiryDate,
+                };
+                productMap.set(inv.productId, clearanceProduct);
+            }
+        }
+        return Array.from(productMap.values());
+    }
+    async getNewProducts(storeId) {
+        const sevenDaysAgo = new Date();
+        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+        return this.prisma.product.findMany({
+            where: {
+                storeId,
+                isActive: true,
+                createdAt: {
+                    gte: sevenDaysAgo,
+                },
+            },
+            orderBy: { createdAt: 'desc' },
+            take: 15,
+            include: {
+                campaign: true,
+            }
+        });
+    }
+    async getPopularProducts(storeId) {
+        const cacheKey = `inventory:popular_products:${storeId}`;
+        const cached = await this.cache.get(cacheKey);
+        if (cached)
+            return cached;
+        const products = await this.prisma.product.findMany({
+            where: { storeId, isActive: true },
+            include: {
+                inventory: true,
+            },
+            take: 10,
+        });
+        await this.cache.set(cacheKey, products, 300);
+        return products;
     }
     async getMovementHistory(storeId, productId) {
         return this.prisma.stockMovement.findMany({
@@ -238,6 +306,8 @@ __decorate([
 ], InventoryService.prototype, "handleGrnCompleted", null);
 exports.InventoryService = InventoryService = __decorate([
     (0, common_1.Injectable)(),
-    __metadata("design:paramtypes", [prisma_service_1.PrismaService, event_emitter_1.EventEmitter2])
+    __metadata("design:paramtypes", [prisma_service_1.PrismaService,
+        event_emitter_1.EventEmitter2,
+        cache_service_1.CacheService])
 ], InventoryService);
 //# sourceMappingURL=inventory.service.js.map

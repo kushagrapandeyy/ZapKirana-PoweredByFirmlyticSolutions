@@ -25,6 +25,16 @@ let InventoryController = class InventoryController {
     async getProducts(storeId) {
         return this.inventoryService.getProducts(storeId);
     }
+    async getClearanceProducts(storeId) {
+        if (!storeId)
+            throw new common_1.BadRequestException('storeId is required');
+        return this.inventoryService.getClearanceProducts(storeId);
+    }
+    async getNewProducts(storeId) {
+        if (!storeId)
+            throw new common_1.BadRequestException('storeId is required');
+        return this.inventoryService.getNewProducts(storeId);
+    }
     receiveStock(body) {
         if (!body.storeId || !body.productId || body.quantity == null) {
             throw new common_1.BadRequestException('storeId, productId, and quantity are required');
@@ -69,12 +79,29 @@ let InventoryController = class InventoryController {
 exports.InventoryController = InventoryController;
 __decorate([
     (0, public_decorator_1.Public)(),
+    (0, public_decorator_1.Public)(),
     (0, common_1.Get)('products'),
     __param(0, (0, common_1.Query)('storeId')),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [String]),
     __metadata("design:returntype", Promise)
 ], InventoryController.prototype, "getProducts", null);
+__decorate([
+    (0, public_decorator_1.Public)(),
+    (0, common_1.Get)('clearance'),
+    __param(0, (0, common_1.Query)('storeId')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", Promise)
+], InventoryController.prototype, "getClearanceProducts", null);
+__decorate([
+    (0, public_decorator_1.Public)(),
+    (0, common_1.Get)('new'),
+    __param(0, (0, common_1.Query)('storeId')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", Promise)
+], InventoryController.prototype, "getNewProducts", null);
 __decorate([
     (0, common_1.Post)('receive'),
     __param(0, (0, common_1.Body)()),

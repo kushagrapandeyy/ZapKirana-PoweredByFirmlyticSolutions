@@ -2,10 +2,15 @@ import { Injectable, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { MovementType } from '@prisma/client';
 import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
+import { CacheService } from '../cache/cache.service';
 
 @Injectable()
 export class InventoryService {
-  constructor(private prisma: PrismaService, private eventEmitter: EventEmitter2) {}
+  constructor(
+    private prisma: PrismaService,
+    private eventEmitter: EventEmitter2,
+    private cache: CacheService,
+  ) {}
 
   /**
    * Core function to record a stock movement.
@@ -178,8 +183,87 @@ export class InventoryService {
 
   async getProducts(storeId?: string) {
     return this.prisma.product.findMany({
-      where: storeId ? { storeId } : undefined,
+      where: storeId ? { storeId, isActive: true } : { isActive: true },
+      include: {
+        campaign: true,
+      }
     });
+  }
+
+  async getClearanceProducts(storeId: string) {
+    // Return products that have inventory expiring within 3 days
+    const threeDaysFromNow = new Date();
+    threeDaysFromNow.setDate(threeDaysFromNow.getDate() + 3);
+
+    const expiringInventory = await this.prisma.inventory.findMany({
+      where: {
+        storeId,
+        expiryDate: {
+          lte: threeDaysFromNow,
+          gte: new Date(),
+        },
+        onHandQty: { gt: 0 },
+      },
+      include: { product: true },
+    });
+
+    // Deduplicate products if they have multiple expiring batches
+    const productMap = new Map();
+    for (const inv of expiringInventory) {
+      if (!productMap.has(inv.productId)) {
+        // Automatically calculate a clearance selling price (e.g., 30% off standard selling price)
+        const clearanceProduct = {
+          ...inv.product,
+          originalPrice: inv.product.sellingPrice,
+          sellingPrice: Number((inv.product.sellingPrice * 0.7).toFixed(2)),
+          clearanceReason: 'Expiring Soon',
+          expiryDate: inv.expiryDate,
+        };
+        productMap.set(inv.productId, clearanceProduct);
+      }
+    }
+
+    return Array.from(productMap.values());
+  }
+
+  async getNewProducts(storeId: string) {
+    // Return products added in the last 7 days
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+    return this.prisma.product.findMany({
+      where: {
+        storeId,
+        isActive: true,
+        createdAt: {
+          gte: sevenDaysAgo,
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 15,
+      include: {
+        campaign: true,
+      }
+    });
+  }
+
+  async getPopularProducts(storeId: string) {
+    const cacheKey = `inventory:popular_products:${storeId}`;
+    const cached = await this.cache.get<any[]>(cacheKey);
+    if (cached) return cached;
+
+    // A simple mock for popular products: taking top 10 products with highest inventory
+    const products = await this.prisma.product.findMany({
+      where: { storeId, isActive: true },
+      include: {
+        inventory: true,
+      },
+      take: 10,
+    });
+
+    // Actually we could sort by something better, but let's just return a few
+    await this.cache.set(cacheKey, products, 300); // cache 5 mins
+    return products;
   }
 
   async getMovementHistory(storeId: string, productId?: string) {

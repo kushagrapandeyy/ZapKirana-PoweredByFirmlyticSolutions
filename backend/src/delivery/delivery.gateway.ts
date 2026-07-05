@@ -15,7 +15,7 @@ import { JwtService } from '@nestjs/jwt';
 
 @WebSocketGateway({
   namespace: 'delivery',
-  cors: { origin: process.env.NODE_ENV === 'production' ? ['https://consumer.basko.app', 'https://vendor.basko.app'] : '*' },
+  cors: { origin: process.env.NODE_ENV === 'production' ? ['https://consumer.zapkirana.app', 'https://vendor.zapkirana.app'] : '*' },
 })
 export class DeliveryGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()

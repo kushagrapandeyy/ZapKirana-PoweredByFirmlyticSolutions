@@ -8,9 +8,24 @@ export class InventoryController {
   constructor(private readonly inventoryService: InventoryService) {}
 
   @Public()
+  @Public()
   @Get('products')
   async getProducts(@Query('storeId') storeId: string) {
     return this.inventoryService.getProducts(storeId);
+  }
+
+  @Public()
+  @Get('clearance')
+  async getClearanceProducts(@Query('storeId') storeId: string) {
+    if (!storeId) throw new BadRequestException('storeId is required');
+    return this.inventoryService.getClearanceProducts(storeId);
+  }
+
+  @Public()
+  @Get('new')
+  async getNewProducts(@Query('storeId') storeId: string) {
+    if (!storeId) throw new BadRequestException('storeId is required');
+    return this.inventoryService.getNewProducts(storeId);
   }
 
   @Post('receive')

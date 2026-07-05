@@ -6,9 +6,11 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { Colors, Shadows, Radius } from '../../constants/theme';
-import { API_BASE_URL, CURRENT_STORE_ID } from '../../constants/api';
+import { API_BASE_URL } from '../../constants/api';
+import { useAuth } from '../../context/AuthContext';
 
 export default function AlertsInbox() {
+  const { tenantId } = useAuth();
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -16,7 +18,7 @@ export default function AlertsInbox() {
 
   const loadData = async () => {
     try {
-      const res = await fetch(`${API_BASE_URL}/admin/alerts?storeId=${CURRENT_STORE_ID}`);
+      const res = await fetch(`${API_BASE_URL}/admin/alerts?storeId=${tenantId}`);
       if (res.ok) {
         setAlerts(await res.json());
       }
@@ -37,7 +39,7 @@ export default function AlertsInbox() {
     loadData();
   }, []);
 
-  const renderAlertCard = (icon: any, color: string, title: string, count: number, items: any[], typeLabel: string) => {
+  const renderAlertCard = (icon: any, color: string, title: string, count: number, items: any[], typeLabel: string, actionLabel: string = 'Review') => {
     if (!items || items.length === 0) return null;
     return (
       <View style={styles.alertGroup}>
@@ -53,14 +55,16 @@ export default function AlertsInbox() {
 
         <View style={styles.inboxWrapper}>
           {items.map((item, i) => (
-            <Animated.View key={item.id || i} entering={FadeInDown.delay(i * 30).duration(400)}>
+            <Animated.View key={item.id || i} entering={FadeInDown.delay(i * 30).springify().damping(15)}>
               <TouchableOpacity style={styles.inboxItem} activeOpacity={0.7}>
-                <View style={styles.inboxDot} />
+                <View style={[styles.inboxDot, { backgroundColor: color }]} />
                 <View style={styles.inboxContent}>
                   <Text style={styles.inboxItemTitle}>{item.name}</Text>
                   <Text style={styles.inboxItemSub}>{typeLabel}: {item.stockLevel ?? item.onHandQty}</Text>
                 </View>
-                <Ionicons name="chevron-forward" size={16} color={Colors.textMuted} />
+                <TouchableOpacity style={[styles.quickAction, { backgroundColor: color + '15' }]}>
+                  <Text style={[styles.quickActionText, { color }]}>{actionLabel}</Text>
+                </TouchableOpacity>
               </TouchableOpacity>
               {i < items.length - 1 && <View style={styles.divider} />}
             </Animated.View>
@@ -84,6 +88,20 @@ export default function AlertsInbox() {
         </TouchableOpacity>
       </View>
 
+      {!loading && alerts && (
+        <Animated.View entering={FadeInDown.duration(400)} style={styles.healthBanner}>
+          <View style={styles.healthStats}>
+            <Text style={styles.healthScore}>{(alerts.lowStockCount || alerts.damagedCount) ? '88%' : '100%'}</Text>
+            <Text style={styles.healthLabel}>System Health</Text>
+          </View>
+          <View style={styles.healthDivider} />
+          <View style={styles.healthStats}>
+            <Text style={[styles.healthScore, { color: Colors.danger }]}>{alerts.lowStockCount + alerts.damagedCount + alerts.expiringCount}</Text>
+            <Text style={styles.healthLabel}>Active Alerts</Text>
+          </View>
+        </Animated.View>
+      )}
+
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.primary} />}
@@ -94,9 +112,9 @@ export default function AlertsInbox() {
         ) : (
           alerts ? (
             <>
-              {renderAlertCard('warning', '#D97706', 'Low Stock Warnings', alerts.lowStockCount, alerts.lowStockItems, 'Current Stock')}
-              {renderAlertCard('alert-circle', '#DC2626', 'Damaged Goods Reported', alerts.damagedCount, alerts.damagedItems, 'Damaged Qty')}
-              {renderAlertCard('time', '#9333EA', 'Expiring Soon', alerts.expiringCount, alerts.expiringItems, 'Expiring Qty')}
+              {renderAlertCard('warning', '#D97706', 'Low Stock Warnings', alerts.lowStockCount, alerts.lowStockItems, 'Current Stock', 'Reorder')}
+              {renderAlertCard('alert-circle', '#DC2626', 'Damaged Goods Reported', alerts.damagedCount, alerts.damagedItems, 'Damaged Qty', 'Write-off')}
+              {renderAlertCard('time', '#9333EA', 'Expiring Soon', alerts.expiringCount, alerts.expiringItems, 'Expiring Qty', 'Discount')}
 
               {(!alerts.lowStockCount && !alerts.damagedCount && !alerts.expiringCount) && (
                 <View style={styles.emptyState}>
@@ -139,4 +157,11 @@ const styles = StyleSheet.create({
   emptyState: { alignItems: 'center', justifyContent: 'center', marginTop: 100 },
   emptyTitle: { fontSize: 24, fontFamily: 'PlayfairDisplay_700Bold', color: Colors.textPrimary, marginTop: 24, marginBottom: 8 },
   emptySub: { fontSize: 15, fontFamily: 'Inter_500Medium', color: Colors.textSecondary, textAlign: 'center', paddingHorizontal: 32 },
+  quickAction: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: Radius.md },
+  quickActionText: { fontFamily: 'Inter_600SemiBold', fontSize: 12 },
+  healthBanner: { flexDirection: 'row', backgroundColor: Colors.primaryDark, marginHorizontal: 20, marginBottom: 20, borderRadius: Radius.lg, padding: 20, ...Shadows.md },
+  healthStats: { flex: 1, alignItems: 'center' },
+  healthScore: { fontSize: 28, fontFamily: 'Inter_700Bold', color: '#fff', marginBottom: 4 },
+  healthLabel: { fontSize: 12, fontFamily: 'Inter_500Medium', color: 'rgba(255,255,255,0.7)', textTransform: 'uppercase', letterSpacing: 1 },
+  healthDivider: { width: 1, backgroundColor: 'rgba(255,255,255,0.2)' }
 });

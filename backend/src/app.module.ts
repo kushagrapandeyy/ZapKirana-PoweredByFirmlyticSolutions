@@ -35,6 +35,10 @@ import { AuditInterceptor } from './common/audit/audit.interceptor';
 import { GlobalExceptionFilter } from './common/filters/global-exception.filter';
 import { ScannerManagementModule } from './scanner-management/scanner-management.module';
 import { CartModule } from './cart/cart.module';
+import { CacheModule } from './cache/cache.module';
+import { RealtimeModule } from './realtime/realtime.module';
+import { CampaignsModule } from './campaigns/campaigns.module';
+import { SupportModule } from './support/support.module';
 
 @Module({
   imports: [
@@ -66,6 +70,10 @@ import { CartModule } from './cart/cart.module';
     ScannerManagementModule,
     CartModule,
     AddressesModule,
+    CacheModule,
+    RealtimeModule,
+    CampaignsModule,
+    SupportModule,
   ],
   controllers: [AppController],
   providers: [

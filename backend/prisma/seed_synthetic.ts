@@ -162,100 +162,105 @@ async function main() {
   // Since our schema maps products per store, we should insert them into the global store or copy to each store.
   // The synthetic JSON has store_inventory referencing item_id. 
   // Let's create these as global products or duplicate per store. 
-  // Wait, in Basko/Kwick, products are store-scoped. Let's create them for every store!
+  // Wait, in Zapkirana/Kwick, products are store-scoped. Let's create them for every store!
   const totalItems = data.catalog_items.length;
-  for (let i = 0; i < totalItems; i++) {
-    const item = data.catalog_items[i];
-    if (i % 50 === 0) console.log(`Products Progress: ${Math.round((i / totalItems) * 100)}%`);
-    for (const store of data.stores) {
-      const gstClassMap: Record<number, string> = { 0: 'EXEMPT', 5: 'GST_5', 12: 'GST_12', 18: 'GST_18', 28: 'GST_28' };
-      const gClass = gstClassMap[item.gst_rate_percent] || 'EXEMPT';
+  for (let i = 0; i < totalItems; i += 50) {
+    const chunk = data.catalog_items.slice(i, i + 50);
+    console.log(`Products Progress: ${Math.round((i / totalItems) * 100)}%`);
+    
+    await Promise.all(chunk.map(async (item: any) => {
+      for (const store of data.stores) {
+        const gstClassMap: Record<number, string> = { 0: 'EXEMPT', 5: 'GST_5', 12: 'GST_12', 18: 'GST_18', 28: 'GST_28' };
+        const gClass = gstClassMap[item.gst_rate_percent] || 'EXEMPT';
 
-      await prisma.product.upsert({
-        where: { internalSku: `${store.store_id}_${item.item_id}` },
-        update: {},
-        create: {
-          storeId: store.store_id,
-          internalSku: `${store.store_id}_${item.item_id}`,
-          name: `${item.brand !== 'generic' ? item.brand + ' ' : ''}${item.item_name} ${item.pack_size}`,
-          category: item.category,
-          mrp: item.mrp_inr,
-          sellingPrice: item.mrp_inr,
-          gstRate: item.gst_rate_percent,
-          gstClass: gClass as any,
-          imageUrl: item.verified_source_url // using the URL provided in the dataset
-        }
-      });
-    }
+        await prisma.product.upsert({
+          where: { internalSku: `${store.store_id}_${item.item_id}` },
+          update: {},
+          create: {
+            storeId: store.store_id,
+            internalSku: `${store.store_id}_${item.item_id}`,
+            name: `${item.brand !== 'generic' ? item.brand + ' ' : ''}${item.item_name} ${item.pack_size}`,
+            category: item.category,
+            mrp: item.mrp_inr,
+            sellingPrice: item.mrp_inr,
+            gstRate: item.gst_rate_percent,
+            gstClass: gClass as any,
+            imageUrl: item.verified_source_url
+          }
+        });
+      }
+    }));
   }
 
   // 6. Insert Store Inventory
   console.log(`Inserting ${data.store_inventory.length} inventory records...`);
   const totalInv = data.store_inventory.length;
-  for (let i = 0; i < totalInv; i++) {
-    const inv = data.store_inventory[i];
-    if (i % 100 === 0) console.log(`Inventory Progress: ${Math.round((i / totalInv) * 100)}%`);
-    const product = await prisma.product.findUnique({
-      where: { internalSku: `${inv.store_id}_${inv.item_id}` }
-    });
-
-    if (product) {
-      await prisma.inventory.upsert({
-        // using batchNo "DEFAULT" as unique combo
-        where: { storeId_productId_batchNo: { storeId: inv.store_id, productId: product.id, batchNo: 'DEFAULT' } },
-        update: {
-          onHandQty: 50,
-          lowStockThreshold: inv.reorder_level
-        },
-        create: {
-          storeId: inv.store_id,
-          productId: product.id,
-          batchNo: 'DEFAULT',
-          onHandQty: 50,
-          lowStockThreshold: inv.reorder_level
-        }
+  for (let i = 0; i < totalInv; i += 50) {
+    const chunk = data.store_inventory.slice(i, i + 50);
+    console.log(`Inventory Progress: ${Math.round((i / totalInv) * 100)}%`);
+    
+    await Promise.all(chunk.map(async (inv: any) => {
+      const product = await prisma.product.findUnique({
+        where: { internalSku: `${inv.store_id}_${inv.item_id}` }
       });
 
-      // Update the selling price in product
-      await prisma.product.update({
-        where: { id: product.id },
-        data: { sellingPrice: inv.selling_price_inr }
-      });
-    }
+      if (product) {
+        await prisma.inventory.upsert({
+          where: { storeId_productId_batchNo: { storeId: inv.store_id, productId: product.id, batchNo: 'DEFAULT' } },
+          update: {
+            onHandQty: 50,
+            lowStockThreshold: inv.reorder_level
+          },
+          create: {
+            storeId: inv.store_id,
+            productId: product.id,
+            batchNo: 'DEFAULT',
+            onHandQty: 50,
+            lowStockThreshold: inv.reorder_level
+          }
+        });
+
+        await prisma.product.update({
+          where: { id: product.id },
+          data: { sellingPrice: inv.selling_price_inr }
+        });
+      }
+    }));
   }
 
   // 7. Insert Supplier Catalog
   console.log(`Inserting ${data.supplier_catalog.length} supplier catalog items...`);
   // Map supplier catalog items to the specific products in each store
   const totalSupp = data.supplier_catalog.length;
-  for (let i = 0; i < totalSupp; i++) {
-    const sc = data.supplier_catalog[i];
-    if (i % 50 === 0) console.log(`Supplier Catalog Progress: ${Math.round((i / totalSupp) * 100)}%`);
-    for (const store of data.stores) {
-      const product = await prisma.product.findUnique({
-        where: { internalSku: `${store.store_id}_${sc.item_id}` }
-      });
-
-      if (product) {
-        // Upsert Supplier connection
-        await prisma.storeSupplierConnection.upsert({
-          where: { storeId_supplierId: { storeId: store.store_id, supplierId: sc.supplier_id } },
-          update: {},
-          create: { storeId: store.store_id, supplierId: sc.supplier_id, status: 'CONNECTED' }
+  for (let i = 0; i < totalSupp; i += 50) {
+    const chunk = data.supplier_catalog.slice(i, i + 50);
+    console.log(`Supplier Catalog Progress: ${Math.round((i / totalSupp) * 100)}%`);
+    
+    await Promise.all(chunk.map(async (sc: any) => {
+      for (const store of data.stores) {
+        const product = await prisma.product.findUnique({
+          where: { internalSku: `${store.store_id}_${sc.item_id}` }
         });
 
-        // Add supplier product price
-        await prisma.supplierProduct.upsert({
-          where: { supplierId_productId: { supplierId: sc.supplier_id, productId: product.id } },
-          update: { price: sc.wholesale_price_inr },
-          create: {
-            supplierId: sc.supplier_id,
-            productId: product.id,
-            price: sc.wholesale_price_inr
-          }
-        });
+        if (product) {
+          await prisma.storeSupplierConnection.upsert({
+            where: { storeId_supplierId: { storeId: store.store_id, supplierId: sc.supplier_id } },
+            update: {},
+            create: { storeId: store.store_id, supplierId: sc.supplier_id, status: 'CONNECTED' }
+          });
+
+          await prisma.supplierProduct.upsert({
+            where: { supplierId_productId: { supplierId: sc.supplier_id, productId: product.id } },
+            update: { price: sc.wholesale_price_inr },
+            create: {
+              supplierId: sc.supplier_id,
+              productId: product.id,
+              price: sc.wholesale_price_inr
+            }
+          });
+        }
       }
-    }
+    }));
   }
 
   // 8. Generate Realistic Mock Orders
@@ -268,7 +273,7 @@ async function main() {
       const storeProducts = await prisma.product.findMany({ where: { storeId: store.store_id }, take: 20 });
       if (storeProducts.length === 0) continue;
 
-      const statuses: any[] = ['PAID', 'PICKING', 'READY_FOR_PICKUP', 'OUT_FOR_DELIVERY', 'COMPLETED'];
+      const statuses: any[] = ['PAID', 'PICKING', 'READY_FOR_PICKUP', 'OUT_FOR_DELIVERY', 'DELIVERED'];
       
       for (let i = 0; i < 15; i++) {
         const customer = customers[i % customers.length];

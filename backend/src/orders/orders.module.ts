@@ -3,9 +3,10 @@ import { OrdersService } from './orders.service';
 import { OrdersController } from './orders.controller';
 import { PrismaService } from '../prisma.service';
 import { InventoryModule } from '../inventory/inventory.module';
+import { RealtimeModule } from '../realtime/realtime.module';
 
 @Module({
-  imports: [InventoryModule],
+  imports: [InventoryModule, RealtimeModule],
   controllers: [OrdersController],
   providers: [OrdersService, PrismaService],
 })

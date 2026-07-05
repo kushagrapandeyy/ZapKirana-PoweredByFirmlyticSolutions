@@ -12,12 +12,19 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.CartService = void 0;
 const common_1 = require("@nestjs/common");
 const prisma_service_1 = require("../prisma.service");
+const cache_service_1 = require("../cache/cache.service");
 let CartService = class CartService {
     prisma;
-    constructor(prisma) {
+    cache;
+    constructor(prisma, cache) {
         this.prisma = prisma;
+        this.cache = cache;
     }
     async getCart(userId, storeId) {
+        const cacheKey = `cart:${userId}:${storeId}`;
+        const cached = await this.cache.get(cacheKey);
+        if (cached)
+            return cached;
         let cart = await this.prisma.cart.findUnique({
             where: {
                 userId_storeId: { userId, storeId },
@@ -50,7 +57,9 @@ let CartService = class CartService {
         const subtotal = cart.items.reduce((sum, item) => sum + (item.product.sellingPrice * item.quantity), 0);
         const totalMrp = cart.items.reduce((sum, item) => sum + (item.product.mrp * item.quantity), 0);
         const discount = totalMrp - subtotal;
-        return { ...cart, subtotal, totalMrp, discount };
+        const result = { ...cart, subtotal, totalMrp, discount };
+        await this.cache.set(cacheKey, result, 3600);
+        return result;
     }
     async updateCartItem(userId, storeId, productId, quantity) {
         const cart = await this.getCart(userId, storeId);
@@ -68,6 +77,8 @@ let CartService = class CartService {
                 create: { cartId: cart.id, productId, quantity },
             });
         }
+        const cacheKey = `cart:${userId}:${storeId}`;
+        await this.cache.delete(cacheKey);
         return this.getCart(userId, storeId);
     }
     async clearCart(userId, storeId) {
@@ -75,12 +86,14 @@ let CartService = class CartService {
         await this.prisma.cartItem.deleteMany({
             where: { cartId: cart.id },
         });
+        const cacheKey = `cart:${userId}:${storeId}`;
+        await this.cache.delete(cacheKey);
         return { success: true };
     }
 };
 exports.CartService = CartService;
 exports.CartService = CartService = __decorate([
     (0, common_1.Injectable)(),
-    __metadata("design:paramtypes", [prisma_service_1.PrismaService])
+    __metadata("design:paramtypes", [prisma_service_1.PrismaService, cache_service_1.CacheService])
 ], CartService);
 //# sourceMappingURL=cart.service.js.map

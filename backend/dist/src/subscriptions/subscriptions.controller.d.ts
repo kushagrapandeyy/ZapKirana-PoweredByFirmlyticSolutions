@@ -6,23 +6,23 @@ export declare class SubscriptionsController {
         items: {
             id: string;
             createdAt: Date;
+            subscriptionId: string;
+            quantity: number;
             productId: string;
             productName: string;
-            quantity: number;
-            subscriptionId: string;
         }[];
     } & {
         id: string;
-        frequency: import(".prisma/client").$Enums.SubscriptionFrequency;
         status: import(".prisma/client").$Enums.SubscriptionStatus;
+        createdAt: Date;
+        updatedAt: Date;
+        storeId: string;
         deliverySlot: string | null;
+        customerId: string;
+        frequency: import(".prisma/client").$Enums.SubscriptionFrequency;
         nextDeliveryDate: Date | null;
         customDays: import("@prisma/client/runtime/library").JsonValue | null;
         discountApplied: number;
-        createdAt: Date;
-        updatedAt: Date;
-        customerId: string;
-        storeId: string;
     }>;
     getAll(customerId: string): Promise<({
         store: {
@@ -33,36 +33,36 @@ export declare class SubscriptionsController {
         items: {
             id: string;
             createdAt: Date;
+            subscriptionId: string;
+            quantity: number;
             productId: string;
             productName: string;
-            quantity: number;
-            subscriptionId: string;
         }[];
     } & {
         id: string;
-        frequency: import(".prisma/client").$Enums.SubscriptionFrequency;
         status: import(".prisma/client").$Enums.SubscriptionStatus;
+        createdAt: Date;
+        updatedAt: Date;
+        storeId: string;
         deliverySlot: string | null;
+        customerId: string;
+        frequency: import(".prisma/client").$Enums.SubscriptionFrequency;
         nextDeliveryDate: Date | null;
         customDays: import("@prisma/client/runtime/library").JsonValue | null;
         discountApplied: number;
-        createdAt: Date;
-        updatedAt: Date;
-        customerId: string;
-        storeId: string;
     })[]>;
     getOne(id: string): Promise<{
         store: {
             id: string;
+            name: string;
+            gstin: string | null;
             createdAt: Date;
             updatedAt: Date;
-            name: string;
             organizationId: string | null;
             location: string | null;
             latitude: number | null;
             longitude: number | null;
             operatingRadiusKm: number;
-            gstin: string | null;
             isActive: boolean;
             imageUrl: string | null;
             operatingHours: string | null;
@@ -75,49 +75,49 @@ export declare class SubscriptionsController {
         items: {
             id: string;
             createdAt: Date;
+            subscriptionId: string;
+            quantity: number;
             productId: string;
             productName: string;
-            quantity: number;
-            subscriptionId: string;
         }[];
     } & {
         id: string;
-        frequency: import(".prisma/client").$Enums.SubscriptionFrequency;
         status: import(".prisma/client").$Enums.SubscriptionStatus;
+        createdAt: Date;
+        updatedAt: Date;
+        storeId: string;
         deliverySlot: string | null;
+        customerId: string;
+        frequency: import(".prisma/client").$Enums.SubscriptionFrequency;
         nextDeliveryDate: Date | null;
         customDays: import("@prisma/client/runtime/library").JsonValue | null;
         discountApplied: number;
-        createdAt: Date;
-        updatedAt: Date;
-        customerId: string;
-        storeId: string;
     }>;
     pause(id: string): Promise<{
         id: string;
-        frequency: import(".prisma/client").$Enums.SubscriptionFrequency;
         status: import(".prisma/client").$Enums.SubscriptionStatus;
+        createdAt: Date;
+        updatedAt: Date;
+        storeId: string;
         deliverySlot: string | null;
+        customerId: string;
+        frequency: import(".prisma/client").$Enums.SubscriptionFrequency;
         nextDeliveryDate: Date | null;
         customDays: import("@prisma/client/runtime/library").JsonValue | null;
         discountApplied: number;
-        createdAt: Date;
-        updatedAt: Date;
-        customerId: string;
-        storeId: string;
     }>;
     resume(id: string): Promise<{
         id: string;
-        frequency: import(".prisma/client").$Enums.SubscriptionFrequency;
         status: import(".prisma/client").$Enums.SubscriptionStatus;
+        createdAt: Date;
+        updatedAt: Date;
+        storeId: string;
         deliverySlot: string | null;
+        customerId: string;
+        frequency: import(".prisma/client").$Enums.SubscriptionFrequency;
         nextDeliveryDate: Date | null;
         customDays: import("@prisma/client/runtime/library").JsonValue | null;
         discountApplied: number;
-        createdAt: Date;
-        updatedAt: Date;
-        customerId: string;
-        storeId: string;
     }>;
     updateItems(id: string, body: {
         items: any[];
@@ -125,36 +125,36 @@ export declare class SubscriptionsController {
         items: {
             id: string;
             createdAt: Date;
+            subscriptionId: string;
+            quantity: number;
             productId: string;
             productName: string;
-            quantity: number;
-            subscriptionId: string;
         }[];
     } & {
         id: string;
-        frequency: import(".prisma/client").$Enums.SubscriptionFrequency;
         status: import(".prisma/client").$Enums.SubscriptionStatus;
+        createdAt: Date;
+        updatedAt: Date;
+        storeId: string;
         deliverySlot: string | null;
+        customerId: string;
+        frequency: import(".prisma/client").$Enums.SubscriptionFrequency;
         nextDeliveryDate: Date | null;
         customDays: import("@prisma/client/runtime/library").JsonValue | null;
         discountApplied: number;
-        createdAt: Date;
-        updatedAt: Date;
-        customerId: string;
-        storeId: string;
     }>;
     cancel(id: string): Promise<{
         id: string;
-        frequency: import(".prisma/client").$Enums.SubscriptionFrequency;
         status: import(".prisma/client").$Enums.SubscriptionStatus;
+        createdAt: Date;
+        updatedAt: Date;
+        storeId: string;
         deliverySlot: string | null;
+        customerId: string;
+        frequency: import(".prisma/client").$Enums.SubscriptionFrequency;
         nextDeliveryDate: Date | null;
         customDays: import("@prisma/client/runtime/library").JsonValue | null;
         discountApplied: number;
-        createdAt: Date;
-        updatedAt: Date;
-        customerId: string;
-        storeId: string;
     }>;
     processActive(): Promise<any[]>;
     processNow(): Promise<any[]>;
@@ -168,23 +168,23 @@ export declare class SubscriptionsController {
         items: {
             id: string;
             createdAt: Date;
+            subscriptionId: string;
+            quantity: number;
             productId: string;
             productName: string;
-            quantity: number;
-            subscriptionId: string;
         }[];
     } & {
         id: string;
-        frequency: import(".prisma/client").$Enums.SubscriptionFrequency;
         status: import(".prisma/client").$Enums.SubscriptionStatus;
+        createdAt: Date;
+        updatedAt: Date;
+        storeId: string;
         deliverySlot: string | null;
+        customerId: string;
+        frequency: import(".prisma/client").$Enums.SubscriptionFrequency;
         nextDeliveryDate: Date | null;
         customDays: import("@prisma/client/runtime/library").JsonValue | null;
         discountApplied: number;
-        createdAt: Date;
-        updatedAt: Date;
-        customerId: string;
-        storeId: string;
     })[]>;
     getDueTodayCount(storeId: string): Promise<{
         storeId: string;

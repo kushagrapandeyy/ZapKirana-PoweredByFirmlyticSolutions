@@ -1,10 +1,12 @@
 import { PrismaService } from '../prisma.service';
 import { MovementType } from '@prisma/client';
 import { EventEmitter2 } from '@nestjs/event-emitter';
+import { CacheService } from '../cache/cache.service';
 export declare class InventoryService {
     private prisma;
     private eventEmitter;
-    constructor(prisma: PrismaService, eventEmitter: EventEmitter2);
+    private cache;
+    constructor(prisma: PrismaService, eventEmitter: EventEmitter2, cache: CacheService);
     recordMovement(data: {
         storeId: string;
         productId: string;
@@ -74,7 +76,21 @@ export declare class InventoryService {
         reserved: number;
         blocked: number;
     }>;
-    getProducts(storeId?: string): Promise<{
+    getProducts(storeId?: string): Promise<({
+        campaign: {
+            id: string;
+            createdAt: Date;
+            updatedAt: Date;
+            isActive: boolean;
+            description: string | null;
+            storeId: string;
+            title: string;
+            discountPercentage: number;
+            animationType: string;
+            startsAt: Date;
+            endsAt: Date | null;
+        } | null;
+    } & {
         id: string;
         name: string;
         createdAt: Date;
@@ -92,7 +108,44 @@ export declare class InventoryService {
         gstRate: number;
         gstClass: import(".prisma/client").$Enums.GSTClass;
         subscriptionDiscount: number;
-    }[]>;
+        campaignId: string | null;
+    })[]>;
+    getClearanceProducts(storeId: string): Promise<any[]>;
+    getNewProducts(storeId: string): Promise<({
+        campaign: {
+            id: string;
+            createdAt: Date;
+            updatedAt: Date;
+            isActive: boolean;
+            description: string | null;
+            storeId: string;
+            title: string;
+            discountPercentage: number;
+            animationType: string;
+            startsAt: Date;
+            endsAt: Date | null;
+        } | null;
+    } & {
+        id: string;
+        name: string;
+        createdAt: Date;
+        updatedAt: Date;
+        isActive: boolean;
+        imageUrl: string | null;
+        description: string | null;
+        storeId: string;
+        barcode: string | null;
+        internalSku: string;
+        category: string | null;
+        mrp: number;
+        sellingPrice: number;
+        purchaseCost: number | null;
+        gstRate: number;
+        gstClass: import(".prisma/client").$Enums.GSTClass;
+        subscriptionDiscount: number;
+        campaignId: string | null;
+    })[]>;
+    getPopularProducts(storeId: string): Promise<any[]>;
     getMovementHistory(storeId: string, productId?: string): Promise<({
         product: {
             name: string;
@@ -105,10 +158,10 @@ export declare class InventoryService {
         id: string;
         createdAt: Date;
         storeId: string;
-        productId: string;
         staffId: string | null;
-        inventoryId: string;
+        productId: string;
         type: import(".prisma/client").$Enums.MovementType;
+        inventoryId: string;
         quantityChange: number;
         sourceType: string | null;
         sourceId: string | null;
@@ -166,6 +219,7 @@ export declare class InventoryService {
         gstRate: number;
         gstClass: import(".prisma/client").$Enums.GSTClass;
         subscriptionDiscount: number;
+        campaignId: string | null;
     }>;
     rejectPendingProduct(id: string): Promise<{
         id: string;

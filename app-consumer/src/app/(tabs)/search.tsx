@@ -168,7 +168,7 @@ export default function SearchScreen() {
     const qty = cartItem ? cartItem.qty : 0;
 
     return (
-      <Animated.View entering={FadeInDown.delay(index * 40).springify().damping(16)}>
+      <Animated.View entering={FadeInDown.delay(index * 40).duration(300)}>
         <TouchableOpacity 
           style={styles.resultCard} 
           onPress={() => router.push(`/product/${item.id}`)}
@@ -256,7 +256,7 @@ export default function SearchScreen() {
           </View>
         ) : query.length < 2 ? (
           /* PRE-FILTERED MENU (BEFORE SEARCH) */
-          <Animated.ScrollView entering={FadeIn} contentContainerStyle={styles.preFilterContainer}>
+          <Animated.ScrollView entering={FadeIn} contentContainerStyle={styles.preFilterContainer} showsVerticalScrollIndicator={false}>
             <Text style={styles.preFilterTitle}>Shop by Category</Text>
             <View style={styles.categoryGrid}>
               {categories.map((cat, i) => (
@@ -291,7 +291,7 @@ export default function SearchScreen() {
             }
             ListFooterComponent={
               alternativeMatches.length > 0 ? (
-                <Animated.View entering={FadeInDown.delay(300)} style={styles.alternativesSection}>
+                <Animated.View entering={FadeInDown.delay(300).duration(400)} style={styles.alternativesSection}>
                   <Text style={styles.alternativesTitle}>You Might Also Like</Text>
                   <Text style={styles.alternativesSubtitle}>Similar products & alternative brands</Text>
                   <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.alternativesScroll}>
@@ -327,7 +327,7 @@ const styles = StyleSheet.create({
   centerContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 40, marginTop: 40 },
   
   /* PRE-FILTERED MENU */
-  preFilterContainer: { padding: 20 },
+  preFilterContainer: { padding: 20, paddingBottom: 150 },
   preFilterTitle: { fontSize: 20, fontFamily: 'Inter_700Bold', color: Colors.textPrimary, marginBottom: 20 },
   categoryGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', gap: 16 },
   categoryTile: { width: (width - 56) / 2, backgroundColor: Colors.surface, borderRadius: Radius.xl, padding: 20, alignItems: 'center', ...Shadows.md, borderWidth: 1, borderColor: Colors.borderLight },
@@ -335,7 +335,7 @@ const styles = StyleSheet.create({
   categoryTileText: { fontSize: 14, fontFamily: 'Inter_600SemiBold', color: Colors.textPrimary, textAlign: 'center' },
 
   /* EXACT MATCHES RESULTS */
-  resultsList: { padding: 16, paddingBottom: 120 },
+  resultsList: { padding: 16, paddingBottom: 150 },
   resultCard: { flexDirection: 'row', backgroundColor: Colors.surface, borderRadius: Radius.xl, padding: 12, marginBottom: 16, ...Shadows.sm, borderWidth: 1, borderColor: Colors.borderLight },
   resultImageContainer: { width: 80, height: 80, borderRadius: Radius.lg, backgroundColor: Colors.surfaceAlt, marginRight: 16, overflow: 'hidden' },
   resultImage: { width: '100%', height: '100%' },

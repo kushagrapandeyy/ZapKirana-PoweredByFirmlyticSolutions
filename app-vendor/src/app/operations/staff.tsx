@@ -6,9 +6,11 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { Colors, Shadows, Radius } from '../../constants/theme';
-import { API_BASE_URL, CURRENT_STORE_ID } from '../../constants/api';
+import { API_BASE_URL } from '../../constants/api';
+import { useAuth } from '../../context/AuthContext';
 
 export default function StaffManagement() {
+  const { tenantId } = useAuth();
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -21,9 +23,9 @@ export default function StaffManagement() {
   const loadData = async () => {
     try {
       const [staffRes, timesheetsRes, wagesRes] = await Promise.all([
-        fetch(`${API_BASE_URL}/admin/hr/staff?storeId=${CURRENT_STORE_ID}`),
-        fetch(`${API_BASE_URL}/admin/hr/timesheets?storeId=${CURRENT_STORE_ID}`),
-        fetch(`${API_BASE_URL}/admin/hr/wage-slips?storeId=${CURRENT_STORE_ID}`),
+        fetch(`${API_BASE_URL}/admin/hr/staff?storeId=${tenantId}`),
+        fetch(`${API_BASE_URL}/admin/hr/timesheets?storeId=${tenantId}`),
+        fetch(`${API_BASE_URL}/admin/hr/wage-slips?storeId=${tenantId}`),
       ]);
 
       if (staffRes.ok) setStaff(await staffRes.json());
@@ -51,7 +53,7 @@ export default function StaffManagement() {
       {staff.map((member, index) => {
         const isClockedIn = member.timesheets && member.timesheets.length > 0;
         return (
-          <Animated.View key={member.id} entering={FadeInDown.delay(index * 50).duration(400)}>
+          <Animated.View key={member.id} entering={FadeInDown.delay(index * 50).springify().damping(15)}>
             <View style={styles.card}>
               <View style={styles.avatarCircle}>
                 <Text style={styles.avatarInitials}>{member.name?.substring(0,2).toUpperCase() || 'UN'}</Text>
@@ -60,6 +62,11 @@ export default function StaffManagement() {
               <View style={styles.cardContent}>
                 <Text style={styles.staffName}>{member.name || 'Unknown'}</Text>
                 <Text style={styles.staffRole}>{member.role}</Text>
+                {isClockedIn && (
+                  <View style={styles.progressTrack}>
+                    <View style={[styles.progressFill, { width: '45%' }]} />
+                  </View>
+                )}
               </View>
               <View style={[styles.badge, { backgroundColor: isClockedIn ? '#F0FDF4' : '#F1F5F9' }]}>
                 <Text style={[styles.badgeText, { color: isClockedIn ? Colors.successDark : Colors.textSecondary }]}>
@@ -76,15 +83,25 @@ export default function StaffManagement() {
   const renderTimesheets = () => (
     <View style={styles.list}>
       {timesheets.map((ts, index) => (
-        <Animated.View key={ts.id} entering={FadeInDown.delay(index * 50).duration(400)}>
+        <Animated.View key={ts.id} entering={FadeInDown.delay(index * 50).springify().damping(15)}>
           <View style={styles.card}>
             <View style={[styles.avatarCircle, { backgroundColor: '#F1F5F9' }]}>
               <Ionicons name="time" size={20} color={Colors.textSecondary} />
             </View>
             <View style={styles.cardContent}>
               <Text style={styles.staffName}>{ts.staff?.name}</Text>
-              <Text style={styles.timeText}>In: {new Date(ts.clockIn).toLocaleTimeString()}</Text>
-              <Text style={styles.timeText}>Out: {ts.clockOut ? new Date(ts.clockOut).toLocaleTimeString() : '--'}</Text>
+              <View style={styles.timesRow}>
+                <Ionicons name="enter-outline" size={14} color={Colors.success} />
+                <Text style={styles.timeText}>{new Date(ts.clockIn).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</Text>
+                <Ionicons name="arrow-forward" size={12} color={Colors.textMuted} style={{ marginHorizontal: 8 }} />
+                <Ionicons name="exit-outline" size={14} color={ts.clockOut ? Colors.danger : Colors.textMuted} />
+                <Text style={styles.timeText}>{ts.clockOut ? new Date(ts.clockOut).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : 'Active'}</Text>
+              </View>
+              {!ts.clockOut && (
+                <View style={[styles.progressTrack, { marginTop: 8 }]}>
+                  <View style={[styles.progressFill, { width: '60%', backgroundColor: Colors.warning }]} />
+                </View>
+              )}
             </View>
             <View style={[styles.badge, { backgroundColor: ts.clockOut ? '#F1F5F9' : '#FEF2F2' }]}>
               <Text style={[styles.badgeText, { color: ts.clockOut ? Colors.textSecondary : Colors.danger }]}>
@@ -100,7 +117,7 @@ export default function StaffManagement() {
   const renderWageSlips = () => (
     <View style={styles.list}>
       {wageSlips.map((slip, index) => (
-        <Animated.View key={slip.id} entering={FadeInDown.delay(index * 50).duration(400)}>
+        <Animated.View key={slip.id} entering={FadeInDown.delay(index * 50).springify().damping(15)}>
           <View style={styles.card}>
             <View style={[styles.avatarCircle, { backgroundColor: '#FEF3C7' }]}>
               <Ionicons name="cash" size={20} color="#D97706" />
@@ -108,15 +125,17 @@ export default function StaffManagement() {
             <View style={styles.cardContent}>
               <Text style={styles.staffName}>{slip.staff?.name}</Text>
               <Text style={styles.timeText}>Period: {new Date(slip.periodStart).toLocaleDateString()} - {new Date(slip.periodEnd).toLocaleDateString()}</Text>
-              <Text style={styles.timeText}>Hours: {slip.totalHours} @ ₹{slip.hourlyRate}/hr</Text>
+              <View style={styles.rateRow}>
+                <Ionicons name="time" size={14} color={Colors.textMuted} />
+                <Text style={styles.timeText}>{slip.totalHours} hrs @ ₹{slip.hourlyRate}/hr</Text>
+              </View>
             </View>
             <View style={styles.slipRight}>
               <Text style={styles.slipAmount}>₹{slip.totalAmount}</Text>
-              <View style={[styles.badge, { backgroundColor: slip.status === 'PAID' ? '#F0FDF4' : '#FFFBEB' }]}>
-                <Text style={[styles.badgeText, { color: slip.status === 'PAID' ? Colors.successDark : '#B45309' }]}>
-                  {slip.status}
-                </Text>
-              </View>
+              <TouchableOpacity style={styles.pdfBtn}>
+                <Ionicons name="document-text" size={14} color={Colors.primary} />
+                <Text style={styles.pdfBtnText}>PDF</Text>
+              </TouchableOpacity>
             </View>
           </View>
         </Animated.View>
@@ -192,9 +211,15 @@ const styles = StyleSheet.create({
   cardContent: { flex: 1, marginLeft: 16 },
   staffName: { fontSize: 16, fontFamily: 'Inter_700Bold', color: Colors.textPrimary, marginBottom: 4 },
   staffRole: { fontSize: 13, fontFamily: 'Inter_500Medium', color: Colors.textSecondary },
-  timeText: { fontSize: 12, fontFamily: 'Inter_500Medium', color: Colors.textSecondary, marginTop: 2 },
+  progressTrack: { height: 6, backgroundColor: '#F1F5F9', borderRadius: 3, marginTop: 8, overflow: 'hidden' },
+  progressFill: { height: '100%', backgroundColor: Colors.success, borderRadius: 3 },
+  timesRow: { flexDirection: 'row', alignItems: 'center', marginTop: 4 },
+  timeText: { fontSize: 13, fontFamily: 'Inter_500Medium', color: Colors.textSecondary, marginLeft: 4 },
+  rateRow: { flexDirection: 'row', alignItems: 'center', marginTop: 4 },
   badge: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: Radius.full },
   badgeText: { fontSize: 12, fontFamily: 'Inter_700Bold' },
-  slipRight: { alignItems: 'flex-end', gap: 6 },
-  slipAmount: { fontSize: 16, fontFamily: 'Inter_700Bold', color: Colors.textPrimary },
+  slipRight: { alignItems: 'flex-end', gap: 8 },
+  slipAmount: { fontSize: 18, fontFamily: 'Inter_700Bold', color: Colors.textPrimary },
+  pdfBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: Colors.primaryGhost, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 6, gap: 4, borderWidth: 1, borderColor: 'rgba(52, 211, 153, 0.2)' },
+  pdfBtnText: { fontSize: 12, fontFamily: 'Inter_600SemiBold', color: Colors.primaryDark },
 });

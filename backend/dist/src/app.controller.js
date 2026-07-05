@@ -34,6 +34,31 @@ let AppController = class AppController {
         }
         return store;
     }
+    async getStoreStaff(storeId) {
+        return this.prisma.user.findMany({
+            where: {
+                storeId,
+                role: { not: 'CUSTOMER' }
+            },
+            select: {
+                id: true,
+                name: true,
+                phone: true,
+                email: true,
+                role: true,
+                createdAt: true,
+            }
+        });
+    }
+    async updateStaffRole(storeId, userId, role) {
+        if (!['OWNER', 'MANAGER', 'STAFF', 'DELIVERY', 'SCANNER_STAFF'].includes(role)) {
+            throw new common_1.NotFoundException('Invalid Role');
+        }
+        return this.prisma.user.update({
+            where: { id: userId, storeId },
+            data: { role: role }
+        });
+    }
     async getNearbyStores(lat, lng, radiusKm) {
         const userLat = parseFloat(lat);
         const userLng = parseFloat(lng);
@@ -80,6 +105,24 @@ __decorate([
     __metadata("design:paramtypes", [String]),
     __metadata("design:returntype", Promise)
 ], AppController.prototype, "getStore", null);
+__decorate([
+    (0, public_decorator_1.Public)(),
+    (0, common_1.Get)('stores/:id/staff'),
+    __param(0, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", Promise)
+], AppController.prototype, "getStoreStaff", null);
+__decorate([
+    (0, public_decorator_1.Public)(),
+    (0, common_1.Post)('stores/:id/staff/:userId/role'),
+    __param(0, (0, common_1.Param)('id')),
+    __param(1, (0, common_1.Param)('userId')),
+    __param(2, (0, common_1.Query)('role')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, String, String]),
+    __metadata("design:returntype", Promise)
+], AppController.prototype, "updateStaffRole", null);
 __decorate([
     (0, public_decorator_1.Public)(),
     (0, common_1.Get)('stores/nearby/search'),

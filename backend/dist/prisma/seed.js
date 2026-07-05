@@ -63,10 +63,10 @@ async function main() {
         },
     });
     const devUser = await prisma.user.upsert({
-        where: { email: 'dev@basko.com' },
+        where: { email: 'dev@zapkirana.com' },
         update: { password: hashedDevPassword, role: 'OWNER', organizationId: org.id, storeId: store.id },
         create: {
-            email: 'dev@basko.com',
+            email: 'dev@zapkirana.com',
             phone: '+1234567890',
             password: hashedDevPassword,
             name: 'Dev Tester',
@@ -92,10 +92,10 @@ async function main() {
     });
     const hashedScannerPassword = await bcrypt.hash('scanner123', 10);
     const scannerUser = await prisma.user.upsert({
-        where: { email: 'scanner@basko.com' },
+        where: { email: 'scanner@zapkirana.com' },
         update: { password: hashedScannerPassword, role: 'SCANNER_STAFF', organizationId: org.id, storeId: store.id, pin: '1234' },
         create: {
-            email: 'scanner@basko.com',
+            email: 'scanner@zapkirana.com',
             phone: '+1987654321',
             password: hashedScannerPassword,
             name: 'Scanner Staff',

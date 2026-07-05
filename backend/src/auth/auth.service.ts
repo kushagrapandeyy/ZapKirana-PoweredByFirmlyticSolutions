@@ -133,7 +133,7 @@ export class AuthService {
       // Create new user from phone auth
       user = await this.prisma.user.create({
         data: {
-          email: `${phone}@phone.basko.app`, // Placeholder email for phone-only users
+          email: `${phone}@phone.zapkirana.app`, // Placeholder email for phone-only users
           phone,
           role: 'CUSTOMER',
           isVerified: true,

@@ -24,7 +24,7 @@ export class ScannerManagementService {
   }
 
   async createScannerStaff(storeId: string, data: { name: string; pin: string }) {
-    const email = `scanner_${Math.floor(Math.random() * 100000)}@basko.app`;
+    const email = `scanner_${Math.floor(Math.random() * 100000)}@zapkirana.app`;
     
     // Find organizationId for this store
     const store = await this.prisma.store.findUnique({ where: { id: storeId }});

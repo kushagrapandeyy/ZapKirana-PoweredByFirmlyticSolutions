@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useAuth } from './AuthContext';
 import { Shield, Building, Lock, Mail } from 'lucide-react';
 
@@ -73,7 +73,7 @@ export default function Login() {
             <Building color="white" size={32} />
           </div>
           <h2 style={{ color: 'white', fontSize: '24px', fontWeight: 'bold', margin: '0 0 10px', fontFamily: 'sans-serif' }}>
-            Basko Admin
+            Zapkirana Admin
           </h2>
           <p style={{ color: '#94a3b8', fontSize: '14px', margin: 0 }}>Secure Platform Access</p>
         </div>
@@ -101,7 +101,7 @@ export default function Login() {
                   background: 'rgba(15, 23, 42, 0.6)', border: '1px solid rgba(255,255,255,0.1)',
                   borderRadius: '12px', color: 'white', fontSize: '15px', outline: 'none', transition: '0.2s'
                 }}
-                placeholder="admin@basko.com"
+                placeholder="admin@zapkirana.com"
               />
             </div>
           </div>

@@ -104,7 +104,7 @@ __decorate([
 exports.DeliveryGateway = DeliveryGateway = DeliveryGateway_1 = __decorate([
     (0, websockets_1.WebSocketGateway)({
         namespace: 'delivery',
-        cors: { origin: process.env.NODE_ENV === 'production' ? ['https://consumer.basko.app', 'https://vendor.basko.app'] : '*' },
+        cors: { origin: process.env.NODE_ENV === 'production' ? ['https://consumer.zapkirana.app', 'https://vendor.zapkirana.app'] : '*' },
     }),
     __metadata("design:paramtypes", [delivery_service_1.DeliveryService,
         jwt_1.JwtService])

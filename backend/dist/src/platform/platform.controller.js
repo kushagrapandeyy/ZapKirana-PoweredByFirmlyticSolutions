@@ -43,6 +43,9 @@ let PlatformController = class PlatformController {
     previewOndcCatalog(storeId) {
         return this.platformService.buildOndcCatalog(storeId);
     }
+    async onboardVendor(body) {
+        return this.platformService.onboardVendor(body);
+    }
 };
 exports.PlatformController = PlatformController;
 __decorate([
@@ -88,6 +91,13 @@ __decorate([
     __metadata("design:paramtypes", [String]),
     __metadata("design:returntype", void 0)
 ], PlatformController.prototype, "previewOndcCatalog", null);
+__decorate([
+    (0, common_1.Post)('vendors/onboard'),
+    __param(0, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", Promise)
+], PlatformController.prototype, "onboardVendor", null);
 exports.PlatformController = PlatformController = __decorate([
     (0, common_1.Controller)('platform'),
     __metadata("design:paramtypes", [platform_service_1.PlatformService])

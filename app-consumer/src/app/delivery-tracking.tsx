@@ -6,6 +6,7 @@ import { Colors, Radius, Shadows } from '../constants/theme';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import BottomSheet, { BottomSheetScrollView } from '@gorhom/bottom-sheet';
 import { API_BASE_URL } from '../constants/api';
+import { supabase } from '../utils/supabase';
 
 const { width, height } = Dimensions.get('window');
 
@@ -26,6 +27,26 @@ export default function DeliveryTrackingScreen() {
 
   useEffect(() => {
     fetchData();
+    const interval = setInterval(fetchData, 10000); // Fallback polling
+
+    let channel: any;
+    if (orderId) {
+      channel = supabase.channel(`order:${orderId}`)
+        .on('broadcast', { event: 'order_status_change' }, (payload) => {
+          console.log('Realtime order update received:', payload);
+          fetchData(); 
+        })
+        .subscribe((status) => {
+          if (status === 'SUBSCRIBED') {
+            console.log(`Subscribed to order:${orderId} realtime channel`);
+          }
+        });
+    }
+
+    return () => {
+      clearInterval(interval);
+      if (channel) supabase.removeChannel(channel);
+    };
   }, [orderId]);
 
   const fetchData = async () => {
@@ -94,13 +115,37 @@ export default function DeliveryTrackingScreen() {
               <Ionicons name="person" size={24} color={Colors.primary} />
             </View>
             <View style={styles.riderInfo}>
-              <Text style={styles.riderTitle}>Arriving in 12 min</Text>
-              <Text style={styles.riderSubtitle}>{order?.status === 'OUT_FOR_DELIVERY' ? 'Rider is on the way with your order' : 'Preparing your order'}</Text>
+              <Text style={styles.riderTitle}>
+                {order?.status === 'DELIVERED' ? 'Order Delivered' : 
+                 order?.status === 'OUT_FOR_DELIVERY' ? 'Arriving in 12 min' : 'Preparing Order'}
+              </Text>
+              <Text style={styles.riderSubtitle}>
+                {order?.status === 'DELIVERED' ? 'Enjoy your groceries!' :
+                 order?.status === 'OUT_FOR_DELIVERY' ? 'Rider is on the way with your order' : 
+                 'We are packing your items.'}
+              </Text>
             </View>
             <TouchableOpacity style={styles.callBtn}>
               <Ionicons name="call" size={20} color={Colors.surface} />
             </TouchableOpacity>
           </View>
+
+          {/* OTP Section for Consumer */}
+          {order?.requireOtp && order?.status !== 'DELIVERED' && (
+            <View style={styles.otpCard}>
+              <View style={styles.otpIcon}>
+                <Ionicons name="key" size={20} color="#d97706" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.otpLabel}>Delivery PIN</Text>
+                <Text style={styles.otpDesc}>Share this PIN with the rider</Text>
+              </View>
+              <Text style={styles.otpValue}>
+                {/* Normally backend generated, mocking a pin based on orderId hash for dev */}
+                {order?.id ? order.id.replace(/\D/g, '').substring(0,4).padEnd(4, '0') : '1234'}
+              </Text>
+            </View>
+          )}
 
           <View style={styles.divider} />
 
@@ -213,6 +258,11 @@ const styles = StyleSheet.create({
   totalRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: '#F1F5F9' },
   totalLabel: { fontSize: 14, fontFamily: 'Inter_600SemiBold', color: Colors.textSecondary },
   totalAmount: { fontSize: 16, fontFamily: 'Inter_700Bold', color: Colors.textPrimary },
+  otpCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fffbeb', borderRadius: 12, padding: 16, marginTop: 20 },
+  otpIcon: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#fef3c7', justifyContent: 'center', alignItems: 'center', marginRight: 12 },
+  otpLabel: { fontSize: 13, fontFamily: 'Inter_700Bold', color: '#b45309' },
+  otpDesc: { fontSize: 11, fontFamily: 'Inter_500Medium', color: '#d97706', marginTop: 2 },
+  otpValue: { fontSize: 24, fontFamily: 'Inter_700Bold', color: '#b45309', letterSpacing: 4 },
   carousel: { marginHorizontal: -20, paddingHorizontal: 20 },
   adCard: {
     width: 260, height: 80, borderRadius: Radius.lg, flexDirection: 'row',

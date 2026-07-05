@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { fetchWithAuth } from '../AuthContext';
-import { Users, Smartphone, BarChart3, Plus, ShieldCheck } from 'lucide-react';
+import { Users, Smartphone, BarChart3, Plus } from 'lucide-react';
 
 export default function ScannerManagement() {
   const [activeTab, setActiveTab] = useState('STAFF');

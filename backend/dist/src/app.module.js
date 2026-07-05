@@ -42,6 +42,10 @@ const audit_interceptor_1 = require("./common/audit/audit.interceptor");
 const global_exception_filter_1 = require("./common/filters/global-exception.filter");
 const scanner_management_module_1 = require("./scanner-management/scanner-management.module");
 const cart_module_1 = require("./cart/cart.module");
+const cache_module_1 = require("./cache/cache.module");
+const realtime_module_1 = require("./realtime/realtime.module");
+const campaigns_module_1 = require("./campaigns/campaigns.module");
+const support_module_1 = require("./support/support.module");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
@@ -76,6 +80,10 @@ exports.AppModule = AppModule = __decorate([
             scanner_management_module_1.ScannerManagementModule,
             cart_module_1.CartModule,
             addresses_module_1.AddressesModule,
+            cache_module_1.CacheModule,
+            realtime_module_1.RealtimeModule,
+            campaigns_module_1.CampaignsModule,
+            support_module_1.SupportModule,
         ],
         controllers: [app_controller_1.AppController],
         providers: [

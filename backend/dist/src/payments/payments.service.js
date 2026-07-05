@@ -93,7 +93,7 @@ let PaymentsService = PaymentsService_1 = class PaymentsService {
             throw new common_1.BadRequestException('Bill is not in DRAFT state');
         const qr = await razorpayRequest('POST', '/payments/qr_codes', {
             type: 'upi_qr',
-            name: `Basko Store Payment`,
+            name: `Zapkirana Store Payment`,
             usage: 'single_use',
             fixed_amount: true,
             payment_amount: amountPaise,

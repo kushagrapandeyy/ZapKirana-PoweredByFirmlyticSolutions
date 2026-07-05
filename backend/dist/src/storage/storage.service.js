@@ -40,10 +40,10 @@ let StorageService = StorageService_1 = class StorageService {
         const filename = `${folder}/${(0, uuid_1.v4)()}.${extension}`;
         if (!this.isConfigured) {
             this.logger.debug(`Mock upload: ${filename}`);
-            return `https://mock.assets.basko.in/${filename}`;
+            return `https://mock.assets.zapkirana.in/${filename}`;
         }
         try {
-            const bucket = process.env.R2_BUCKET || 'basko-assets';
+            const bucket = process.env.R2_BUCKET || 'zapkirana-assets';
             await this.s3.send(new client_s3_1.PutObjectCommand({
                 Bucket: bucket,
                 Key: filename,

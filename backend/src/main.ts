@@ -27,7 +27,7 @@ async function bootstrap() {
   app.use(helmet());
   app.enableCors({
     origin: process.env.NODE_ENV === 'production' 
-      ? ['https://consumer.basko.app', 'https://vendor.basko.app', 'https://admin.basko.app'] 
+      ? ['https://consumer.zapkirana.app', 'https://vendor.zapkirana.app', 'https://admin.zapkirana.app'] 
       : '*',
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     credentials: true,

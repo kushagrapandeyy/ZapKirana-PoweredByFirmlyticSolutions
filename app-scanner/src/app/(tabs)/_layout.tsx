@@ -1,7 +1,11 @@
 import { Tabs } from 'expo-router';
-import { Home, Scan, Settings } from 'lucide-react-native';
+import { Home, Scan, Settings, MapPin } from 'lucide-react-native';
+import { useAuthStore } from '../../store/useAuthStore';
 
 export default function TabsLayout() {
+  const { role } = useAuthStore();
+  const isDelivery = role === 'DELIVERY';
+
   return (
     <Tabs
       screenOptions={{
@@ -12,6 +16,7 @@ export default function TabsLayout() {
         name="index"
         options={{
           title: 'Dashboard',
+          href: isDelivery ? null : '/(tabs)',
           tabBarIcon: ({ color }) => <Home color={color} size={24} />,
         }}
       />
@@ -19,9 +24,11 @@ export default function TabsLayout() {
         name="scanner"
         options={{
           title: 'Scan Barcode',
+          href: isDelivery ? null : '/(tabs)/scanner',
           tabBarIcon: ({ color }) => <Scan color={color} size={24} />,
         }}
       />
+      {/* If delivery, show something else or keep settings open so they can logout */}
       <Tabs.Screen
         name="settings"
         options={{

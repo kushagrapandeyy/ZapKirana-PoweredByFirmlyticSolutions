@@ -154,7 +154,7 @@ let AuthService = class AuthService {
         if (!user) {
             user = await this.prisma.user.create({
                 data: {
-                    email: `${phone}@phone.basko.app`,
+                    email: `${phone}@phone.zapkirana.app`,
                     phone,
                     role: 'CUSTOMER',
                     isVerified: true,

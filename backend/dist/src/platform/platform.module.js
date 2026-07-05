@@ -11,11 +11,13 @@ const common_1 = require("@nestjs/common");
 const platform_service_1 = require("./platform.service");
 const platform_controller_1 = require("./platform.controller");
 const prisma_service_1 = require("../prisma.service");
+const cache_module_1 = require("../cache/cache.module");
 let PlatformModule = class PlatformModule {
 };
 exports.PlatformModule = PlatformModule;
 exports.PlatformModule = PlatformModule = __decorate([
     (0, common_1.Module)({
+        imports: [cache_module_1.CacheModule],
         providers: [platform_service_1.PlatformService, prisma_service_1.PrismaService],
         controllers: [platform_controller_1.PlatformController],
         exports: [platform_service_1.PlatformService],

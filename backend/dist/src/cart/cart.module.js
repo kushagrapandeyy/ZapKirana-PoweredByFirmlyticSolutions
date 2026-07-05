@@ -11,11 +11,13 @@ const common_1 = require("@nestjs/common");
 const cart_controller_1 = require("./cart.controller");
 const cart_service_1 = require("./cart.service");
 const prisma_service_1 = require("../prisma.service");
+const cache_module_1 = require("../cache/cache.module");
 let CartModule = class CartModule {
 };
 exports.CartModule = CartModule;
 exports.CartModule = CartModule = __decorate([
     (0, common_1.Module)({
+        imports: [cache_module_1.CacheModule],
         controllers: [cart_controller_1.CartController],
         providers: [cart_service_1.CartService, prisma_service_1.PrismaService]
     })

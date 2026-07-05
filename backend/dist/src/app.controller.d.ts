@@ -25,6 +25,30 @@ export declare class AppController {
         bankRoutingNumber: string | null;
         taxId: string | null;
     }>;
+    getStoreStaff(storeId: string): Promise<{
+        id: string;
+        name: string | null;
+        createdAt: Date;
+        email: string;
+        phone: string | null;
+        role: import(".prisma/client").$Enums.Role;
+    }[]>;
+    updateStaffRole(storeId: string, userId: string, role: string): Promise<{
+        id: string;
+        name: string | null;
+        createdAt: Date;
+        updatedAt: Date;
+        organizationId: string | null;
+        email: string;
+        phone: string | null;
+        password: string | null;
+        pin: string | null;
+        role: import(".prisma/client").$Enums.Role;
+        storeId: string | null;
+        avatarUrl: string | null;
+        isVerified: boolean;
+        pushToken: string | null;
+    }>;
     getNearbyStores(lat: string, lng: string, radiusKm?: string): Promise<{
         distanceKm: number;
         id: string;

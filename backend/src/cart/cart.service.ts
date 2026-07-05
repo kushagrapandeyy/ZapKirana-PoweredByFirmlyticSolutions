@@ -1,11 +1,16 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
+import { CacheService } from '../cache/cache.service';
 
 @Injectable()
 export class CartService {
-  constructor(private prisma: PrismaService) {}
+  constructor(private prisma: PrismaService, private cache: CacheService) {}
 
   async getCart(userId: string, storeId: string) {
+    const cacheKey = `cart:${userId}:${storeId}`;
+    const cached = await this.cache.get<any>(cacheKey);
+    if (cached) return cached;
+
     let cart = await this.prisma.cart.findUnique({
       where: {
         userId_storeId: { userId, storeId },
@@ -42,7 +47,9 @@ export class CartService {
     const totalMrp = cart.items.reduce((sum, item) => sum + (item.product.mrp * item.quantity), 0);
     const discount = totalMrp - subtotal;
 
-    return { ...cart, subtotal, totalMrp, discount };
+    const result = { ...cart, subtotal, totalMrp, discount };
+    await this.cache.set(cacheKey, result, 3600); // Cache for 1 hour
+    return result;
   }
 
   async updateCartItem(userId: string, storeId: string, productId: string, quantity: number) {
@@ -64,6 +71,9 @@ export class CartService {
       });
     }
 
+    const cacheKey = `cart:${userId}:${storeId}`;
+    await this.cache.delete(cacheKey);
+
     return this.getCart(userId, storeId);
   }
 
@@ -72,6 +82,10 @@ export class CartService {
     await this.prisma.cartItem.deleteMany({
       where: { cartId: cart.id },
     });
+    
+    const cacheKey = `cart:${userId}:${storeId}`;
+    await this.cache.delete(cacheKey);
+
     return { success: true };
   }
 }

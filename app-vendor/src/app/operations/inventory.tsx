@@ -5,13 +5,13 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Shadows, Radius } from '../../constants/theme';
 import { API_BASE_URL, CURRENT_STORE_ID } from '../../constants/api';
+import { supabase } from '../../utils/supabase';
+import { useAuth } from '../../context/AuthContext';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import BottomSheet, { BottomSheetScrollView, BottomSheetBackdrop } from '@gorhom/bottom-sheet';
 
-// Mocked RBAC Context
-const CURRENT_STAFF_ROLE = 'MANAGER' as string;
-
 export default function InventoryScreen() {
+  const { role } = useAuth();
   const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -25,6 +25,24 @@ export default function InventoryScreen() {
 
   useEffect(() => {
     loadInventory();
+
+    // Subscribe to inventory changes (real-time updates)
+    const subscription = supabase
+      .channel(`inventory_updates_${CURRENT_STORE_ID}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'Inventory', filter: `storeId=eq.${CURRENT_STORE_ID}` },
+        (payload) => {
+          console.log('Realtime Inventory Update:', payload);
+          // Reload inventory to get the latest joined product data
+          loadInventory();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(subscription);
+    };
   }, []);
 
   const loadInventory = async () => {
@@ -61,8 +79,8 @@ export default function InventoryScreen() {
   );
 
   const submitStockUpdate = async () => {
-    if (CURRENT_STAFF_ROLE !== 'MANAGER') {
-      Alert.alert('Access Denied', 'Manager approval is required to manually adjust stock levels outside of a Purchase Order or GRN.');
+    if (role !== 'MANAGER' && role !== 'OWNER') {
+      Alert.alert('Access Denied', 'Manager or Owner privileges are required to manually adjust stock levels outside of a Purchase Order or GRN.');
       return;
     }
     
@@ -113,7 +131,7 @@ export default function InventoryScreen() {
     const isLow = stock <= 10;
 
     return (
-      <Animated.View entering={FadeInDown.delay(index * 30).duration(400)}>
+      <Animated.View entering={FadeInDown.delay(index * 30).springify().damping(15)}>
         <TouchableOpacity style={styles.productCard} onPress={() => openProductDetails(item)} activeOpacity={0.7}>
           <Image 
             source={{ uri: item.imageUrl || `https://placehold.co/100x100?text=${item.name.substring(0,1)}` }} 
@@ -148,7 +166,7 @@ export default function InventoryScreen() {
       {/* Role Banner */}
       <View style={styles.roleBanner}>
         <Ionicons name="shield-checkmark" size={16} color={Colors.surface} />
-        <Text style={styles.roleText}>Access Level: {CURRENT_STAFF_ROLE}</Text>
+        <Text style={styles.roleText}>Access Level: {role || 'STAFF'}</Text>
       </View>
 
       {/* Search */}
@@ -224,7 +242,7 @@ export default function InventoryScreen() {
 
               <Text style={styles.sectionTitle}>Manual Adjustment</Text>
               
-              {CURRENT_STAFF_ROLE !== 'MANAGER' && (
+              {(role !== 'MANAGER' && role !== 'OWNER') && (
                 <View style={styles.alertBox}>
                   <Ionicons name="lock-closed" size={20} color="#B45309" />
                   <Text style={styles.alertText}>Manager privileges required to manually edit stock levels. Please use the Scanner App for GRN.</Text>
@@ -234,18 +252,18 @@ export default function InventoryScreen() {
               <View style={styles.inputRow}>
                 <Text style={styles.inputLabel}>New Level:</Text>
                 <TextInput
-                  style={[styles.stockInput, CURRENT_STAFF_ROLE !== 'MANAGER' && styles.disabledInput]}
+                  style={[styles.stockInput, (role !== 'MANAGER' && role !== 'OWNER') && styles.disabledInput]}
                   value={updateStock}
                   onChangeText={setUpdateStock}
                   keyboardType="numeric"
-                  editable={CURRENT_STAFF_ROLE === 'MANAGER'}
+                  editable={(role === 'MANAGER' || role === 'OWNER')}
                 />
               </View>
 
               <TouchableOpacity 
-                style={[styles.saveBtn, CURRENT_STAFF_ROLE !== 'MANAGER' && styles.saveBtnDisabled]} 
+                style={[styles.saveBtn, (role !== 'MANAGER' && role !== 'OWNER') && styles.saveBtnDisabled]} 
                 onPress={submitStockUpdate}
-                disabled={CURRENT_STAFF_ROLE !== 'MANAGER'}
+                disabled={(role !== 'MANAGER' && role !== 'OWNER')}
               >
                 <Text style={styles.saveBtnText}>Update Inventory</Text>
               </TouchableOpacity>
@@ -256,17 +274,17 @@ export default function InventoryScreen() {
               <View style={styles.inputRow}>
                 <Text style={styles.inputLabel}>Discount %:</Text>
                 <TextInput
-                  style={[styles.stockInput, CURRENT_STAFF_ROLE !== 'MANAGER' && styles.disabledInput]}
+                  style={[styles.stockInput, (role !== 'MANAGER' && role !== 'OWNER') && styles.disabledInput]}
                   value={subDiscount}
                   onChangeText={setSubDiscount}
                   keyboardType="numeric"
-                  editable={CURRENT_STAFF_ROLE === 'MANAGER'}
+                  editable={(role === 'MANAGER' || role === 'OWNER')}
                 />
               </View>
               <TouchableOpacity 
-                style={[styles.saveBtn, { backgroundColor: '#1E40AF', marginBottom: 20 }, CURRENT_STAFF_ROLE !== 'MANAGER' && styles.saveBtnDisabled]} 
+                style={[styles.saveBtn, { backgroundColor: '#1E40AF', marginBottom: 20 }, (role !== 'MANAGER' && role !== 'OWNER') && styles.saveBtnDisabled]} 
                 onPress={updateDiscount}
-                disabled={CURRENT_STAFF_ROLE !== 'MANAGER'}
+                disabled={(role !== 'MANAGER' && role !== 'OWNER')}
               >
                 <Text style={styles.saveBtnText}>Update Discount</Text>
               </TouchableOpacity>

@@ -49,6 +49,7 @@ export declare class GstService {
         gstRate: number;
         gstClass: import(".prisma/client").$Enums.GSTClass;
         subscriptionDiscount: number;
+        campaignId: string | null;
     }>;
     bulkClassify(storeId: string): Promise<{
         total: number;

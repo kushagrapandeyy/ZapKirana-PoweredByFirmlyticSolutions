@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Param, Query, BadRequestException } from '@nestjs/common';
+import { Controller, Get, Post, Param, Query, BadRequestException, Body } from '@nestjs/common';
 import { PlatformService } from './platform.service';
 
 @Controller('platform')
@@ -69,5 +69,14 @@ export class PlatformController {
   @Get('ondc/catalog/:storeId')
   previewOndcCatalog(@Param('storeId') storeId: string) {
     return this.platformService.buildOndcCatalog(storeId);
+  }
+
+  /**
+   * POST /platform/vendors/onboard
+   * Easy unified vendor onboarding
+   */
+  @Post('vendors/onboard')
+  async onboardVendor(@Body() body: any) {
+    return this.platformService.onboardVendor(body);
   }
 }

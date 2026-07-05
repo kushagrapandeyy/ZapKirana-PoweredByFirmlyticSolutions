@@ -1,6 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 
+import { CacheService } from '../cache/cache.service';
+
 // Haversine formula
 function haversineKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
   const R = 6371;
@@ -14,12 +16,21 @@ function haversineKm(lat1: number, lon1: number, lat2: number, lon2: number): nu
 
 @Injectable()
 export class PlatformService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private cache: CacheService,
+  ) {}
 
   /**
    * Enhanced store discovery — returns stores with live available inventory count.
    */
   async getNearbyStores(lat: number, lng: number, radiusKm = 5) {
+    const cacheKey = `platform:nearby_stores:${Math.round(lat * 100)}:${Math.round(lng * 100)}:${radiusKm}`;
+    const cached = await this.cache.get<any[]>(cacheKey);
+    if (cached) {
+      return cached;
+    }
+
     const stores = await this.prisma.store.findMany({
       where: { isActive: true, latitude: { not: null }, longitude: { not: null } },
       include: {
@@ -32,7 +43,7 @@ export class PlatformService {
       },
     });
 
-    return stores
+    const result = stores
       .map((store) => {
         const distance = haversineKm(lat, lng, store.latitude!, store.longitude!);
         const availableSkus = store.inventory.filter(
@@ -55,6 +66,9 @@ export class PlatformService {
       })
       .filter((s) => s.distanceKm <= radiusKm)
       .sort((a, b) => a.distanceKm - b.distanceKm);
+
+    await this.cache.set(cacheKey, result, 60); // cache for 60 seconds
+    return result;
   }
 
   /**
@@ -228,8 +242,8 @@ export class PlatformService {
     });
 
     const catalog = {
-      bpp_id: `basko-${storeId}`,
-      bpp_uri: `https://api.basko.in/ondc/${storeId}`,
+      bpp_id: `zapkirana-${storeId}`,
+      bpp_uri: `https://api.zapkirana.in/ondc/${storeId}`,
       descriptor: { name: store.name, images: store.imageUrl ? [store.imageUrl] : [] },
       fulfillments: [
         {
@@ -249,5 +263,74 @@ export class PlatformService {
     };
 
     return catalog;
+  }
+
+  /**
+   * Automated Vendor Onboarding
+   * Creates Organization, Store, and Owner User in a single transaction.
+   */
+  async onboardVendor(data: {
+    ownerName: string;
+    ownerEmail: string;
+    ownerPhone: string;
+    storeName: string;
+    storeLocation: string;
+    latitude?: number;
+    longitude?: number;
+    fssai?: string;
+    gstin?: string;
+  }) {
+    return this.prisma.$transaction(async (tx) => {
+      // 1. Create Organization
+      const org = await tx.organization.create({
+        data: {
+          name: `${data.storeName} Org`,
+          legalName: data.storeName,
+          gstin: data.gstin,
+        },
+      });
+
+      // 2. Create Store
+      const store = await tx.store.create({
+        data: {
+          organizationId: org.id,
+          name: data.storeName,
+          location: data.storeLocation,
+          latitude: data.latitude,
+          longitude: data.longitude,
+          gstin: data.gstin,
+          taxId: data.fssai,
+        },
+      });
+
+      // 3. Create Owner User
+      const user = await tx.user.create({
+        data: {
+          name: data.ownerName,
+          email: data.ownerEmail,
+          phone: data.ownerPhone,
+          role: 'OWNER',
+          organizationId: org.id,
+          storeId: store.id,
+        },
+      });
+
+      // 4. Assign Roles
+      await tx.userStoreRole.create({
+        data: {
+          userId: user.id,
+          storeId: store.id,
+          organizationId: org.id,
+          role: 'OWNER',
+        },
+      });
+
+      return {
+        message: 'Vendor successfully onboarded',
+        organization: org,
+        store,
+        user,
+      };
+    });
   }
 }

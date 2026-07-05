@@ -8,8 +8,9 @@ interface AuthState {
   deviceId: string | null;
   staffId: string | null;
   sessionId: string | null;
+  role: string | null;
   isLoading: boolean;
-  login: (token: string, storeId: string, deviceId: string, staffId: string, sessionId: string) => Promise<void>;
+  login: (token: string, storeId: string, deviceId: string, staffId: string, sessionId: string, role: string) => Promise<void>;
   logout: () => Promise<void>;
   initAuth: () => Promise<void>;
 }
@@ -20,14 +21,16 @@ export const useAuthStore = create<AuthState>((set) => ({
   deviceId: null,
   staffId: null,
   sessionId: null,
+  role: null,
   isLoading: true,
-  login: async (token, storeId, deviceId, staffId, sessionId) => {
+  login: async (token, storeId, deviceId, staffId, sessionId, role) => {
     await AsyncStorage.setItem('scanner_token', token);
     await AsyncStorage.setItem('scanner_store_id', storeId);
     await AsyncStorage.setItem('scanner_device_id', deviceId);
     await AsyncStorage.setItem('scanner_staff_id', staffId);
     await AsyncStorage.setItem('scanner_session_id', sessionId);
-    set({ token, storeId, deviceId, staffId, sessionId });
+    await AsyncStorage.setItem('scanner_role', role);
+    set({ token, storeId, deviceId, staffId, sessionId, role });
   },
   logout: async () => {
     const token = await AsyncStorage.getItem('scanner_token');
@@ -49,9 +52,10 @@ export const useAuthStore = create<AuthState>((set) => ({
       'scanner_store_id',
       'scanner_device_id',
       'scanner_staff_id',
-      'scanner_session_id'
+      'scanner_session_id',
+      'scanner_role'
     ]);
-    set({ token: null, storeId: null, deviceId: null, staffId: null, sessionId: null });
+    set({ token: null, storeId: null, deviceId: null, staffId: null, sessionId: null, role: null });
   },
   initAuth: async () => {
     try {
@@ -60,7 +64,8 @@ export const useAuthStore = create<AuthState>((set) => ({
       const deviceId = await AsyncStorage.getItem('scanner_device_id');
       const staffId = await AsyncStorage.getItem('scanner_staff_id');
       const sessionId = await AsyncStorage.getItem('scanner_session_id');
-      set({ token, storeId, deviceId, staffId, sessionId, isLoading: false });
+      const role = await AsyncStorage.getItem('scanner_role');
+      set({ token, storeId, deviceId, staffId, sessionId, role, isLoading: false });
     } catch (e) {
       set({ isLoading: false });
     }

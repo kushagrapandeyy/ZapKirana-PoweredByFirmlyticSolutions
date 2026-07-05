@@ -73,6 +73,11 @@ model User {
   pendingProductsCreated PendingProduct[] @relation("CreatedPendingProducts")
   ScannerSession         ScannerSession[]
   carts                  Cart[]
+  preferences            UserPreferences?
+
+  customerTickets        SupportTicket[]  @relation("CustomerTickets")
+  assignedTickets        SupportTicket[]  @relation("AssignedTickets")
+  sentTicketMessages     TicketMessage[]  @relation("SentTicketMessages")
 }
 
 enum Role {
@@ -163,6 +168,8 @@ model Store {
   purchaseOrders PurchaseOrder[]
   ScannerSession ScannerSession[]
   carts          Cart[]
+  campaigns      StoreCampaign[]
+  supportTickets SupportTicket[]
 }
 
 // -----------------------------------------------------
@@ -202,14 +209,21 @@ model Product {
   supplierProducts   SupplierProduct[]
   barcodeRegistry    BarcodeRegistry[]
   cartItems          CartItem[]
+  productViews       ProductView[]
+  productClicks      ProductClick[]
+  cartEvents         CartEvent[]
   createdAt          DateTime            @default(now())
   updatedAt          DateTime            @updatedAt
+
+  campaignId         String?
+  campaign           StoreCampaign?      @relation(fields: [campaignId], references: [id])
 
   @@index([storeId])
   @@index([category])
   @@index([barcode]) // barcode lookup — HID scanner + platform search
   @@index([storeId, isActive]) // product catalog queries
   @@index([storeId, category]) // category browsing + analytics
+  @@index([campaignId])
 }
 
 model Inventory {
@@ -368,6 +382,7 @@ model Order {
 
   items    OrderItem[]
   messages OrderMessage[]
+  supportTickets SupportTicket[]
 
   @@index([storeId, status]) // store order management
   @@index([customerId, createdAt]) // customer order history
@@ -841,4 +856,151 @@ model CartItem {
   quantity  Int
 
   @@unique([cartId, productId])
+}
+
+// -----------------------------------------------------
+// User Preferences & Analytics
+// -----------------------------------------------------
+
+model UserPreferences {
+  id              String   @id @default(uuid())
+  userId          String   @unique
+  user            User     @relation(fields: [userId], references: [id])
+  dietaryTags     String[] // e.g., ["vegan", "gluten-free"]
+  favoriteBrands  String[] // e.g., ["Amul", "Britannia"]
+  pricePreference String?  // e.g., "premium", "budget"
+  preferredStoreId String?
+  language        String   @default("en")
+  notificationPrefs Json?  // e.g., {"push": true, "sms": false}
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model ProductView {
+  id        String   @id @default(uuid())
+  userId    String?
+  sessionId String?  // For anonymous users
+  productId String
+  product   Product  @relation(fields: [productId], references: [id])
+  storeId   String
+  duration  Int?     // Time spent viewing in seconds
+  createdAt DateTime @default(now())
+
+  @@index([userId, productId])
+  @@index([storeId, createdAt])
+}
+
+model ProductClick {
+  id        String   @id @default(uuid())
+  userId    String?
+  sessionId String?
+  productId String
+  product   Product  @relation(fields: [productId], references: [id])
+  storeId   String
+  source    String?  // e.g., "search", "category_page", "recommendation"
+  createdAt DateTime @default(now())
+
+  @@index([userId, productId])
+  @@index([storeId, createdAt])
+}
+
+model RecommendationEvent {
+  id              String   @id @default(uuid())
+  userId          String?
+  sessionId       String?
+  algorithm       String   // e.g., "collaborative_filtering", "trending"
+  recommendedItems String[] // Array of product IDs
+  clickedItemId   String?  // If they clicked one
+  createdAt       DateTime @default(now())
+}
+
+model CartEvent {
+  id        String   @id @default(uuid())
+  userId    String?
+  sessionId String?
+  productId String
+  product   Product  @relation(fields: [productId], references: [id])
+  storeId   String
+  action    String   // "add", "remove", "update_qty"
+  quantity  Int
+  createdAt DateTime @default(now())
+
+  @@index([userId, productId])
+  @@index([storeId, createdAt])
+}
+
+// -----------------------------------------------------
+// Campaigns & Store Discounts
+// -----------------------------------------------------
+model StoreCampaign {
+  id                 String    @id @default(uuid())
+  storeId            String
+  store              Store     @relation(fields: [storeId], references: [id])
+  title              String
+  description        String?
+  discountPercentage Float
+  animationType      String    @default("DEFAULT") // e.g. FLASH_SALE, WEEKEND_BLOWOUT
+  isActive           Boolean   @default(true)
+  startsAt           DateTime  @default(now())
+  endsAt             DateTime?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  products           Product[]
+
+  @@index([storeId, isActive])
+}
+
+// -----------------------------------------------------
+// Platform Operations & Support
+// -----------------------------------------------------
+
+enum TicketStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+  CLOSED
+}
+
+enum TicketPriority {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+model SupportTicket {
+  id          String         @id @default(uuid())
+  storeId     String?
+  store       Store?         @relation(fields: [storeId], references: [id])
+  customerId  String?
+  customer    User?          @relation("CustomerTickets", fields: [customerId], references: [id])
+  orderId     String?
+  order       Order?         @relation(fields: [orderId], references: [id])
+  assignedToId String?
+  assignedTo  User?          @relation("AssignedTickets", fields: [assignedToId], references: [id])
+  title       String
+  description String
+  status      TicketStatus   @default(OPEN)
+  priority    TicketPriority @default(MEDIUM)
+  messages    TicketMessage[]
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  @@index([storeId, status])
+  @@index([customerId, status])
+  @@index([assignedToId, status])
+}
+
+model TicketMessage {
+  id        String        @id @default(uuid())
+  ticketId  String
+  ticket    SupportTicket @relation(fields: [ticketId], references: [id])
+  senderId  String
+  sender    User          @relation("SentTicketMessages", fields: [senderId], references: [id])
+  text      String
+  isInternal Boolean      @default(false)
+  createdAt DateTime      @default(now())
+
+  @@index([ticketId, createdAt])
 }

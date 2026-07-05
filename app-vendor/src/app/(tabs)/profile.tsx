@@ -60,7 +60,7 @@ export default function ProfileScreen() {
           <Text style={[styles.sectionTitle, { color: '#ef4444' }]}>Developer Role Switcher</Text>
           <Text style={styles.helpText}>Use this to test the app as different users.</Text>
           <View style={styles.roleBtns}>
-            {['OWNER', 'MANAGER', 'PICKER', 'PARTNER'].map((r) => (
+            {['OWNER', 'MANAGER', 'STAFF', 'DELIVERY', 'PARTNER'].map((r) => (
               <TouchableOpacity
                 key={r}
                 style={[styles.roleBtn, role === r && styles.roleBtnActive]}

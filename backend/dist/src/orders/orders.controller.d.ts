@@ -38,14 +38,15 @@ export declare class OrdersController {
                 gstRate: number;
                 gstClass: import(".prisma/client").$Enums.GSTClass;
                 subscriptionDiscount: number;
+                campaignId: string | null;
             };
         } & {
             id: string;
             gstClass: import(".prisma/client").$Enums.GSTClass;
-            productId: string;
             quantity: number;
             priceAtOrder: number;
             gstAtOrder: number;
+            productId: string;
             orderId: string;
         })[];
     } & {
@@ -105,14 +106,15 @@ export declare class OrdersController {
                 gstRate: number;
                 gstClass: import(".prisma/client").$Enums.GSTClass;
                 subscriptionDiscount: number;
+                campaignId: string | null;
             };
         } & {
             id: string;
             gstClass: import(".prisma/client").$Enums.GSTClass;
-            productId: string;
             quantity: number;
             priceAtOrder: number;
             gstAtOrder: number;
+            productId: string;
             orderId: string;
         })[];
     } & {
@@ -177,14 +179,15 @@ export declare class OrdersController {
                 gstRate: number;
                 gstClass: import(".prisma/client").$Enums.GSTClass;
                 subscriptionDiscount: number;
+                campaignId: string | null;
             };
         } & {
             id: string;
             gstClass: import(".prisma/client").$Enums.GSTClass;
-            productId: string;
             quantity: number;
             priceAtOrder: number;
             gstAtOrder: number;
+            productId: string;
             orderId: string;
         })[];
     } & {

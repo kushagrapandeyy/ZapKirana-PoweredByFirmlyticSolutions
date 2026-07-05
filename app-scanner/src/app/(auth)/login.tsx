@@ -33,8 +33,8 @@ export default function LoginScreen() {
         pin,
       });
 
-      const { token, storeId, deviceId, staffId, sessionId } = response.data;
-      await login(token, storeId, deviceId, staffId, sessionId);
+      const { token, storeId, deviceId, staffId, sessionId, role } = response.data;
+      await login(token, storeId, deviceId, staffId, sessionId, role || 'STAFF');
     } catch (e: any) {
       console.error(e);
       setError(e.response?.data?.message || 'Login failed. Check credentials.');

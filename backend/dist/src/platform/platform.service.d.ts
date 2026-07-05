@@ -1,26 +1,10 @@
 import { PrismaService } from '../prisma.service';
+import { CacheService } from '../cache/cache.service';
 export declare class PlatformService {
     private prisma;
-    constructor(prisma: PrismaService);
-    getNearbyStores(lat: number, lng: number, radiusKm?: number): Promise<{
-        id: string;
-        name: string;
-        location: string | null;
-        latitude: number | null;
-        longitude: number | null;
-        imageUrl: string | null;
-        rating: number;
-        operatingHours: string | null;
-        distanceKm: number;
-        availableSkus: number;
-        description: string | null;
-        topProducts: {
-            id: string;
-            name: string;
-            imageUrl: string | null;
-            sellingPrice: number;
-        }[];
-    }[]>;
+    private cache;
+    constructor(prisma: PrismaService, cache: CacheService);
+    getNearbyStores(lat: number, lng: number, radiusKm?: number): Promise<any[]>;
     searchCatalog(query: string, lat: number, lng: number, radiusKm?: number): Promise<{
         query: string;
         lat: number;
@@ -103,5 +87,65 @@ export declare class PlatformService {
         generatedAt: string;
     } | {
         error: string;
+    }>;
+    onboardVendor(data: {
+        ownerName: string;
+        ownerEmail: string;
+        ownerPhone: string;
+        storeName: string;
+        storeLocation: string;
+        latitude?: number;
+        longitude?: number;
+        fssai?: string;
+        gstin?: string;
+    }): Promise<{
+        message: string;
+        organization: {
+            id: string;
+            name: string;
+            legalName: string | null;
+            gstin: string | null;
+            pan: string | null;
+            plan: string;
+            status: string;
+            createdAt: Date;
+            updatedAt: Date;
+        };
+        store: {
+            id: string;
+            name: string;
+            gstin: string | null;
+            createdAt: Date;
+            updatedAt: Date;
+            organizationId: string | null;
+            location: string | null;
+            latitude: number | null;
+            longitude: number | null;
+            operatingRadiusKm: number;
+            isActive: boolean;
+            imageUrl: string | null;
+            operatingHours: string | null;
+            rating: number;
+            description: string | null;
+            bankAccountNumber: string | null;
+            bankRoutingNumber: string | null;
+            taxId: string | null;
+        };
+        user: {
+            id: string;
+            name: string | null;
+            createdAt: Date;
+            updatedAt: Date;
+            organizationId: string | null;
+            email: string;
+            phone: string | null;
+            password: string | null;
+            pin: string | null;
+            role: import(".prisma/client").$Enums.Role;
+            storeId: string | null;
+            avatarUrl: string | null;
+            isVerified: boolean;
+            pushToken: string | null;
+        };
     }>;
 }

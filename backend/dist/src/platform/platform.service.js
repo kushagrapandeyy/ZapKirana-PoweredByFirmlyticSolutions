@@ -12,6 +12,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.PlatformService = void 0;
 const common_1 = require("@nestjs/common");
 const prisma_service_1 = require("../prisma.service");
+const cache_service_1 = require("../cache/cache.service");
 function haversineKm(lat1, lon1, lat2, lon2) {
     const R = 6371;
     const dLat = ((lat2 - lat1) * Math.PI) / 180;
@@ -22,10 +23,17 @@ function haversineKm(lat1, lon1, lat2, lon2) {
 }
 let PlatformService = class PlatformService {
     prisma;
-    constructor(prisma) {
+    cache;
+    constructor(prisma, cache) {
         this.prisma = prisma;
+        this.cache = cache;
     }
     async getNearbyStores(lat, lng, radiusKm = 5) {
+        const cacheKey = `platform:nearby_stores:${Math.round(lat * 100)}:${Math.round(lng * 100)}:${radiusKm}`;
+        const cached = await this.cache.get(cacheKey);
+        if (cached) {
+            return cached;
+        }
         const stores = await this.prisma.store.findMany({
             where: { isActive: true, latitude: { not: null }, longitude: { not: null } },
             include: {
@@ -37,7 +45,7 @@ let PlatformService = class PlatformService {
                 }
             },
         });
-        return stores
+        const result = stores
             .map((store) => {
             const distance = haversineKm(lat, lng, store.latitude, store.longitude);
             const availableSkus = store.inventory.filter((i) => i.onHandQty - i.reservedQty - i.blockedQty > 0).length;
@@ -58,6 +66,8 @@ let PlatformService = class PlatformService {
         })
             .filter((s) => s.distanceKm <= radiusKm)
             .sort((a, b) => a.distanceKm - b.distanceKm);
+        await this.cache.set(cacheKey, result, 60);
+        return result;
     }
     async searchCatalog(query, lat, lng, radiusKm = 5) {
         const products = await this.prisma.product.findMany({
@@ -206,8 +216,8 @@ let PlatformService = class PlatformService {
             };
         });
         const catalog = {
-            bpp_id: `basko-${storeId}`,
-            bpp_uri: `https://api.basko.in/ondc/${storeId}`,
+            bpp_id: `zapkirana-${storeId}`,
+            bpp_uri: `https://api.zapkirana.in/ondc/${storeId}`,
             descriptor: { name: store.name, images: store.imageUrl ? [store.imageUrl] : [] },
             fulfillments: [
                 {
@@ -227,10 +237,57 @@ let PlatformService = class PlatformService {
         };
         return catalog;
     }
+    async onboardVendor(data) {
+        return this.prisma.$transaction(async (tx) => {
+            const org = await tx.organization.create({
+                data: {
+                    name: `${data.storeName} Org`,
+                    legalName: data.storeName,
+                    gstin: data.gstin,
+                },
+            });
+            const store = await tx.store.create({
+                data: {
+                    organizationId: org.id,
+                    name: data.storeName,
+                    location: data.storeLocation,
+                    latitude: data.latitude,
+                    longitude: data.longitude,
+                    gstin: data.gstin,
+                    taxId: data.fssai,
+                },
+            });
+            const user = await tx.user.create({
+                data: {
+                    name: data.ownerName,
+                    email: data.ownerEmail,
+                    phone: data.ownerPhone,
+                    role: 'OWNER',
+                    organizationId: org.id,
+                    storeId: store.id,
+                },
+            });
+            await tx.userStoreRole.create({
+                data: {
+                    userId: user.id,
+                    storeId: store.id,
+                    organizationId: org.id,
+                    role: 'OWNER',
+                },
+            });
+            return {
+                message: 'Vendor successfully onboarded',
+                organization: org,
+                store,
+                user,
+            };
+        });
+    }
 };
 exports.PlatformService = PlatformService;
 exports.PlatformService = PlatformService = __decorate([
     (0, common_1.Injectable)(),
-    __metadata("design:paramtypes", [prisma_service_1.PrismaService])
+    __metadata("design:paramtypes", [prisma_service_1.PrismaService,
+        cache_service_1.CacheService])
 ], PlatformService);
 //# sourceMappingURL=platform.service.js.map

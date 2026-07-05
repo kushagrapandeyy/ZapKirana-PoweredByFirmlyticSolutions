@@ -1,4 +1,4 @@
-import { Controller, Get, NotFoundException, Param, Query } from '@nestjs/common';
+import { Controller, Get, Post, NotFoundException, Param, Query } from '@nestjs/common';
 import { AppService } from './app.service';
 import { PrismaService } from './prisma.service';
 import { Public } from './common/decorators/public.decorator';
@@ -21,6 +21,43 @@ export class AppController {
       throw new NotFoundException('Store not found');
     }
     return store;
+  }
+
+  @Public()
+  @Get('stores/:id/staff')
+  async getStoreStaff(@Param('id') storeId: string) {
+    return this.prisma.user.findMany({
+      where: { 
+        storeId,
+        role: { not: 'CUSTOMER' }
+      },
+      select: {
+        id: true,
+        name: true,
+        phone: true,
+        email: true,
+        role: true,
+        createdAt: true,
+      }
+    });
+  }
+
+  @Public()
+  @Post('stores/:id/staff/:userId/role')
+  async updateStaffRole(
+    @Param('id') storeId: string,
+    @Param('userId') userId: string,
+    @Query('role') role: string
+  ) {
+    // Basic validation
+    if (!['OWNER', 'MANAGER', 'STAFF', 'DELIVERY', 'SCANNER_STAFF'].includes(role)) {
+      throw new NotFoundException('Invalid Role');
+    }
+
+    return this.prisma.user.update({
+      where: { id: userId, storeId },
+      data: { role: role as any }
+    });
   }
 
   // Nearby stores endpoint using Haversine formula

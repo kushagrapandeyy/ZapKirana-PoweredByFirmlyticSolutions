@@ -4,11 +4,10 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image, Modal, TextInput, ActivityIndicator, Alert, KeyboardAvoidingView, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
-import { API_BASE_URL } from '../../constants/api';
+import { API_BASE_URL, CURRENT_STORE_ID } from '../../constants/api';
 import { Colors, Shadows, Radius } from '../../constants/theme';
+import { supabase } from '../../utils/supabase';
 
-// Hardcoded for now until auth context is fully connected
-const STORE_ID = '5981f6aa-23ee-4acf-bd1d-8ceb2a92ea0c'; 
 const API_URL = `${API_BASE_URL}/inventory`;
 
 type PendingProduct = {
@@ -36,12 +35,30 @@ export default function ApprovalsScreen() {
 
   useEffect(() => {
     fetchPendingItems();
+
+    // Subscribe to pending product inserts
+    const subscription = supabase
+      .channel(`approvals_updates_${CURRENT_STORE_ID}`)
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'Product', filter: `storeId=eq.${CURRENT_STORE_ID}` },
+        (payload) => {
+          // Typically we'd check if status === 'PENDING_APPROVAL' on the payload
+          console.log('Realtime Approval Alert:', payload);
+          fetchPendingItems();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(subscription);
+    };
   }, []);
 
   const fetchPendingItems = async () => {
     setLoading(true);
     try {
-      const response = await fetch(`${API_URL}/products?storeId=${STORE_ID}&status=PENDING_APPROVAL`);
+      const response = await fetch(`${API_URL}/products?storeId=${CURRENT_STORE_ID}&status=PENDING_APPROVAL`);
       if (response.ok) {
         const data = await response.json();
         setPendingItems(data);
@@ -95,7 +112,7 @@ export default function ApprovalsScreen() {
   };
 
   const renderItem = ({ item, index }: { item: PendingProduct, index: number }) => (
-    <Animated.View entering={FadeInDown.delay(index * 50).duration(400)}>
+    <Animated.View entering={FadeInDown.delay(index * 50).springify().damping(15)}>
       <View style={styles.card}>
         <View style={styles.cardHeader}>
           <View style={styles.barcodeWrapper}>
@@ -126,14 +143,22 @@ export default function ApprovalsScreen() {
           <Text style={styles.scannedByText}>
             Scanned by: <Text style={{ fontFamily: 'Inter_700Bold' }}>{item.createdBy?.name || 'Staff'}</Text>
           </Text>
-          <TouchableOpacity 
-            style={styles.reviewBtn}
-            onPress={() => openApprovalModal(item)}
-            activeOpacity={0.8}
-          >
-            <Text style={styles.reviewBtnText}>Review & Approve</Text>
-            <Ionicons name="chevron-forward" size={16} color="#fff" />
-          </TouchableOpacity>
+          <View style={styles.actionRow}>
+            <TouchableOpacity 
+              style={styles.rejectBtn}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="close" size={20} color={Colors.danger} />
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={styles.approveCardBtn}
+              onPress={() => openApprovalModal(item)}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.approveCardBtnText}>Review</Text>
+              <Ionicons name="chevron-forward" size={16} color="#fff" />
+            </TouchableOpacity>
+          </View>
         </View>
       </View>
     </Animated.View>
@@ -142,8 +167,13 @@ export default function ApprovalsScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Approvals</Text>
-        <Text style={styles.headerSub}>{pendingItems.length} items awaiting review</Text>
+        <View style={styles.headerTop}>
+          <Text style={styles.headerTitle}>Approvals</Text>
+          <View style={styles.actionPill}>
+            <Text style={styles.actionPillText}>{pendingItems.length} ACTION REQUIRED</Text>
+          </View>
+        </View>
+        <Text style={styles.headerSub}>Review scanner inventory dumps and price overrides.</Text>
       </View>
 
       {loading ? (
@@ -264,8 +294,14 @@ const styles = StyleSheet.create({
 
   cardFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 16, paddingTop: 0 },
   scannedByText: { fontSize: 12, fontFamily: 'Inter_400Regular', color: Colors.textSecondary },
-  reviewBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: Colors.info, paddingHorizontal: 16, paddingVertical: 10, borderRadius: Radius.full, gap: 4, ...Shadows.sm },
-  reviewBtnText: { color: '#fff', fontFamily: 'Inter_700Bold', fontSize: 13 },
+  actionRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  rejectBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: '#FEF2F2', justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: '#FECACA' },
+  approveCardBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: Colors.success, paddingHorizontal: 16, height: 36, borderRadius: 18, gap: 4, ...Shadows.sm },
+  approveCardBtnText: { color: '#fff', fontFamily: 'Inter_700Bold', fontSize: 13 },
+  
+  headerTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  actionPill: { backgroundColor: '#FEF2F2', paddingHorizontal: 10, paddingVertical: 4, borderRadius: Radius.sm, borderWidth: 1, borderColor: '#FECACA' },
+  actionPillText: { fontSize: 11, fontFamily: 'Inter_700Bold', color: Colors.danger, letterSpacing: 0.5 },
 
   emptyContainer: { alignItems: 'center', justifyContent: 'center', marginTop: 100 },
   emptyTitle: { fontSize: 20, fontFamily: 'Inter_700Bold', color: Colors.textPrimary, marginTop: 16, marginBottom: 8 },

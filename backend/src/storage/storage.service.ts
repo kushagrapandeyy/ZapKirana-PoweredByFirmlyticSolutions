@@ -36,11 +36,11 @@ export class StorageService {
     if (!this.isConfigured) {
       // Mock mode for local dev without R2 accounts
       this.logger.debug(`Mock upload: ${filename}`);
-      return `https://mock.assets.basko.in/${filename}`;
+      return `https://mock.assets.zapkirana.in/${filename}`;
     }
 
     try {
-      const bucket = process.env.R2_BUCKET || 'basko-assets';
+      const bucket = process.env.R2_BUCKET || 'zapkirana-assets';
       await this.s3.send(
         new PutObjectCommand({
           Bucket: bucket,

@@ -65,13 +65,14 @@ export declare class PurchaseOrderService {
                 gstRate: number;
                 gstClass: import(".prisma/client").$Enums.GSTClass;
                 subscriptionDiscount: number;
+                campaignId: string | null;
             };
         } & {
             id: string;
             createdAt: Date;
             updatedAt: Date;
-            productId: string;
             quantity: number;
+            productId: string;
             purchasePrice: number;
             acceptedQuantity: number;
             receivedQuantity: number;
@@ -83,8 +84,8 @@ export declare class PurchaseOrderService {
         createdAt: Date;
         updatedAt: Date;
         storeId: string;
-        supplierId: string;
         totalAmount: number;
+        supplierId: string;
         notes: string | null;
         expectedDeliveryDate: Date | null;
         shareToken: string | null;
@@ -127,13 +128,14 @@ export declare class PurchaseOrderService {
                 gstRate: number;
                 gstClass: import(".prisma/client").$Enums.GSTClass;
                 subscriptionDiscount: number;
+                campaignId: string | null;
             };
         } & {
             id: string;
             createdAt: Date;
             updatedAt: Date;
-            productId: string;
             quantity: number;
+            productId: string;
             purchasePrice: number;
             acceptedQuantity: number;
             receivedQuantity: number;
@@ -145,8 +147,8 @@ export declare class PurchaseOrderService {
         createdAt: Date;
         updatedAt: Date;
         storeId: string;
-        supplierId: string;
         totalAmount: number;
+        supplierId: string;
         notes: string | null;
         expectedDeliveryDate: Date | null;
         shareToken: string | null;
@@ -209,13 +211,14 @@ export declare class PurchaseOrderService {
                 gstRate: number;
                 gstClass: import(".prisma/client").$Enums.GSTClass;
                 subscriptionDiscount: number;
+                campaignId: string | null;
             };
         } & {
             id: string;
             createdAt: Date;
             updatedAt: Date;
-            productId: string;
             quantity: number;
+            productId: string;
             purchasePrice: number;
             acceptedQuantity: number;
             receivedQuantity: number;
@@ -227,8 +230,8 @@ export declare class PurchaseOrderService {
         createdAt: Date;
         updatedAt: Date;
         storeId: string;
-        supplierId: string;
         totalAmount: number;
+        supplierId: string;
         notes: string | null;
         expectedDeliveryDate: Date | null;
         shareToken: string | null;
@@ -291,13 +294,14 @@ export declare class PurchaseOrderService {
                 gstRate: number;
                 gstClass: import(".prisma/client").$Enums.GSTClass;
                 subscriptionDiscount: number;
+                campaignId: string | null;
             };
         } & {
             id: string;
             createdAt: Date;
             updatedAt: Date;
-            productId: string;
             quantity: number;
+            productId: string;
             purchasePrice: number;
             acceptedQuantity: number;
             receivedQuantity: number;
@@ -309,8 +313,8 @@ export declare class PurchaseOrderService {
         createdAt: Date;
         updatedAt: Date;
         storeId: string;
-        supplierId: string;
         totalAmount: number;
+        supplierId: string;
         notes: string | null;
         expectedDeliveryDate: Date | null;
         shareToken: string | null;
@@ -322,8 +326,8 @@ export declare class PurchaseOrderService {
             id: string;
             createdAt: Date;
             updatedAt: Date;
-            productId: string;
             quantity: number;
+            productId: string;
             purchasePrice: number;
             acceptedQuantity: number;
             receivedQuantity: number;
@@ -335,8 +339,8 @@ export declare class PurchaseOrderService {
         createdAt: Date;
         updatedAt: Date;
         storeId: string;
-        supplierId: string;
         totalAmount: number;
+        supplierId: string;
         notes: string | null;
         expectedDeliveryDate: Date | null;
         shareToken: string | null;
@@ -348,8 +352,8 @@ export declare class PurchaseOrderService {
         createdAt: Date;
         updatedAt: Date;
         storeId: string;
-        supplierId: string;
         totalAmount: number;
+        supplierId: string;
         notes: string | null;
         expectedDeliveryDate: Date | null;
         shareToken: string | null;

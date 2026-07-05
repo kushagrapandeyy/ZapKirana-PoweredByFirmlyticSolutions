@@ -2,7 +2,21 @@ import { InventoryService } from './inventory.service';
 export declare class InventoryController {
     private readonly inventoryService;
     constructor(inventoryService: InventoryService);
-    getProducts(storeId: string): Promise<{
+    getProducts(storeId: string): Promise<({
+        campaign: {
+            id: string;
+            createdAt: Date;
+            updatedAt: Date;
+            isActive: boolean;
+            description: string | null;
+            storeId: string;
+            title: string;
+            discountPercentage: number;
+            animationType: string;
+            startsAt: Date;
+            endsAt: Date | null;
+        } | null;
+    } & {
         id: string;
         name: string;
         createdAt: Date;
@@ -20,7 +34,43 @@ export declare class InventoryController {
         gstRate: number;
         gstClass: import(".prisma/client").$Enums.GSTClass;
         subscriptionDiscount: number;
-    }[]>;
+        campaignId: string | null;
+    })[]>;
+    getClearanceProducts(storeId: string): Promise<any[]>;
+    getNewProducts(storeId: string): Promise<({
+        campaign: {
+            id: string;
+            createdAt: Date;
+            updatedAt: Date;
+            isActive: boolean;
+            description: string | null;
+            storeId: string;
+            title: string;
+            discountPercentage: number;
+            animationType: string;
+            startsAt: Date;
+            endsAt: Date | null;
+        } | null;
+    } & {
+        id: string;
+        name: string;
+        createdAt: Date;
+        updatedAt: Date;
+        isActive: boolean;
+        imageUrl: string | null;
+        description: string | null;
+        storeId: string;
+        barcode: string | null;
+        internalSku: string;
+        category: string | null;
+        mrp: number;
+        sellingPrice: number;
+        purchaseCost: number | null;
+        gstRate: number;
+        gstClass: import(".prisma/client").$Enums.GSTClass;
+        subscriptionDiscount: number;
+        campaignId: string | null;
+    })[]>;
     receiveStock(body: {
         storeId: string;
         productId: string;
@@ -77,10 +127,10 @@ export declare class InventoryController {
         id: string;
         createdAt: Date;
         storeId: string;
-        productId: string;
         staffId: string | null;
-        inventoryId: string;
+        productId: string;
         type: import(".prisma/client").$Enums.MovementType;
+        inventoryId: string;
         quantityChange: number;
         sourceType: string | null;
         sourceId: string | null;
@@ -134,6 +184,7 @@ export declare class InventoryController {
         gstRate: number;
         gstClass: import(".prisma/client").$Enums.GSTClass;
         subscriptionDiscount: number;
+        campaignId: string | null;
     }>;
     rejectPendingProduct(id: string): Promise<{
         id: string;

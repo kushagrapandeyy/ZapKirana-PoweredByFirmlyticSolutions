@@ -12,12 +12,13 @@ const orders_service_1 = require("./orders.service");
 const orders_controller_1 = require("./orders.controller");
 const prisma_service_1 = require("../prisma.service");
 const inventory_module_1 = require("../inventory/inventory.module");
+const realtime_module_1 = require("../realtime/realtime.module");
 let OrdersModule = class OrdersModule {
 };
 exports.OrdersModule = OrdersModule;
 exports.OrdersModule = OrdersModule = __decorate([
     (0, common_1.Module)({
-        imports: [inventory_module_1.InventoryModule],
+        imports: [inventory_module_1.InventoryModule, realtime_module_1.RealtimeModule],
         controllers: [orders_controller_1.OrdersController],
         providers: [orders_service_1.OrdersService, prisma_service_1.PrismaService],
     })

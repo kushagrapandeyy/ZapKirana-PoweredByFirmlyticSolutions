@@ -22,8 +22,8 @@ export declare class PosController {
     }): Promise<{
         id: string;
         createdAt: Date;
-        productId: string;
         quantity: number;
+        productId: string;
         priceAtSale: number;
         gstAtSale: number;
         billId: string;
@@ -68,8 +68,8 @@ export declare class PosController {
         } & {
             id: string;
             createdAt: Date;
-            productId: string;
             quantity: number;
+            productId: string;
             priceAtSale: number;
             gstAtSale: number;
             billId: string;
@@ -92,8 +92,8 @@ export declare class PosController {
     }): Promise<{
         id: string;
         createdAt: Date;
-        productId: string;
         quantity: number;
+        productId: string;
         priceAtSale: number;
         gstAtSale: number;
         billId: string;

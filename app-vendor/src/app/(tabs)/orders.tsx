@@ -5,6 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Shadows, Radius } from '../../constants/theme';
 import { API_BASE_URL, CURRENT_STORE_ID, CURRENT_STAFF_ID } from '../../constants/api';
+import { supabase } from '../../utils/supabase';
 import Animated, { FadeInDown, FadeOutUp, Layout } from 'react-native-reanimated';
 
 const { width } = Dimensions.get('window');
@@ -47,8 +48,23 @@ export default function FulfillmentKanban() {
 
   useEffect(() => {
     fetchOrders();
-    const interval = setInterval(fetchOrders, 5000); // Live incoming orders flow
-    return () => clearInterval(interval);
+    const interval = setInterval(fetchOrders, 10000); // Fallback polling
+
+    const channel = supabase.channel(`store:${CURRENT_STORE_ID}:orders`)
+      .on('broadcast', { event: 'order_update' }, (payload) => {
+        console.log('Realtime order update received:', payload);
+        fetchOrders(); // We can optionally just mutate the state, but fetch is safer for consistency right now
+      })
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          console.log(`Subscribed to store:${CURRENT_STORE_ID}:orders realtime channel`);
+        }
+      });
+
+    return () => {
+      clearInterval(interval);
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   const onRefresh = useCallback(() => {
@@ -152,7 +168,7 @@ export default function FulfillmentKanban() {
           <View style={styles.customerAvatar}>
             <Ionicons name="person" size={16} color={Colors.primary} />
           </View>
-          <Text style={styles.customerName}>Customer ID: {item.userId.substring(0, 8)}</Text>
+          <Text style={styles.customerName}>Customer ID: {(item.customerId || item.userId || item.id || 'Unknown').substring(0, 8)}</Text>
         </View>
 
         <View style={styles.divider} />

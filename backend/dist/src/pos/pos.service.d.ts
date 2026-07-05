@@ -19,8 +19,8 @@ export declare class PosService {
     addItemToBill(billId: string, productId: string, quantity: number): Promise<{
         id: string;
         createdAt: Date;
-        productId: string;
         quantity: number;
+        productId: string;
         priceAtSale: number;
         gstAtSale: number;
         billId: string;
@@ -62,8 +62,8 @@ export declare class PosService {
         } & {
             id: string;
             createdAt: Date;
-            productId: string;
             quantity: number;
+            productId: string;
             priceAtSale: number;
             gstAtSale: number;
             billId: string;
@@ -82,8 +82,8 @@ export declare class PosService {
     addItemByBarcode(billId: string, storeId: string, barcode: string, quantity: number): Promise<{
         id: string;
         createdAt: Date;
-        productId: string;
         quantity: number;
+        productId: string;
         priceAtSale: number;
         gstAtSale: number;
         billId: string;
