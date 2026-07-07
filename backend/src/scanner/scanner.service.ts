@@ -579,7 +579,7 @@ export class ScannerService {
         ledgerName: finalData.ledgerName,
         accountGroup: finalData.accountGroup,
         gstin: finalData.gstin,
-        station: finalData.city,
+        city: finalData.city,
         openingBalance: Number(finalData.openingBalance) || 0,
         openingBalanceType: finalData.openingBalanceType
       }

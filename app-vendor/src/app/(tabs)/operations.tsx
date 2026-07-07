@@ -59,6 +59,13 @@ const HUB_ITEMS: HubItem[] = [
     color: Colors.success
   },
   {
+    title: 'Cash Register & Expenses',
+    icon: 'wallet',
+    route: '/operations/till',
+    description: 'Day-end closing & petty cash',
+    color: Colors.accent
+  },
+  {
     title: 'Fleet Tracker',
     icon: 'hardware-chip',
     route: '/operations/devices',

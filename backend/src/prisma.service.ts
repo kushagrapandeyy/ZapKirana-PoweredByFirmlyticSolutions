@@ -36,13 +36,15 @@ export class PrismaService extends PrismaClient implements OnModuleInit {
                 if (operation === 'findUnique') {
                   operation = 'findFirst';
                 }
-                args.where = { ...args.where, storeId };
+                const anyArgs = args as any;
+                anyArgs.where = { ...anyArgs.where, storeId };
               } else if (['create', 'createMany'].includes(operation)) {
-                if (args.data) {
-                  if (Array.isArray(args.data)) {
-                    args.data = args.data.map((d: any) => ({ ...d, storeId }));
+                const anyArgs = args as any;
+                if (anyArgs.data) {
+                  if (Array.isArray(anyArgs.data)) {
+                    anyArgs.data = anyArgs.data.map((d: any) => ({ ...d, storeId }));
                   } else {
-                    (args.data as any).storeId = storeId;
+                    anyArgs.data.storeId = storeId;
                   }
                 }
               }

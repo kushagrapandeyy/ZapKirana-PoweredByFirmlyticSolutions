@@ -31,12 +31,15 @@ export class PosController {
   @Post('bill/:id/checkout')
   checkoutBill(
     @Param('id') billId: string,
-    @Body() body: { paymentMethod: PaymentMethod; amount: number; referenceId?: string }
+    @Body() body: { paymentMethod: PaymentMethod; amount: number; referenceId?: string; customerId?: string }
   ) {
     if (!body.paymentMethod || body.amount == null) {
       throw new BadRequestException('paymentMethod and amount are required');
     }
-    return this.posService.checkoutBill(billId, body.paymentMethod, body.amount, body.referenceId);
+    if (body.paymentMethod === PaymentMethod.ZAPCREDIT && !body.customerId) {
+      throw new BadRequestException('customerId is required when paying with ZAPCREDIT');
+    }
+    return this.posService.checkoutBill(billId, body.paymentMethod, body.amount, body.referenceId, body.customerId);
   }
 
   /**
@@ -62,5 +65,18 @@ export class PosController {
       throw new BadRequestException('barcode and storeId are required');
     }
     return this.posService.addItemByBarcode(billId, body.storeId, body.barcode, body.quantity ?? 1);
+  }
+
+  /**
+   * GET /pos/customer/by-phone/:phone
+   * Look up a customer by their phone number for ZapCredit or Loyalty.
+   */
+  @Get('customer/by-phone/:phone')
+  async getCustomerByPhone(@Param('phone') phone: string) {
+    const customer = await this.posService.getCustomerByPhone(phone);
+    if (!customer) {
+      throw new BadRequestException('Customer not found');
+    }
+    return customer;
   }
 }

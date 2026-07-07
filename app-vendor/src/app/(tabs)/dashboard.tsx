@@ -28,8 +28,8 @@ export default function VendorDashboard() {
 
   const loadDashboard = async () => {
     try {
-      const storeId = CURRENT_STORE_ID; 
-      
+      const storeId = CURRENT_STORE_ID;
+
       const [storeRes, profitRes, healthRes, topRes, ordersRes] = await Promise.all([
         fetch(`${API_BASE_URL}/stores/${storeId}`),
         fetch(`${API_BASE_URL}/analytics/profit?storeId=${storeId}`),
@@ -42,15 +42,15 @@ export default function VendorDashboard() {
       if (profitRes.ok) setProfitData(await profitRes.json());
       if (healthRes.ok) setInventoryHealth(await healthRes.json());
       if (topRes.ok) setTopProducts(await topRes.json());
-      
+
       if (ordersRes.ok) {
         const ordersData = await ordersRes.json();
         // Count active orders (PAID, PICKING, READY_FOR_PICKUP) as actionable notifications
         const activeCount = ordersData.filter((o: any) => ['PAID', 'PICKING', 'READY_FOR_PICKUP'].includes(o.status)).length;
         setActiveOrdersCount(activeCount);
       }
-      
-      
+
+
     } catch (e) {
       console.error('Failed to load dashboard:', e);
     } finally {
@@ -89,14 +89,14 @@ export default function VendorDashboard() {
         </TouchableOpacity>
       </View>
 
-      <ScrollView 
-        style={styles.scroll} 
+      <ScrollView
+        style={styles.scroll}
         showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.primary} />}
       >
         {/* Layer 1: Command Center Big Button */}
         <Animated.View entering={FadeInDown.duration(400)} style={{ padding: 20, paddingBottom: 0 }}>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.commandCenterBtn}
             activeOpacity={0.9}
             onPress={() => router.push('/(tabs)/orders')}
@@ -197,8 +197,8 @@ export default function VendorDashboard() {
           </View>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.horizScroll}>
             {QUICK_ACTIONS.map((action) => (
-              <TouchableOpacity 
-                key={action.id} 
+              <TouchableOpacity
+                key={action.id}
                 style={styles.actionStripBtn}
                 onPress={() => router.push(action.route as any)}
                 activeOpacity={0.8}
@@ -225,9 +225,9 @@ const styles = StyleSheet.create({
   storeName: { fontSize: 22, fontFamily: 'PlayfairDisplay_700Bold', color: Colors.textPrimary },
   profileBtn: { position: 'relative' },
   activeDot: { position: 'absolute', bottom: 2, right: 2, width: 12, height: 12, borderRadius: 6, backgroundColor: Colors.success, borderWidth: 2, borderColor: Colors.surface },
-  
+
   scroll: { flex: 1 },
-  
+
   snapshotSection: { padding: 20 },
   snapshotCard: { backgroundColor: '#064e3b', borderRadius: Radius.lg, padding: 24, ...Shadows.md },
   snapshotTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
@@ -255,7 +255,7 @@ const styles = StyleSheet.create({
   section: { marginTop: 12 },
   sectionHeader: { paddingHorizontal: 20, marginBottom: 12 },
   sectionTitle: { fontSize: 18, fontFamily: 'Inter_700Bold', color: Colors.textPrimary, paddingHorizontal: 20, marginBottom: 12 },
-  
+
   horizScroll: { paddingHorizontal: 20, gap: 12 },
   healthCard: { width: 140, padding: 16, borderRadius: Radius.lg, borderWidth: 1, ...Shadows.sm },
   healthValue: { fontSize: 24, fontFamily: 'Inter_700Bold', color: Colors.textPrimary, marginBottom: 4 },

@@ -48,13 +48,13 @@ export default function OperationsHubModal({ visible, onClose }: OperationsHubMo
                   <Ionicons name="close" size={24} color="#64748b" />
                 </TouchableOpacity>
               </View>
-              
+
               <ScrollView showsVerticalScrollIndicator={false}>
                 <View style={styles.grid}>
                   {HUB_ITEMS.map((item, idx) => (
-                    <TouchableOpacity 
+                    <TouchableOpacity
                       key={idx}
-                      style={styles.card} 
+                      style={styles.card}
                       onPress={() => handleNavigate(item.route)}
                     >
                       <View style={[styles.iconContainer, { backgroundColor: item.bg }]}>

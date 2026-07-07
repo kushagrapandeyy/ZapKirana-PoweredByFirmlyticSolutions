@@ -52,7 +52,7 @@ export class InventoryService {
       }
 
       // 2. Create the movement log (Source of Truth)
-      await tx.stockMovement.create({
+      const movement = await tx.stockMovement.create({
         data: {
           storeId: data.storeId,
           productId: data.productId,
@@ -113,6 +113,24 @@ export class InventoryService {
           reservedQty: { increment: reservedDelta },
           blockedQty: { increment: blockedDelta },
         },
+      });
+
+      // 4.5. Update StockBalance as the rigid materialized read model
+      await tx.stockBalance.upsert({
+        where: {
+          storeId_productId: { storeId: data.storeId, productId: data.productId }
+        },
+        update: {
+          balance: { increment: onHandDelta },
+          lastMovementId: movement.id,
+          lastCalculatedAt: new Date()
+        },
+        create: {
+          storeId: data.storeId,
+          productId: data.productId,
+          balance: onHandDelta,
+          lastMovementId: movement.id,
+        }
       });
 
       return { updatedInventory, onHandDelta };

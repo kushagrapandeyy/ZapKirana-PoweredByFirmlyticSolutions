@@ -222,7 +222,7 @@ export class PurchaseOrderService {
             <h3>Billed From (Supplier)</h3>
             <p>
               <strong>${po.supplier.name}</strong><br>
-              ${po.supplier.station || po.supplier.address || 'N/A'}<br>
+              ${po.supplier.address || 'N/A'}<br>
               <strong>GSTIN:</strong> ${po.supplier.gstin || 'N/A'}<br>
               <strong>Phone:</strong> ${po.supplier.phone || 'N/A'}
             </p>

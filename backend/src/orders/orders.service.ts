@@ -3,6 +3,7 @@ import { PrismaService } from '../prisma.service';
 import { InventoryService } from '../inventory/inventory.service';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { OrderStatus } from '@prisma/client';
+import { OrderStateMachine } from './order-state-machine';
 
 function getDistanceFromLatLonInKm(lat1: number, lon1: number, lat2: number, lon2: number) {
   const R = 6371; // Radius of the earth in km
@@ -141,12 +142,18 @@ export class OrdersService {
   }
 
   async updateOrderStatus(orderId: string, status: OrderStatus, staffId?: string) {
-    const order = await this.prisma.order.update({
+    const order = await this.prisma.order.findUnique({ where: { id: orderId } });
+    if (!order) throw new NotFoundException('Order not found');
+
+    OrderStateMachine.assertValidTransition(order.status, status);
+
+    const updatedOrder = await this.prisma.order.update({
       where: { id: orderId },
       data: { status, ...(staffId ? { staffId } : {}) },
     });
-    this.eventEmitter.emit('order.status_changed', { orderId, status, customerId: order.customerId });
-    return order;
+    
+    this.eventEmitter.emit('order.status_changed', { orderId, status, customerId: updatedOrder.customerId });
+    return updatedOrder;
   }
 
   async getStoreOrders(storeId: string) {

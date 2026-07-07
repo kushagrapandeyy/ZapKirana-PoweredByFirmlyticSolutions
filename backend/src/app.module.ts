@@ -39,6 +39,12 @@ import { CacheModule } from './cache/cache.module';
 import { RealtimeModule } from './realtime/realtime.module';
 import { CampaignsModule } from './campaigns/campaigns.module';
 import { SupportModule } from './support/support.module';
+import { TillModule } from './till/till.module';
+import { LedgerModule } from './ledger/ledger.module';
+import { EventsModule } from './common/events/events.module';
+import { BullModule } from '@nestjs/bullmq';
+import { OfflineSyncModule } from './offline-sync/offline-sync.module';
+import { AdminGovernanceModule } from './admin-governance/admin-governance.module';
 
 @Module({
   imports: [
@@ -46,6 +52,12 @@ import { SupportModule } from './support/support.module';
       ttl: 60000,
       limit: 100, // global rate limit
     }]),
+    BullModule.forRoot({
+      connection: {
+        host: process.env.REDIS_HOST || 'localhost',
+        port: parseInt(process.env.REDIS_PORT || '6379'),
+      },
+    }),
     EventEmitterModule.forRoot(),
     ScheduleModule.forRoot(),
     InventoryModule, 
@@ -74,6 +86,11 @@ import { SupportModule } from './support/support.module';
     RealtimeModule,
     CampaignsModule,
     SupportModule,
+    TillModule,
+    LedgerModule,
+    EventsModule,
+    OfflineSyncModule,
+    AdminGovernanceModule,
   ],
   controllers: [AppController],
   providers: [
