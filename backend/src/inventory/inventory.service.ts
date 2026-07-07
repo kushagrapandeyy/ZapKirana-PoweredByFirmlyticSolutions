@@ -324,9 +324,9 @@ export class InventoryService {
         category: data.category,
         sellingPrice: data.price,
         imageUrl: data.imageUrl,
-        rateA: data.rateA,
-        rateB: data.rateB,
-        rateC: data.rateC,
+        saleRateA: data.rateA,
+        saleRateB: data.rateB,
+        saleRateC: data.rateC,
         minimumQty: data.minimumQty,
         reorderDays: data.reorderDays,
         // supplier mapping goes through supplierProduct table
@@ -363,7 +363,7 @@ export class InventoryService {
           sellingPrice: data.sellingPrice,
           gstClass: data.gstClass || 'EXEMPT',
           barcode: pending.barcode,
-          internalSku: `SKU-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+          skuCode: `SKU-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
           imageUrl: pending.imageUrl,
         },
       });

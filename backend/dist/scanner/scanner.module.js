@@ -11,13 +11,17 @@ const common_1 = require("@nestjs/common");
 const scanner_service_1 = require("./scanner.service");
 const scanner_controller_1 = require("./scanner.controller");
 const prisma_service_1 = require("../prisma.service");
+const cache_module_1 = require("../cache/cache.module");
+const realtime_module_1 = require("../realtime/realtime.module");
+const ocr_service_1 = require("./ocr.service");
 let ScannerModule = class ScannerModule {
 };
 exports.ScannerModule = ScannerModule;
 exports.ScannerModule = ScannerModule = __decorate([
     (0, common_1.Module)({
+        imports: [cache_module_1.CacheModule, realtime_module_1.RealtimeModule],
         controllers: [scanner_controller_1.ScannerController],
-        providers: [scanner_service_1.ScannerService, prisma_service_1.PrismaService],
+        providers: [scanner_service_1.ScannerService, prisma_service_1.PrismaService, ocr_service_1.OcrService],
         exports: [scanner_service_1.ScannerService],
     })
 ], ScannerModule);

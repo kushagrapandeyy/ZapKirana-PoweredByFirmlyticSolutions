@@ -17,6 +17,7 @@ import GstManagerPage from './pages/GstManagerPage';
 import ScannerManagement from './pages/ScannerManagement';
 import SupportOperations from './pages/support/SupportOperations';
 import AppControlPage from './pages/AppControlPage';
+import SupplierImportPage from './pages/SupplierImportPage';
 
 function MainLayout() {
   return (
@@ -30,6 +31,7 @@ function MainLayout() {
             <Route path="/stores" element={<StoresPage />} />
             <Route path="/vendors" element={<VendorsPage />} />
             <Route path="/suppliers" element={<SuppliersPage />} />
+            <Route path="/suppliers/import" element={<SupplierImportPage />} />
             <Route path="/orders" element={<MasterOrdersPage />} />
             <Route path="/analytics" element={<NetworkAnalyticsPage />} />
             <Route path="/support" element={<SupportOperations user={null} />} />

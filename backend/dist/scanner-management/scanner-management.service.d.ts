@@ -15,26 +15,26 @@ export declare class ScannerManagementService {
         pin: string;
     }): Promise<{
         id: string;
-        organizationId: string | null;
         name: string | null;
         createdAt: Date;
         updatedAt: Date;
+        organizationId: string | null;
+        storeId: string | null;
+        role: import(".prisma/client").$Enums.Role;
         email: string;
         password: string | null;
         pin: string | null;
         phone: string | null;
-        role: import(".prisma/client").$Enums.Role;
-        storeId: string | null;
         avatarUrl: string | null;
         isVerified: boolean;
         pushToken: string | null;
     }>;
     getDevices(storeId: string): Promise<{
         id: string;
+        status: import(".prisma/client").$Enums.DeviceStatus;
         createdAt: Date;
         updatedAt: Date;
         storeId: string;
-        status: import(".prisma/client").$Enums.DeviceStatus;
         deviceCode: string;
         deviceName: string;
         deviceType: import(".prisma/client").$Enums.DeviceType;
@@ -46,10 +46,10 @@ export declare class ScannerManagementService {
         deviceCode: string;
     }): Promise<{
         id: string;
+        status: import(".prisma/client").$Enums.DeviceStatus;
         createdAt: Date;
         updatedAt: Date;
         storeId: string;
-        status: import(".prisma/client").$Enums.DeviceStatus;
         deviceCode: string;
         deviceName: string;
         deviceType: import(".prisma/client").$Enums.DeviceType;
@@ -79,10 +79,10 @@ export declare class ScannerManagementService {
     }>;
     heartbeatDevice(storeId: string, deviceCode: string): Promise<{
         id: string;
+        status: import(".prisma/client").$Enums.DeviceStatus;
         createdAt: Date;
         updatedAt: Date;
         storeId: string;
-        status: import(".prisma/client").$Enums.DeviceStatus;
         deviceCode: string;
         deviceName: string;
         deviceType: import(".prisma/client").$Enums.DeviceType;

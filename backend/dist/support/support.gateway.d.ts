@@ -18,16 +18,16 @@ export declare class SupportGateway implements OnGatewayConnection {
     }, client: Socket): Promise<{
         sender: {
             id: string;
-            organizationId: string | null;
             name: string | null;
             createdAt: Date;
             updatedAt: Date;
+            organizationId: string | null;
+            storeId: string | null;
+            role: import(".prisma/client").$Enums.Role;
             email: string;
             password: string | null;
             pin: string | null;
             phone: string | null;
-            role: import(".prisma/client").$Enums.Role;
-            storeId: string | null;
             avatarUrl: string | null;
             isVerified: boolean;
             pushToken: string | null;
@@ -35,9 +35,9 @@ export declare class SupportGateway implements OnGatewayConnection {
     } & {
         id: string;
         createdAt: Date;
-        isInternal: boolean;
         senderId: string;
         text: string;
+        isInternal: boolean;
         ticketId: string;
     }>;
 }

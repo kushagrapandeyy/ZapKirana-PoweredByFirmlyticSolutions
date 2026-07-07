@@ -223,7 +223,7 @@ export class PlatformService {
           name: p.name,
           short_desc: p.description ?? '',
           images: p.imageUrl ? [p.imageUrl] : [],
-          code: p.barcode ?? p.internalSku,
+          code: p.barcode ?? p.skuCode,
         },
         price: {
           currency: 'INR',

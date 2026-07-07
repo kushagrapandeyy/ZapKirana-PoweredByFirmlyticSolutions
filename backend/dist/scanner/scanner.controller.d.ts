@@ -1,12 +1,164 @@
 import { ScannerService } from './scanner.service';
+import { OcrService } from './ocr.service';
 export declare class ScannerController {
     private readonly scannerService;
-    constructor(scannerService: ScannerService);
+    private readonly ocrService;
+    constructor(scannerService: ScannerService, ocrService: OcrService);
+    extractProductMaster(body: {
+        storeId: string;
+        rawText: string;
+    }): Promise<{
+        fields: {
+            id: string;
+            fieldKey: string;
+            extractedValue: string | null;
+            confidence: number | null;
+            isEdited: boolean;
+            finalValue: string | null;
+            extractionId: string;
+        }[];
+    } & {
+        id: string;
+        storeId: string;
+        type: string;
+        status: string;
+        rawText: string | null;
+        imageUrl: string | null;
+        confidenceScore: number | null;
+        createdAt: Date;
+        updatedAt: Date;
+    }>;
+    extractSupplierLedger(body: {
+        storeId: string;
+        rawText: string;
+    }): Promise<{
+        fields: {
+            id: string;
+            fieldKey: string;
+            extractedValue: string | null;
+            confidence: number | null;
+            isEdited: boolean;
+            finalValue: string | null;
+            extractionId: string;
+        }[];
+    } & {
+        id: string;
+        storeId: string;
+        type: string;
+        status: string;
+        rawText: string | null;
+        imageUrl: string | null;
+        confidenceScore: number | null;
+        createdAt: Date;
+        updatedAt: Date;
+    }>;
+    confirmProductDraft(req: any, body: {
+        extractionId: string;
+        storeId: string;
+        finalData: any;
+    }): Promise<{
+        id: string;
+        storeId: string;
+        status: string;
+        imageUrl: string | null;
+        createdAt: Date;
+        updatedAt: Date;
+        name: string;
+        barcode: string | null;
+        skuCode: string;
+        description: string | null;
+        brand: string | null;
+        category: string | null;
+        hsnSac: string | null;
+        unit: string | null;
+        saleUnit: string | null;
+        packing: string | null;
+        shelfLifeDays: number | null;
+        conversionToBase: number | null;
+        mrp: number;
+        sellingPrice: number;
+        purchaseRate: number | null;
+        purchaseRateBaseUnit: number | null;
+        purchaseRateInputUnit: number | null;
+        saleRateBaseUnit: number | null;
+        gstRate: number;
+        sgstPercent: number | null;
+        cgstPercent: number | null;
+        igstPercent: number | null;
+        cessPercent: number | null;
+        gstClass: import(".prisma/client").$Enums.GSTClass;
+        taxability: string | null;
+        subscriptionDiscount: number;
+        barcodeType: string | null;
+        unitName: string | null;
+        rackNo: string | null;
+        erpStatus: string | null;
+        erpType: string | null;
+        colorType: string | null;
+        itemType: string | null;
+        company: string | null;
+        group: string | null;
+        minimumQty: number | null;
+        vDisOn: number | null;
+        itemDiscount: number | null;
+        specialDisc: number | null;
+        maximumDiscountPercent: number | null;
+        freeScheme: string | null;
+        minimumMarginPercent: number | null;
+        saleRateA: number | null;
+        saleRateB: number | null;
+        saleRateC: number | null;
+        costPerPiece: number | null;
+        allowNegativeStock: boolean | null;
+        allowDecimal: boolean | null;
+        reorderDays: number | null;
+        reorderQty: number | null;
+        maximumQty: number | null;
+        discountApplicable: boolean | null;
+        manufacturF3: string | null;
+        source: string | null;
+        isArchived: boolean;
+        createdFromBarcode: string | null;
+        createdBy: string | null;
+        archivedAt: Date | null;
+        isActive: boolean;
+        campaignId: string | null;
+    }>;
+    confirmSupplierDraft(req: any, body: {
+        extractionId: string;
+        storeId: string;
+        finalData: any;
+    }): Promise<{
+        id: string;
+        storeId: string;
+        createdAt: Date;
+        updatedAt: Date;
+        name: string;
+        isActive: boolean;
+        ledgerName: string | null;
+        accountGroup: string | null;
+        gstin: string | null;
+        pan: string | null;
+        phone: string | null;
+        mobile: string | null;
+        email: string | null;
+        address: string | null;
+        city: string | null;
+        state: string | null;
+        pincode: string | null;
+        country: string | null;
+        openingBalance: number | null;
+        openingBalanceType: string | null;
+        contactPerson: string | null;
+        foodLicenseNo: string | null;
+        importBatchId: string | null;
+    }>;
     lookupBarcode(body: {
         storeId: string;
         barcode: string;
         scanMode: string;
     }): Promise<any>;
+    generateInternalBarcode(storeId: string): Promise<string>;
     updateProduct(productId: string, req: any, body: {
         storeId: string;
         mrp?: number;
@@ -30,27 +182,26 @@ export declare class ScannerController {
         success: boolean;
         product: {
             id: string;
-            name: string;
-            isActive: boolean;
+            storeId: string;
+            status: string;
             imageUrl: string | null;
-            description: string | null;
             createdAt: Date;
             updatedAt: Date;
-            storeId: string;
-            rackNo: string | null;
+            name: string;
             barcode: string | null;
-            internalSku: string;
+            skuCode: string;
+            description: string | null;
             brand: string | null;
             category: string | null;
             hsnSac: string | null;
-            baseUnit: string | null;
+            unit: string | null;
             saleUnit: string | null;
             packing: string | null;
             shelfLifeDays: number | null;
             conversionToBase: number | null;
             mrp: number;
             sellingPrice: number;
-            purchaseCost: number | null;
+            purchaseRate: number | null;
             purchaseRateBaseUnit: number | null;
             purchaseRateInputUnit: number | null;
             saleRateBaseUnit: number | null;
@@ -58,10 +209,13 @@ export declare class ScannerController {
             sgstPercent: number | null;
             cgstPercent: number | null;
             igstPercent: number | null;
+            cessPercent: number | null;
             gstClass: import(".prisma/client").$Enums.GSTClass;
+            taxability: string | null;
             subscriptionDiscount: number;
             barcodeType: string | null;
             unitName: string | null;
+            rackNo: string | null;
             erpStatus: string | null;
             erpType: string | null;
             colorType: string | null;
@@ -70,24 +224,39 @@ export declare class ScannerController {
             group: string | null;
             minimumQty: number | null;
             vDisOn: number | null;
-            itemDisc1: number | null;
+            itemDiscount: number | null;
             specialDisc: number | null;
             maximumDiscountPercent: number | null;
             freeScheme: string | null;
             minimumMarginPercent: number | null;
-            rateA: number | null;
-            rateB: number | null;
-            rateC: number | null;
-            costPerPcs: number | null;
-            negativeStockAllowed: boolean | null;
+            saleRateA: number | null;
+            saleRateB: number | null;
+            saleRateC: number | null;
+            costPerPiece: number | null;
+            allowNegativeStock: boolean | null;
+            allowDecimal: boolean | null;
             reorderDays: number | null;
+            reorderQty: number | null;
+            maximumQty: number | null;
             discountApplicable: boolean | null;
             manufacturF3: string | null;
+            source: string | null;
+            isArchived: boolean;
+            createdFromBarcode: string | null;
+            createdBy: string | null;
+            archivedAt: Date | null;
+            isActive: boolean;
             campaignId: string | null;
         };
         draftId?: undefined;
         status?: undefined;
         message?: undefined;
+    }>;
+    archiveProduct(productId: string, req: any, body: {
+        storeId: string;
+    }): Promise<{
+        success: boolean;
+        status: string;
     }>;
     updateStock(req: any, body: {
         storeId: string;
@@ -120,6 +289,6 @@ export declare class ScannerController {
         supplierId?: string;
     }): Promise<{
         draftId: string;
-        status: import(".prisma/client").$Enums.PendingProductStatus;
+        status: string;
     }>;
 }

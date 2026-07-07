@@ -7,11 +7,11 @@ export declare class PosController {
         storeId: string;
     }): Promise<{
         id: string;
+        status: import(".prisma/client").$Enums.BillStatus;
         createdAt: Date;
         updatedAt: Date;
         storeId: string;
         staffId: string | null;
-        status: import(".prisma/client").$Enums.BillStatus;
         subtotal: number;
         gst: number;
         total: number;
@@ -23,10 +23,10 @@ export declare class PosController {
         id: string;
         createdAt: Date;
         productId: string;
+        billId: string;
         quantity: number;
         priceAtSale: number;
         gstAtSale: number;
-        billId: string;
     }>;
     checkoutBill(billId: string, body: {
         paymentMethod: PaymentMethod;
@@ -34,11 +34,11 @@ export declare class PosController {
         referenceId?: string;
     }): Promise<{
         id: string;
+        status: import(".prisma/client").$Enums.BillStatus;
         createdAt: Date;
         updatedAt: Date;
         storeId: string;
         staffId: string | null;
-        status: import(".prisma/client").$Enums.BillStatus;
         subtotal: number;
         gst: number;
         total: number;
@@ -69,18 +69,18 @@ export declare class PosController {
             id: string;
             createdAt: Date;
             productId: string;
+            billId: string;
             quantity: number;
             priceAtSale: number;
             gstAtSale: number;
-            billId: string;
         })[];
     } & {
         id: string;
+        status: import(".prisma/client").$Enums.BillStatus;
         createdAt: Date;
         updatedAt: Date;
         storeId: string;
         staffId: string | null;
-        status: import(".prisma/client").$Enums.BillStatus;
         subtotal: number;
         gst: number;
         total: number;
@@ -93,9 +93,9 @@ export declare class PosController {
         id: string;
         createdAt: Date;
         productId: string;
+        billId: string;
         quantity: number;
         priceAtSale: number;
         gstAtSale: number;
-        billId: string;
     }>;
 }

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, Button, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, StyleSheet, Button, ActivityIndicator, Alert, TouchableOpacity } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useAuthStore } from '../../store/useAuthStore';
@@ -59,9 +59,10 @@ export default function ScannerScreen() {
       }
     };
 
-    sendHeartbeat(); // Immediate
-    const interval = setInterval(sendHeartbeat, 30000); // Every 30s
-    return () => clearInterval(interval);
+    // sendHeartbeat(); // Immediate
+    // const interval = setInterval(sendHeartbeat, 30000); // Every 30s
+    // return () => clearInterval(interval);
+    return () => {};
   }, [params, token]);
 
   if (!permission) {
@@ -168,6 +169,12 @@ export default function ScannerScreen() {
           {/* Animated Laser */}
           {!scanned && <Animated.View style={[styles.laser, laserAnimatedStyle]} />}
         </View>
+        <TouchableOpacity 
+          style={styles.manualBtn} 
+          onPress={() => router.push({ pathname: '/(tabs)/manual-entry', params: { workflow } })}
+        >
+          <Text style={styles.manualBtnText}>Manual Intake</Text>
+        </TouchableOpacity>
       </View>
 
       {processing && (
@@ -246,5 +253,20 @@ const styles = StyleSheet.create({
     fontFamily: 'monospace',
     fontWeight: 'bold',
     letterSpacing: 2,
+  },
+  manualBtn: {
+    position: 'absolute',
+    bottom: 60,
+    backgroundColor: 'rgba(17, 24, 39, 0.8)',
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: Colors.primary,
+  },
+  manualBtnText: {
+    color: Colors.primary,
+    fontFamily: 'monospace',
+    fontWeight: 'bold',
   }
 });

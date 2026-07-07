@@ -62,9 +62,14 @@ export default function SuppliersPage() {
     <div>
       <div className="page-header">
         <h2 className="page-title"><Building size={28} style={{marginRight: 10}}/> Supplier Portal</h2>
-        <button className="btn btn-primary" onClick={() => setShowModal(true)}>
-          <Plus size={18} /> Add Supplier
-        </button>
+        <div style={{ display: 'flex', gap: '10px' }}>
+          <button className="btn" style={{ backgroundColor: 'var(--bg-accent)', color: 'var(--text-primary)' }} onClick={() => window.location.href = '/suppliers/import'}>
+            <Plus size={18} /> Import CSV
+          </button>
+          <button className="btn btn-primary" onClick={() => setShowModal(true)}>
+            <Plus size={18} /> Add Supplier
+          </button>
+        </div>
       </div>
 
       <DataGrid 

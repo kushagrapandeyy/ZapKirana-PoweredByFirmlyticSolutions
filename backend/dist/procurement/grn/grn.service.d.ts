@@ -13,22 +13,22 @@ export declare class GrnService {
             createdAt: Date;
             updatedAt: Date;
             productId: string;
-            purchasePrice: number;
             quantity: number;
+            poId: string;
             acceptedQuantity: number;
             receivedQuantity: number;
-            poId: string;
+            purchasePrice: number;
         }[];
     } & {
         id: string;
+        status: import(".prisma/client").$Enums.POStatus;
         createdAt: Date;
         updatedAt: Date;
         storeId: string;
-        status: import(".prisma/client").$Enums.POStatus;
-        totalAmount: number;
         supplierId: string;
-        notes: string | null;
+        totalAmount: number;
         expectedDeliveryDate: Date | null;
+        notes: string | null;
         shareToken: string | null;
         shareTokenExpiresAt: Date | null;
     }>;

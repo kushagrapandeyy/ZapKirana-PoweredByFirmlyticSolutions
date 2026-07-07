@@ -43,23 +43,23 @@ export declare class PaymentsController {
         events: {
             id: string;
             provider: string;
-            receivedAt: Date;
+            paymentId: string;
             eventType: string;
             payloadJson: import("@prisma/client/runtime/library").JsonValue;
             signatureValid: boolean;
             processedAt: Date | null;
-            paymentId: string;
+            receivedAt: Date;
         }[];
     } & {
         id: string;
+        status: import(".prisma/client").$Enums.PaymentStatus;
         createdAt: Date;
         storeId: string;
-        status: import(".prisma/client").$Enums.PaymentStatus;
+        source: import(".prisma/client").$Enums.PaymentSource;
         billId: string | null;
         amount: number;
         method: string | null;
         orderId: string | null;
-        source: import(".prisma/client").$Enums.PaymentSource;
         provider: import(".prisma/client").$Enums.PaymentProvider;
         providerOrderId: string | null;
         providerPaymentId: string | null;

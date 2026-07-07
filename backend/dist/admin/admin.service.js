@@ -199,43 +199,30 @@ let AdminService = class AdminService {
         if (!data.name) {
             throw new common_1.BadRequestException('Supplier name is required');
         }
+        if (!data.storeId) {
+            throw new common_1.BadRequestException('storeId is required');
+        }
         const supplier = await this.prisma.supplier.create({
             data: {
+                storeId: data.storeId,
                 name: data.name,
-                contactEmail: data.contactEmail || null,
-                contactPhone: data.contactPhone || null,
+                email: data.contactEmail || null,
+                phone: data.contactPhone || null,
                 address: data.address || null,
-                categories: data.categories || null,
-                description: data.description || null,
-                paymentTerms: data.paymentTerms || null,
-                logoUrl: data.logoUrl || null,
-                station: data.station || null,
+                ledgerName: data.ledgerName || null,
                 accountGroup: data.accountGroup || null,
-                balancingMethod: data.balancingMethod || null,
                 openingBalance: data.openingBalance || null,
                 openingBalanceType: data.openingBalanceType || null,
-                mailTo: data.mailTo || null,
-                pinCode: data.pinCode || null,
-                holdPayment: data.holdPayment ?? null,
-                holdPaymentPercent: data.holdPaymentPercent || null,
                 website: data.website || null,
-                contactPersonName: data.contactPersonName || null,
-                contactPersonPhone: data.contactPersonPhone || null,
-                designation: data.designation || null,
+                contactPerson: data.contactPersonName || null,
                 mobile: data.mobile || null,
-                faxNo: data.faxNo || null,
-                freezeUpto: data.freezeUpto ? new Date(data.freezeUpto) : null,
-                gstinNo: data.gstinNo || null,
-                tinNo: data.tinNo || null,
-                foodLicenceNo: data.foodLicenceNo || null,
-                panNo: data.panNo || null,
-                ledgerDate: data.ledgerDate ? new Date(data.ledgerDate) : null,
-                ledgerCategory: data.ledgerCategory || null,
+                gstin: data.gstin || null,
+                foodLicenseNo: data.foodLicenseNo || null,
+                pan: data.pan || null,
+                city: data.city || data.station || null,
                 state: data.state || null,
                 country: data.country || null,
-                ledgerType: data.ledgerType || null,
-                color: data.color || null,
-                hide: data.hide ?? null,
+                pincode: data.pincode || data.pinCode || null,
             },
         });
         await this.logAudit('SUPPLIER_CREATED', 'SUPPLIER', supplier.id, adminId, `Onboarded supplier ${supplier.name}`);
@@ -246,41 +233,24 @@ let AdminService = class AdminService {
             where: { id },
             data: {
                 name: data.name,
-                contactEmail: data.contactEmail,
-                contactPhone: data.contactPhone,
+                email: data.contactEmail,
+                phone: data.contactPhone,
                 address: data.address,
-                categories: data.categories,
-                description: data.description,
-                paymentTerms: data.paymentTerms,
-                logoUrl: data.logoUrl,
-                station: data.station,
+                ledgerName: data.ledgerName,
                 accountGroup: data.accountGroup,
-                balancingMethod: data.balancingMethod,
                 openingBalance: data.openingBalance,
                 openingBalanceType: data.openingBalanceType,
-                mailTo: data.mailTo,
-                pinCode: data.pinCode,
-                holdPayment: data.holdPayment,
-                holdPaymentPercent: data.holdPaymentPercent,
                 website: data.website,
-                contactPersonName: data.contactPersonName,
-                contactPersonPhone: data.contactPersonPhone,
-                designation: data.designation,
+                contactPerson: data.contactPersonName,
                 mobile: data.mobile,
-                faxNo: data.faxNo,
-                freezeUpto: data.freezeUpto ? new Date(data.freezeUpto) : undefined,
-                gstinNo: data.gstinNo,
-                tinNo: data.tinNo,
-                foodLicenceNo: data.foodLicenceNo,
-                panNo: data.panNo,
-                ledgerDate: data.ledgerDate ? new Date(data.ledgerDate) : undefined,
-                ledgerCategory: data.ledgerCategory,
+                gstin: data.gstin,
+                foodLicenseNo: data.foodLicenseNo,
+                pan: data.pan,
+                city: data.city || data.station,
                 state: data.state,
                 country: data.country,
-                ledgerType: data.ledgerType,
-                color: data.color,
-                hide: data.hide,
-            },
+                pincode: data.pincode || data.pinCode,
+            }
         });
         await this.logAudit('SUPPLIER_UPDATED', 'SUPPLIER', supplier.id, adminId, `Updated supplier ${supplier.name}`);
         return supplier;
@@ -337,13 +307,133 @@ let AdminService = class AdminService {
             this.prisma.stockMovement.findMany({
                 where: {
                     inventory: { storeId },
-                    type: 'DAMAGED',
+                    type: 'DAMAGE',
                     createdAt: { gte: thirtyDaysAgo }
                 },
                 include: { inventory: { include: { product: true } } }
             })
         ]);
         return { lowStock, expiringSoon, damagedGoods };
+    }
+    async uploadSuppliersImport(storeId, rows, adminId) {
+        const batch = await this.prisma.supplierImportBatch.create({
+            data: {
+                storeId,
+                uploadedBy: adminId,
+                fileName: 'Admin_Upload',
+                totalRows: rows.length,
+            }
+        });
+        let validCount = 0;
+        let invalidCount = 0;
+        let duplicateCount = 0;
+        for (let i = 0; i < rows.length; i++) {
+            const row = rows[i];
+            let validationStatus = 'VALID';
+            const validationErrors = [];
+            if (!row.supplier_name) {
+                validationStatus = 'INVALID';
+                validationErrors.push('Missing supplier_name');
+            }
+            let matchedSupplierId = null;
+            if (row.gstin) {
+                const dup = await this.prisma.supplier.findFirst({
+                    where: { storeId, gstin: row.gstin }
+                });
+                if (dup) {
+                    validationStatus = 'DUPLICATE';
+                    validationErrors.push('GSTIN already exists');
+                    matchedSupplierId = dup.id;
+                }
+            }
+            if (validationStatus === 'VALID')
+                validCount++;
+            if (validationStatus === 'INVALID')
+                invalidCount++;
+            if (validationStatus === 'DUPLICATE')
+                duplicateCount++;
+            await this.prisma.supplierImportRow.create({
+                data: {
+                    batchId: batch.id,
+                    storeId,
+                    rowNumber: i + 1,
+                    rawData: row,
+                    parsedData: row,
+                    validationStatus,
+                    validationErrors: validationErrors.length > 0 ? validationErrors : null,
+                    matchedSupplierId,
+                }
+            });
+        }
+        return this.prisma.supplierImportBatch.update({
+            where: { id: batch.id },
+            data: {
+                validRows: validCount,
+                invalidRows: invalidCount,
+                duplicateRows: duplicateCount,
+            }
+        });
+    }
+    async getSupplierImportPreview(batchId) {
+        const batch = await this.prisma.supplierImportBatch.findUnique({
+            where: { id: batchId },
+            include: {
+                rows: {
+                    orderBy: { rowNumber: 'asc' }
+                }
+            }
+        });
+        if (!batch)
+            throw new common_1.NotFoundException('Batch not found');
+        return batch;
+    }
+    async confirmSupplierImport(batchId) {
+        const batch = await this.prisma.supplierImportBatch.findUnique({
+            where: { id: batchId },
+            include: { rows: { where: { validationStatus: 'VALID' } } }
+        });
+        if (!batch)
+            throw new common_1.NotFoundException('Batch not found');
+        if (batch.status === 'CONFIRMED')
+            throw new common_1.BadRequestException('Already confirmed');
+        for (const row of batch.rows) {
+            const data = row.parsedData;
+            await this.prisma.supplier.create({
+                data: {
+                    storeId: batch.storeId,
+                    name: data.supplier_name,
+                    ledgerName: data.ledger_name || null,
+                    accountGroup: data.account_group || null,
+                    gstin: data.gstin || null,
+                    pan: data.pan || null,
+                    mobile: data.mobile || null,
+                    email: data.email || null,
+                    address: data.address || null,
+                    city: data.city || null,
+                    state: data.state || null,
+                    pincode: data.pincode || null,
+                    country: data.country || 'INDIA',
+                    openingBalance: data.opening_balance ? parseFloat(data.opening_balance) : 0,
+                    openingBalanceType: data.opening_balance_type || 'CR',
+                    contactPerson: data.contact_person || null,
+                    foodLicenseNo: data.food_license_no || null,
+                    importBatchId: batch.id,
+                }
+            });
+        }
+        return this.prisma.supplierImportBatch.update({
+            where: { id: batchId },
+            data: {
+                status: 'CONFIRMED',
+                confirmedAt: new Date(),
+            }
+        });
+    }
+    async cancelSupplierImport(batchId) {
+        return this.prisma.supplierImportBatch.update({
+            where: { id: batchId },
+            data: { status: 'CANCELLED' }
+        });
     }
 };
 exports.AdminService = AdminService;

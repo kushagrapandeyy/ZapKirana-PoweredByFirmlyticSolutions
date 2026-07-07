@@ -49,7 +49,7 @@ let LabelsService = class LabelsService {
             if (!data.packGrams)
                 throw new common_1.BadRequestException('packGrams is required for fixed-pack barcodes');
             const storeCode = data.storeCode ?? '01';
-            const productCode = data.productCode ?? product.internalSku.substring(0, 4);
+            const productCode = data.productCode ?? product.skuCode.substring(0, 4);
             barcodeValue = generateFixedPackBarcode(storeCode, productCode, data.packGrams);
             scope = 'INTERNAL_FIXED_PACK';
         }

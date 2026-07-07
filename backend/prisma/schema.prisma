@@ -75,9 +75,9 @@ model User {
   carts                  Cart[]
   preferences            UserPreferences?
 
-  customerTickets        SupportTicket[]  @relation("CustomerTickets")
-  assignedTickets        SupportTicket[]  @relation("AssignedTickets")
-  sentTicketMessages     TicketMessage[]  @relation("SentTicketMessages")
+  customerTickets    SupportTicket[] @relation("CustomerTickets")
+  assignedTickets    SupportTicket[] @relation("AssignedTickets")
+  sentTicketMessages TicketMessage[] @relation("SentTicketMessages")
 }
 
 enum Role {
@@ -108,21 +108,21 @@ model OtpCode {
 }
 
 model SavedAddress {
-  id        String   @id @default(uuid())
-  userId    String
-  user      User     @relation(fields: [userId], references: [id])
-  label     String // e.g. "Home", "Office"
+  id            String   @id @default(uuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id])
+  label         String // e.g. "Home", "Office"
   streetAddress String?
-  landmark  String?
-  city      String?
-  state     String?
-  pincode   String?
-  address   String
-  latitude  Float
-  longitude Float
-  isDefault Boolean  @default(false)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  landmark      String?
+  city          String?
+  state         String?
+  pincode       String?
+  address       String
+  latitude      Float
+  longitude     Float
+  isDefault     Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
   @@index([userId])
 }
@@ -152,6 +152,7 @@ model Store {
   posBills            PosBill[]
   orders              Order[]
   supplierConnections StoreSupplierConnection[]
+  suppliers           Supplier[]
   subscriptions       Subscription[]
   scannerDevices      ScannerDevice[]
   scannerEvents       ScannerEvent[]
@@ -187,65 +188,77 @@ enum GSTClass {
 }
 
 model Product {
-  id                 String              @id @default(uuid())
-  storeId            String
-  store              Store               @relation(fields: [storeId], references: [id])
-  barcode            String?
-  internalSku        String              @unique
-  name               String
-  description        String?
-  brand              String?
-  category           String?
-  hsnSac             String?
-  baseUnit           String?             @default("PCS")
-  saleUnit           String?             @default("PCS")
-  packing            String?
-  shelfLifeDays      Int?
-  conversionToBase   Int?                @default(1)
-  
-  mrp                Float
-  sellingPrice       Float
-  purchaseCost       Float?
+  id               String  @id @default(uuid())
+  storeId          String
+  store            Store   @relation(fields: [storeId], references: [id])
+  barcode          String?
+  skuCode          String  @unique
+  name             String
+  description      String?
+  brand            String?
+  category         String?
+  hsnSac           String?
+  unit             String? @default("PCS")
+  saleUnit         String? @default("PCS")
+  packing          String?
+  shelfLifeDays    Int?
+  conversionToBase Int?    @default(1)
+
+  mrp                   Float
+  sellingPrice          Float
+  purchaseRate          Float?
   purchaseRateBaseUnit  Float?
   purchaseRateInputUnit Float?
-  saleRateBaseUnit   Float?
-  
-  gstRate            Float               @default(0)
-  sgstPercent        Float?              @default(0)
-  cgstPercent        Float?              @default(0)
-  igstPercent        Float?              @default(0)
-  gstClass           GSTClass            @default(EXEMPT)
-  subscriptionDiscount Float             @default(0)
-  imageUrl           String?
-  
-  barcodeType        String?
-  unitName           String?
-  rackNo             String?
-  
+  saleRateBaseUnit      Float?
+
+  gstRate              Float    @default(0)
+  sgstPercent          Float?   @default(0)
+  cgstPercent          Float?   @default(0)
+  igstPercent          Float?   @default(0)
+  cessPercent          Float?   @default(0)
+  gstClass             GSTClass @default(EXEMPT)
+  taxability           String? // "taxable" | "exempt" | "nil"
+  subscriptionDiscount Float    @default(0)
+  imageUrl             String?
+
+  barcodeType String?
+  unitName    String?
+  rackNo      String?
+
   // Marg ERP Fields
-  erpStatus            String?
-  erpType              String?
-  colorType            String?
-  itemType             String?
-  company              String?
-  group                String?
-  minimumQty           Int?
-  vDisOn               Float?
-  itemDisc1            Float?
-  specialDisc          Float?
+  erpStatus              String?
+  erpType                String?
+  colorType              String?
+  itemType               String?
+  company                String?
+  group                  String?
+  minimumQty             Int?
+  vDisOn                 Float?
+  itemDiscount           Float?
+  specialDisc            Float?
   maximumDiscountPercent Float?
-  freeScheme           String?
-  minimumMarginPercent Float?
-  rateA                Float?
-  rateB                Float?
-  rateC                Float?
-  costPerPcs           Float?
-  negativeStockAllowed Boolean?
-  reorderDays          Int?
-  discountApplicable   Boolean?
-  manufacturF3         String?
-  
-  isActive           Boolean             @default(true)
+  freeScheme             String?
+  minimumMarginPercent   Float?
+  saleRateA              Float?
+  saleRateB              Float?
+  saleRateC              Float?
+  costPerPiece           Float?
+  allowNegativeStock     Boolean?
+  allowDecimal           Boolean? @default(false)
+  reorderDays            Int?
+  reorderQty             Int?
+  maximumQty             Int?
+  discountApplicable     Boolean?
+  manufacturF3           String?
+  source                 String?  @default("manual") // "manual" | "scanner" | "erp_import"
+
+  status             String    @default("DRAFT") // DRAFT, PENDING_APPROVAL, ACTIVE, ARCHIVED, DISCONTINUED, BLOCKED
+  isArchived         Boolean   @default(false)
+  createdFromBarcode String?
+  createdBy          String?
+  archivedAt         DateTime?
+
+  isActive           Boolean             @default(false)
   inventory          Inventory[]
   movements          StockMovement[]
   posBillItems       PosBillItem[]
@@ -253,6 +266,8 @@ model Product {
   purchaseOrderItems PurchaseOrderItem[]
   supplierProducts   SupplierProduct[]
   barcodeRegistry    BarcodeRegistry[]
+  productBarcodes    ProductBarcode[]
+  productVersions    ProductVersion[]
   cartItems          CartItem[]
   productViews       ProductView[]
   productClicks      ProductClick[]
@@ -260,31 +275,76 @@ model Product {
   createdAt          DateTime            @default(now())
   updatedAt          DateTime            @updatedAt
 
-  campaignId         String?
-  campaign           StoreCampaign?      @relation(fields: [campaignId], references: [id])
+  campaignId String?
+  campaign   StoreCampaign? @relation(fields: [campaignId], references: [id])
 
   @@index([storeId])
   @@index([category])
-  @@index([barcode]) // barcode lookup — HID scanner + platform search
-  @@index([storeId, isActive]) // product catalog queries
-  @@index([storeId, category]) // category browsing + analytics
+  @@index([barcode])
+  @@index([storeId, isActive])
+  @@index([storeId, category])
   @@index([campaignId])
 }
 
+model ProductBarcode {
+  id        String  @id @default(uuid())
+  storeId   String
+  productId String
+  product   Product @relation(fields: [productId], references: [id])
+
+  barcode         String
+  barcodeStandard String @default("EAN_13")
+
+  barcodeType      String @default("UNIT")
+  unitName         String @default("PCS")
+  conversionToBase Float  @default(1)
+
+  isPrimary Boolean @default(true)
+  isActive  Boolean @default(true)
+
+  firstSeenAt   DateTime  @default(now())
+  lastScannedAt DateTime?
+
+  createdAt DateTime @default(now())
+
+  @@unique([storeId, barcode])
+}
+
+model ProductVersion {
+  id        String  @id @default(uuid())
+  storeId   String
+  productId String
+  product   Product @relation(fields: [productId], references: [id])
+
+  versionNo Int
+
+  snapshot     Json
+  changedBy    String?
+  changeReason String?
+
+  createdAt DateTime @default(now())
+}
+
 model Inventory {
-  id                String          @id @default(uuid())
-  storeId           String
-  store             Store           @relation(fields: [storeId], references: [id])
-  productId         String
-  product           Product         @relation(fields: [productId], references: [id])
-  batchNo           String?
-  expiryDate        DateTime?
-  rackNo            String?
-  onHandQty         Int             @default(0)
-  reservedQty       Int             @default(0)
-  blockedQty        Int             @default(0)
-  lowStockThreshold Int             @default(10)
-  movements         StockMovement[]
+  id           String    @id @default(uuid())
+  storeId      String
+  store        Store     @relation(fields: [storeId], references: [id])
+  productId    String
+  product      Product   @relation(fields: [productId], references: [id])
+  batchNo      String?
+  expiryDate   DateTime?
+  rackNo       String?
+  onHandQty    Int       @default(0) // legacy
+  quantityBase Float     @default(0) // new ERP field
+
+  reservedQty Int @default(0)
+  blockedQty  Int @default(0)
+
+  lowStockThreshold Int    @default(10) // legacy
+  reorderQtyBase    Float?
+  minimumQtyBase    Float?
+
+  movements StockMovement[]
 
   // Available Qty = onHandQty - reservedQty - blockedQty
 
@@ -298,28 +358,54 @@ model Inventory {
 }
 
 model StockMovement {
-  id             String       @id @default(uuid())
-  storeId        String
-  store          Store        @relation(fields: [storeId], references: [id])
-  productId      String
-  product        Product      @relation(fields: [productId], references: [id])
-  inventoryId    String
-  inventory      Inventory    @relation(fields: [inventoryId], references: [id])
-  type           MovementType
-  quantityChange Int
-  sourceType     String? // e.g., "ONLINE_ORDER", "POS_SALE", "SUPPLIER_DELIVERY"
-  sourceId       String?
-  reason         String?
-  staffId        String?
-  staff          User?        @relation(fields: [staffId], references: [id])
-  createdAt      DateTime     @default(now())
+  id          String       @id @default(uuid())
+  storeId     String
+  store       Store        @relation(fields: [storeId], references: [id])
+  productId   String
+  product     Product      @relation(fields: [productId], references: [id])
+  inventoryId String?
+  inventory   Inventory?   @relation(fields: [inventoryId], references: [id])
+  type        MovementType
 
-  @@index([storeId, createdAt]) // analytics time-series queries
-  @@index([productId, type]) // per-product movement history
-  @@index([sourceId]) // trace by order/bill ID
+  quantityDeltaBase    Float? @default(0)
+  previousQuantityBase Float?
+  newQuantityBase      Float?
+
+  inputQuantity    Float?
+  inputUnit        String?
+  conversionToBase Float?
+
+  supplierId String?
+
+  quantityChange Int? // legacy
+
+  sourceType String?
+  sourceId   String?
+  note       String?
+  reason     String? // legacy
+  createdBy  String?
+  staffId    String?
+  staff      User?    @relation(fields: [staffId], references: [id])
+  createdAt  DateTime @default(now())
+
+  @@index([storeId, createdAt])
+  @@index([productId, type])
+  @@index([sourceId])
 }
 
 enum MovementType {
+  OPENING_STOCK
+  PURCHASE_INTAKE
+  BOX_INTAKE
+  SALE
+  SALE_RETURN
+  PURCHASE_RETURN
+  DAMAGE
+  EXPIRED
+  STOCK_ADJUSTMENT
+  ARCHIVE_LOCK
+
+  // legacy compatibility
   STOCK_RECEIVED
   POS_SALE
   ONLINE_ORDER_RESERVED
@@ -327,7 +413,6 @@ enum MovementType {
   ORDER_CANCELLED
   RETURN_ACCEPTED
   DAMAGED
-  EXPIRED
   MANUAL_ADJUSTMENT
   STOCK_COUNT_CORRECTION
 }
@@ -426,8 +511,8 @@ model Order {
   createdAt            DateTime    @default(now())
   updatedAt            DateTime    @updatedAt
 
-  items    OrderItem[]
-  messages OrderMessage[]
+  items          OrderItem[]
+  messages       OrderMessage[]
   supportTickets SupportTicket[]
 
   @@index([storeId, status]) // store order management
@@ -500,55 +585,82 @@ model SubscriptionItem {
 // -----------------------------------------------------
 
 model Supplier {
-  id           String   @id @default(uuid())
-  name         String
-  contactEmail String?
-  contactPhone String?
-  address      String?
-  categories   String? // comma separated or JSON
-  rating       Float    @default(5.0)
-  description  String?
-  logoUrl      String?
-  paymentTerms String? // e.g., "Net 30", "COD"
-  onTimeRate   Float    @default(100.0) // percentage
-  fillRate     Float    @default(100.0) // percentage
-  
-  // Marg ERP Ledger Fields
-  station               String?
-  accountGroup          String?
-  balancingMethod       String?
-  openingBalance        Float?
-  openingBalanceType    String?
-  mailTo                String?
-  pinCode               String?
-  holdPayment           Boolean?
-  holdPaymentPercent    Float?
-  website               String?
-  contactPersonName     String?
-  contactPersonPhone    String?
-  designation           String?
-  mobile                String?
-  faxNo                 String?
-  freezeUpto            DateTime?
-  gstinNo               String?
-  tinNo                 String?
-  foodLicenceNo         String?
-  panNo                 String?
-  ledgerDate            DateTime?
-  ledgerCategory        String?
-  state                 String?
-  country               String?
-  ledgerType            String?
-  color                 String?
-  hide                  Boolean?
-  
-  isActive     Boolean  @default(true)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id      String @id @default(uuid())
+  storeId String
+  store   Store  @relation(fields: [storeId], references: [id])
 
+  name         String // Maps to supplier_name
+  ledgerName   String?
+  accountGroup String? @default("SUNDRY CREDITORS")
+
+  gstin   String?
+  pan     String?
+  phone   String? // Alias for mobile
+  mobile  String?
+  email   String?
+  address String?
+  city    String?
+  state   String?
+  pincode String?
+  country String? @default("INDIA")
+
+  openingBalance     Float?  @default(0)
+  openingBalanceType String? @default("CR")
+
+  contactPerson String?
+  foodLicenseNo String?
+
+  importBatchId String?
+  importBatch   SupplierImportBatch? @relation(fields: [importBatchId], references: [id])
+
+  isActive Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations retained for compatibility
   storeConnections StoreSupplierConnection[]
   purchaseOrders   PurchaseOrder[]
   supplierProducts SupplierProduct[]
+
+  @@unique([storeId, gstin])
+}
+
+model SupplierImportBatch {
+  id         String  @id @default(uuid())
+  storeId    String
+  fileName   String?
+  uploadedBy String?
+  status     String  @default("PENDING_REVIEW")
+
+  totalRows     Int @default(0)
+  validRows     Int @default(0)
+  invalidRows   Int @default(0)
+  duplicateRows Int @default(0)
+
+  createdAt   DateTime  @default(now())
+  confirmedAt DateTime?
+
+  rows      SupplierImportRow[]
+  suppliers Supplier[]
+}
+
+model SupplierImportRow {
+  id      String              @id @default(uuid())
+  batchId String
+  batch   SupplierImportBatch @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  storeId String
+
+  rowNumber  Int?
+  rawData    Json?
+  parsedData Json?
+
+  validationStatus String @default("PENDING")
+  validationErrors Json?
+
+  matchedSupplierId String?
+
+  createdAt DateTime @default(now())
 }
 
 enum ConnectionStatus {
@@ -883,9 +995,9 @@ enum PendingProductStatus {
 }
 
 model PendingProduct {
-  id                String               @id @default(uuid())
+  id                String  @id @default(uuid())
   storeId           String
-  store             Store                @relation(fields: [storeId], references: [id])
+  store             Store   @relation(fields: [storeId], references: [id])
   barcode           String?
   suggestedName     String?
   suggestedBrand    String?
@@ -893,14 +1005,14 @@ model PendingProduct {
   mrp               Float?
   sellingPrice      Float?
   purchasePrice     Float?
-  gstRate           Float                @default(0)
-  
-  hsnSac            String?
-  baseUnit          String?
-  purchaseUnit      String?
-  conversionToBase  Int?
-  supplierId        String?
-  
+  gstRate           Float   @default(0)
+
+  hsnSac           String?
+  baseUnit         String?
+  purchaseUnit     String?
+  conversionToBase Int?
+  supplierId       String?
+
   imageUrl          String?
   status            PendingProductStatus @default(PENDING_REVIEW)
   createdById       String?
@@ -946,27 +1058,27 @@ model CartItem {
 // -----------------------------------------------------
 
 model UserPreferences {
-  id              String   @id @default(uuid())
-  userId          String   @unique
-  user            User     @relation(fields: [userId], references: [id])
-  dietaryTags     String[] // e.g., ["vegan", "gluten-free"]
-  favoriteBrands  String[] // e.g., ["Amul", "Britannia"]
-  pricePreference String?  // e.g., "premium", "budget"
-  preferredStoreId String?
-  language        String   @default("en")
-  notificationPrefs Json?  // e.g., {"push": true, "sms": false}
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  id                String   @id @default(uuid())
+  userId            String   @unique
+  user              User     @relation(fields: [userId], references: [id])
+  dietaryTags       String[] // e.g., ["vegan", "gluten-free"]
+  favoriteBrands    String[] // e.g., ["Amul", "Britannia"]
+  pricePreference   String? // e.g., "premium", "budget"
+  preferredStoreId  String?
+  language          String   @default("en")
+  notificationPrefs Json? // e.g., {"push": true, "sms": false}
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 }
 
 model ProductView {
   id        String   @id @default(uuid())
   userId    String?
-  sessionId String?  // For anonymous users
+  sessionId String? // For anonymous users
   productId String
   product   Product  @relation(fields: [productId], references: [id])
   storeId   String
-  duration  Int?     // Time spent viewing in seconds
+  duration  Int? // Time spent viewing in seconds
   createdAt DateTime @default(now())
 
   @@index([userId, productId])
@@ -980,7 +1092,7 @@ model ProductClick {
   productId String
   product   Product  @relation(fields: [productId], references: [id])
   storeId   String
-  source    String?  // e.g., "search", "category_page", "recommendation"
+  source    String? // e.g., "search", "category_page", "recommendation"
   createdAt DateTime @default(now())
 
   @@index([userId, productId])
@@ -988,13 +1100,13 @@ model ProductClick {
 }
 
 model RecommendationEvent {
-  id              String   @id @default(uuid())
-  userId          String?
-  sessionId       String?
-  algorithm       String   // e.g., "collaborative_filtering", "trending"
+  id               String   @id @default(uuid())
+  userId           String?
+  sessionId        String?
+  algorithm        String // e.g., "collaborative_filtering", "trending"
   recommendedItems String[] // Array of product IDs
-  clickedItemId   String?  // If they clicked one
-  createdAt       DateTime @default(now())
+  clickedItemId    String? // If they clicked one
+  createdAt        DateTime @default(now())
 }
 
 model CartEvent {
@@ -1004,7 +1116,7 @@ model CartEvent {
   productId String
   product   Product  @relation(fields: [productId], references: [id])
   storeId   String
-  action    String   // "add", "remove", "update_qty"
+  action    String // "add", "remove", "update_qty"
   quantity  Int
   createdAt DateTime @default(now())
 
@@ -1029,7 +1141,7 @@ model StoreCampaign {
   createdAt          DateTime  @default(now())
   updatedAt          DateTime  @updatedAt
 
-  products           Product[]
+  products Product[]
 
   @@index([storeId, isActive])
 }
@@ -1053,22 +1165,22 @@ enum TicketPriority {
 }
 
 model SupportTicket {
-  id          String         @id @default(uuid())
-  storeId     String?
-  store       Store?         @relation(fields: [storeId], references: [id])
-  customerId  String?
-  customer    User?          @relation("CustomerTickets", fields: [customerId], references: [id])
-  orderId     String?
-  order       Order?         @relation(fields: [orderId], references: [id])
+  id           String          @id @default(uuid())
+  storeId      String?
+  store        Store?          @relation(fields: [storeId], references: [id])
+  customerId   String?
+  customer     User?           @relation("CustomerTickets", fields: [customerId], references: [id])
+  orderId      String?
+  order        Order?          @relation(fields: [orderId], references: [id])
   assignedToId String?
-  assignedTo  User?          @relation("AssignedTickets", fields: [assignedToId], references: [id])
-  title       String
-  description String
-  status      TicketStatus   @default(OPEN)
-  priority    TicketPriority @default(MEDIUM)
-  messages    TicketMessage[]
-  createdAt   DateTime       @default(now())
-  updatedAt   DateTime       @updatedAt
+  assignedTo   User?           @relation("AssignedTickets", fields: [assignedToId], references: [id])
+  title        String
+  description  String
+  status       TicketStatus    @default(OPEN)
+  priority     TicketPriority  @default(MEDIUM)
+  messages     TicketMessage[]
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
 
   @@index([storeId, status])
   @@index([customerId, status])
@@ -1076,14 +1188,45 @@ model SupportTicket {
 }
 
 model TicketMessage {
-  id        String        @id @default(uuid())
-  ticketId  String
-  ticket    SupportTicket @relation(fields: [ticketId], references: [id])
-  senderId  String
-  sender    User          @relation("SentTicketMessages", fields: [senderId], references: [id])
-  text      String
-  isInternal Boolean      @default(false)
-  createdAt DateTime      @default(now())
+  id         String        @id @default(uuid())
+  ticketId   String
+  ticket     SupportTicket @relation(fields: [ticketId], references: [id])
+  senderId   String
+  sender     User          @relation("SentTicketMessages", fields: [senderId], references: [id])
+  text       String
+  isInternal Boolean       @default(false)
+  createdAt  DateTime      @default(now())
 
   @@index([ticketId, createdAt])
+}
+
+// -----------------------------------------------------
+// Scanner AI Extraction Pipeline
+// -----------------------------------------------------
+
+model ScannerExtraction {
+  id              String  @id @default(uuid())
+  storeId         String
+  type            String // "PRODUCT_MASTER" | "SUPPLIER_LEDGER"
+  status          String // "DRAFT" | "CONFIRMED" | "REJECTED"
+  rawText         String?
+  imageUrl        String?
+  confidenceScore Float?
+
+  fields ScannerExtractionField[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model ScannerExtractionField {
+  id           String            @id @default(uuid())
+  extractionId String
+  extraction   ScannerExtraction @relation(fields: [extractionId], references: [id], onDelete: Cascade)
+
+  fieldKey       String
+  extractedValue String?
+  confidence     Float?
+  isEdited       Boolean @default(false)
+  finalValue     String?
 }

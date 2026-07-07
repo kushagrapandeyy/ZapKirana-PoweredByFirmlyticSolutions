@@ -240,8 +240,8 @@ let PurchaseOrderService = class PurchaseOrderService {
             <p>
               <strong>${po.supplier.name}</strong><br>
               ${po.supplier.station || po.supplier.address || 'N/A'}<br>
-              <strong>GSTIN:</strong> ${po.supplier.gstinNo || 'N/A'}<br>
-              <strong>Phone:</strong> ${po.supplier.contactPhone || 'N/A'}
+              <strong>GSTIN:</strong> ${po.supplier.gstin || 'N/A'}<br>
+              <strong>Phone:</strong> ${po.supplier.phone || 'N/A'}
             </p>
           </div>
         </div>

@@ -228,12 +228,12 @@ export class CatalogService {
       data: {
         storeId: pending.storeId,
         barcode: pending.barcode ?? null,
-        internalSku,
+        skuCode: internalSku,
         name,
         category: overrides.category ?? pending.suggestedCategory ?? 'Grocery',
         mrp: overrides.mrp ?? pending.mrp ?? 0,
         sellingPrice: overrides.sellingPrice ?? pending.sellingPrice ?? 0,
-        purchaseCost: overrides.purchasePrice ?? pending.purchasePrice ?? null,
+        purchaseRate: overrides.purchasePrice ?? pending.purchasePrice ?? null,
         gstRate: overrides.gstRate ?? pending.gstRate ?? 0,
         imageUrl: pending.imageUrl ?? null,
         isActive: true,
@@ -272,7 +272,7 @@ export class CatalogService {
     return {
       status: 'APPROVED',
       productId: product.id,
-      internalSku: product.internalSku,
+      skuCode: product.skuCode,
       barcodeRegistered: !!pending.barcode,
     };
   }

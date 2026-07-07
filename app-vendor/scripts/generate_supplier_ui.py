@@ -1,4 +1,8 @@
-import { useState, useEffect } from 'react';
+import os
+
+FILE_PATH = "/Users/kushagrapandey/COde/Basko-FirmlyticSolutions/Basko-PoweredByFirmlyticSolutions/app-vendor/src/app/operations/supplier/[id].tsx"
+
+content = """import { useState, useEffect } from 'react';
 import { StyleSheet, Text, View, TouchableOpacity, ScrollView, SafeAreaView, TextInput, Modal, KeyboardAvoidingView, Platform, Alert, Linking, Switch } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -176,7 +180,7 @@ export default function SupplierDetailScreen() {
           <View style={styles.infoRow}><Text style={styles.infoLabel}>GSTIN</Text><Text style={styles.infoValue}>{supplier.gstin || 'N/A'}</Text></View>
           <View style={styles.infoRow}><Text style={styles.infoLabel}>PAN</Text><Text style={styles.infoValue}>{supplier.pan || 'N/A'}</Text></View>
           <View style={styles.infoRow}><Text style={styles.infoLabel}>Phone</Text><Text style={styles.infoValue}>{supplier.phone || 'N/A'}</Text></View>
-          <View style={styles.infoRow}><Text style={styles.infoLabel}>Opening Bal</Text><Text style={styles.infoValue}>{supplier.openingBalance ? `₹${supplier.openingBalance} ${supplier.openingBalanceType}` : 'N/A'}</Text></View>
+          <View style={styles.infoRow}><Text style={styles.infoLabel}>Opening Bal</Text><Text style={styles.infoValue}>{supplier.openingBalance ? \`₹${supplier.openingBalance} ${supplier.openingBalanceType}\` : 'N/A'}</Text></View>
         </View>
 
         <View style={{ height: 100 }} />
@@ -312,3 +316,9 @@ const styles = StyleSheet.create({
   submitBtn: { backgroundColor: Colors.primary, borderRadius: Radius.lg, paddingVertical: 15, alignItems: 'center', marginTop: 20, marginBottom: 40, ...Shadows.sm },
   submitBtnText: { fontFamily: 'Inter_700Bold', fontSize: 15, color: '#fff' },
 });
+"""
+
+with open(FILE_PATH, "w") as f:
+    f.write(content)
+
+print("Supplier Detail Screen overwritten with 25+ fields modal!")

@@ -25,13 +25,13 @@ export class ProductsService {
   async createProduct(data: {
     storeId: string;
     barcode?: string;
-    internalSku: string;
+    skuCode: string;
     name: string;
     description?: string;
     category?: string;
     mrp: number;
     sellingPrice: number;
-    purchaseCost?: number;
+    purchaseRate?: number;
     gstRate?: number;
     imageUrl?: string;
   }) {
@@ -120,21 +120,22 @@ export class ProductsService {
    * Enrich barcode + auto-create product in one shot.
    * POST /products/from-barcode
    * Body: { storeId, barcode, mrp, sellingPrice, internalSku }
+   * Body: { storeId, barcode, mrp, sellingPrice, skuCode }
    */
-  async createFromBarcode(data: { storeId: string; barcode: string; mrp: number; sellingPrice: number; internalSku: string; purchaseCost?: number }) {
+  async createFromBarcode(data: { storeId: string; barcode: string; mrp: number; sellingPrice: number; skuCode: string; purchaseRate?: number }) {
     const enriched = await this.enrichFromBarcode(data.barcode, data.storeId);
 
     return this.prisma.product.create({
       data: {
         storeId: data.storeId,
         barcode: data.barcode,
-        internalSku: data.internalSku,
+        skuCode: data.skuCode,
         name: (enriched as any).name || 'Unknown Product',
         category: (enriched as any).category || 'Grocery',
         imageUrl: (enriched as any).imageUrl ?? null,
         mrp: data.mrp,
         sellingPrice: data.sellingPrice,
-        purchaseCost: data.purchaseCost,
+        purchaseRate: data.purchaseRate,
         gstClass: (enriched as any).gstClass ?? 'EXEMPT',
         gstRate: (enriched as any).gstRate ?? 0,
         isActive: true,

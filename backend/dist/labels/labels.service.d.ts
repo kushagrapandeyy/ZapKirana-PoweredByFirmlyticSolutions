@@ -32,27 +32,27 @@ export declare class LabelsService {
         isPrimary?: boolean;
     }): Promise<{
         id: string;
-        isActive: boolean;
         createdAt: Date;
         storeId: string | null;
+        isActive: boolean;
         productId: string | null;
-        barcodeValue: string;
+        isPrimary: boolean;
         symbology: string;
+        barcodeValue: string;
         barcodeScope: import(".prisma/client").$Enums.BarcodeScope;
         isInternal: boolean;
-        isPrimary: boolean;
     }>;
     getBarcodesForProduct(productId: string): Promise<{
         id: string;
-        isActive: boolean;
         createdAt: Date;
         storeId: string | null;
+        isActive: boolean;
         productId: string | null;
-        barcodeValue: string;
+        isPrimary: boolean;
         symbology: string;
+        barcodeValue: string;
         barcodeScope: import(".prisma/client").$Enums.BarcodeScope;
         isInternal: boolean;
-        isPrimary: boolean;
     }[]>;
     createPrintJob(data: {
         storeId: string;
@@ -87,14 +87,14 @@ export declare class LabelsService {
         } | null;
     } & {
         id: string;
+        status: import(".prisma/client").$Enums.PrintJobStatus;
         createdAt: Date;
         updatedAt: Date;
         storeId: string;
-        status: import(".prisma/client").$Enums.PrintJobStatus;
+        requestedById: string | null;
         templateType: string;
         labelDataJson: import("@prisma/client/runtime/library").JsonValue;
         r2PdfPath: string | null;
-        requestedById: string | null;
     }>;
     listPrintJobs(storeId: string): Promise<({
         requestedBy: {
@@ -103,13 +103,13 @@ export declare class LabelsService {
         } | null;
     } & {
         id: string;
+        status: import(".prisma/client").$Enums.PrintJobStatus;
         createdAt: Date;
         updatedAt: Date;
         storeId: string;
-        status: import(".prisma/client").$Enums.PrintJobStatus;
+        requestedById: string | null;
         templateType: string;
         labelDataJson: import("@prisma/client/runtime/library").JsonValue;
         r2PdfPath: string | null;
-        requestedById: string | null;
     })[]>;
 }

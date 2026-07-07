@@ -41,18 +41,28 @@ export default function ActionScreen() {
     try {
       // If it's a known product (productId exists) and not CREATE_PENDING_PRODUCT
       if (productId && actionLabel !== 'CREATE_PENDING_PRODUCT') {
-        await axios.post(`${BASE_URL}/api/v1/scanner/stock/update`, {
-          storeId,
-          productId,
-          movementType: workflow === 'PRODUCT_INTAKE' ? 'IN' : 'ADJUSTMENT',
-          quantityInput: qtyNum,
-          inputUnit: 'PCS', // Defaulting to PCS, UI can be expanded to support BOX
-          conversionToBase: 1, // Defaulting to 1 for PCS
-        }, {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        });
+        if (workflow === 'ARCHIVE_PRODUCT') {
+          await axios.post(`${BASE_URL}/api/v1/scanner/products/${productId}/archive`, {
+            storeId
+          }, {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+        } else {
+          const backendMovementType = workflow === 'PRODUCT_INTAKE' 
+            ? 'PURCHASE_INTAKE' 
+            : (workflow === 'DISPATCH' ? 'DISPATCH' : 'MANUAL_ADJUSTMENT');
+            
+          await axios.post(`${BASE_URL}/api/v1/scanner/stock/update`, {
+            storeId,
+            productId,
+            movementType: backendMovementType,
+            quantityInput: qtyNum,
+            inputUnit: 'PCS', // Defaulting to PCS, UI can be expanded to support BOX
+            conversionToBase: 1, // Defaulting to 1 for PCS
+          }, {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+        }
       } else {
         // If it's an unknown barcode
         await axios.post(`${BASE_URL}/api/v1/scanner/product-drafts`, {
@@ -92,16 +102,24 @@ export default function ActionScreen() {
         <Text style={styles.detailsText}>Barcode: {rawValue}</Text>
         {productMrp && <Text style={styles.detailsText}>MRP: ₹{productMrp}</Text>}
 
-        <View style={styles.inputContainer}>
-          <Text style={styles.inputLabel}>{actionLabel || 'Enter Quantity'}:</Text>
-          <TextInput
-            style={styles.input}
-            keyboardType="numeric"
-            value={quantity}
-            onChangeText={setQuantity}
-            autoFocus
-          />
-        </View>
+        {workflow !== 'ARCHIVE_PRODUCT' && actionLabel !== 'CREATE_PENDING_PRODUCT' && (
+          <View style={styles.inputContainer}>
+            <Text style={styles.inputLabel}>{actionLabel || 'Enter Quantity'}:</Text>
+            <TextInput
+              style={styles.input}
+              keyboardType="numeric"
+              value={quantity}
+              onChangeText={setQuantity}
+              autoFocus
+            />
+          </View>
+        )}
+
+        {workflow === 'ARCHIVE_PRODUCT' && (
+          <View style={styles.inputContainer}>
+            <Text style={[styles.inputLabel, { color: 'red' }]}>Are you sure you want to archive this product?</Text>
+          </View>
+        )}
       </View>
 
       <View style={styles.footer}>
@@ -115,7 +133,11 @@ export default function ActionScreen() {
         </TouchableOpacity>
 
         <TouchableOpacity 
-          style={[styles.button, styles.submitButton]} 
+          style={[
+            styles.button, 
+            styles.submitButton, 
+            workflow === 'ARCHIVE_PRODUCT' && { backgroundColor: '#ef4444' }
+          ]} 
           onPress={handleSubmit}
           disabled={submitting}
         >
@@ -124,7 +146,7 @@ export default function ActionScreen() {
           ) : (
             <>
               <Check color="#fff" size={24} style={{ marginRight: 8 }} />
-              <Text style={styles.submitButtonText}>Submit</Text>
+              <Text style={styles.submitButtonText}>{workflow === 'ARCHIVE_PRODUCT' ? 'ARCHIVE' : 'SUBMIT'}</Text>
             </>
           )}
         </TouchableOpacity>

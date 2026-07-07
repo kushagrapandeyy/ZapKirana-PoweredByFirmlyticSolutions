@@ -73,6 +73,21 @@ let AdminController = class AdminController {
     updateSupplier(id, body, req) {
         return this.adminService.updateSupplier(id, body, req.user.id);
     }
+    uploadSuppliersImport(body, req) {
+        if (!body.storeId) {
+            throw new common_1.BadRequestException('storeId is required for import');
+        }
+        return this.adminService.uploadSuppliersImport(body.storeId, body.rows, req.user.id);
+    }
+    getSupplierImportPreview(batchId) {
+        return this.adminService.getSupplierImportPreview(batchId);
+    }
+    confirmSupplierImport(batchId) {
+        return this.adminService.confirmSupplierImport(batchId);
+    }
+    cancelSupplierImport(batchId) {
+        return this.adminService.cancelSupplierImport(batchId);
+    }
     getAudits(limit) {
         return this.adminService.getAudits(limit ? parseInt(limit) : undefined);
     }
@@ -192,6 +207,35 @@ __decorate([
     __metadata("design:paramtypes", [String, Object, Object]),
     __metadata("design:returntype", void 0)
 ], AdminController.prototype, "updateSupplier", null);
+__decorate([
+    (0, common_1.Post)('suppliers/import/upload'),
+    __param(0, (0, common_1.Body)()),
+    __param(1, (0, common_1.Request)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, Object]),
+    __metadata("design:returntype", void 0)
+], AdminController.prototype, "uploadSuppliersImport", null);
+__decorate([
+    (0, common_1.Get)('suppliers/import/:batchId/preview'),
+    __param(0, (0, common_1.Param)('batchId')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", void 0)
+], AdminController.prototype, "getSupplierImportPreview", null);
+__decorate([
+    (0, common_1.Post)('suppliers/import/:batchId/confirm'),
+    __param(0, (0, common_1.Param)('batchId')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", void 0)
+], AdminController.prototype, "confirmSupplierImport", null);
+__decorate([
+    (0, common_1.Post)('suppliers/import/:batchId/cancel'),
+    __param(0, (0, common_1.Param)('batchId')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", void 0)
+], AdminController.prototype, "cancelSupplierImport", null);
 __decorate([
     (0, common_1.Get)('audits'),
     __param(0, (0, common_1.Query)('limit')),

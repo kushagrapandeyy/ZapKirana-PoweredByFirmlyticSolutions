@@ -100,6 +100,31 @@ export class AdminController {
     return this.adminService.updateSupplier(id, body, req.user.id);
   }
 
+  // ─── Supplier Import ─────────────────────────────────────
+
+  @Post('suppliers/import/upload')
+  uploadSuppliersImport(@Body() body: any, @Request() req: any) {
+    if (!body.storeId) {
+      throw new BadRequestException('storeId is required for import');
+    }
+    return this.adminService.uploadSuppliersImport(body.storeId, body.rows, req.user.id);
+  }
+
+  @Get('suppliers/import/:batchId/preview')
+  getSupplierImportPreview(@Param('batchId') batchId: string) {
+    return this.adminService.getSupplierImportPreview(batchId);
+  }
+
+  @Post('suppliers/import/:batchId/confirm')
+  confirmSupplierImport(@Param('batchId') batchId: string) {
+    return this.adminService.confirmSupplierImport(batchId);
+  }
+
+  @Post('suppliers/import/:batchId/cancel')
+  cancelSupplierImport(@Param('batchId') batchId: string) {
+    return this.adminService.cancelSupplierImport(batchId);
+  }
+
   // ─── Audit ─────────────────────────────────────────
   @Get('audits')
   getAudits(@Query('limit') limit?: string) {
