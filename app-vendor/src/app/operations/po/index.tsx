@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
 import { StyleSheet, Text, View, TouchableOpacity, FlatList, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
+import { useCallback } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Shadows, Radius } from '../../../constants/theme';
-import { API_BASE_URL } from '../../../constants/api';
+import { API_BASE_URL, CURRENT_STORE_ID } from '../../../constants/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useAuth } from '../../../context/AuthContext';
@@ -19,13 +20,15 @@ export default function POManagementScreen() {
   const [loading, setLoading] = useState(true);
   const [printingId, setPrintingId] = useState<string | null>(null);
 
-  useEffect(() => {
-    fetchPOs();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      fetchPOs();
+    }, [])
+  );
 
   const fetchPOs = async () => {
     try {
-      const storeId = await AsyncStorage.getItem('@selected_store_id') || tenantId;
+      const storeId = await AsyncStorage.getItem('@selected_store_id') || CURRENT_STORE_ID;
       const res = await fetch(`${API_BASE_URL}/purchase-orders/store/${storeId}`);
       if (res.ok) {
         setPos(await res.json());
@@ -79,7 +82,8 @@ export default function POManagementScreen() {
 
   const renderPO = ({ item, index }: { item: any; index: number }) => (
     <Animated.View entering={FadeInDown.delay(index * 50).springify().damping(15)}>
-      <View style={styles.poCard}>
+      <TouchableOpacity activeOpacity={0.9} onPress={() => router.push(`/operations/po/${item.id}`)}>
+        <View style={styles.poCard}>
         <View style={styles.poHeader}>
           <View>
             <Text style={styles.poIdText}>PO #{item.id.slice(-6).toUpperCase()}</Text>
@@ -122,6 +126,7 @@ export default function POManagementScreen() {
           </TouchableOpacity>
         </View>
       </View>
+      </TouchableOpacity>
     </Animated.View>
   );
 
@@ -171,6 +176,9 @@ export default function POManagementScreen() {
               <Ionicons name="document-text-outline" size={64} color={Colors.border} />
               <Text style={styles.emptyTitle}>No Purchase Orders</Text>
               <Text style={styles.emptySub}>Connect with a supplier to draft your first PO.</Text>
+              <TouchableOpacity style={styles.emptyBtn} onPress={() => router.push('/operations/suppliers')}>
+                <Text style={styles.emptyBtnText}>Browse Suppliers</Text>
+              </TouchableOpacity>
             </View>
           }
         />
@@ -208,9 +216,11 @@ const styles = StyleSheet.create({
   actionBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: Colors.primaryGhost, paddingHorizontal: 16, paddingVertical: 8, borderRadius: Radius.full, gap: 6 },
   actionBtnText: { color: Colors.primary, fontSize: 13, fontFamily: 'Inter_600SemiBold' },
   
-  emptyContainer: { alignItems: 'center', justifyContent: 'center', marginTop: 80 },
-  emptyTitle: { fontSize: 20, fontFamily: 'Inter_700Bold', color: Colors.textPrimary, marginTop: 16, marginBottom: 8 },
-  emptySub: { fontSize: 14, fontFamily: 'Inter_500Medium', color: Colors.textSecondary, textAlign: 'center', paddingHorizontal: 40 },
+  emptyContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', marginTop: 100 },
+  emptyTitle: { fontSize: 18, fontFamily: 'Inter_700Bold', color: Colors.textPrimary, marginTop: 16, marginBottom: 8 },
+  emptySub: { fontSize: 14, fontFamily: 'Inter_400Regular', color: Colors.textSecondary, textAlign: 'center', paddingHorizontal: 40 },
+  emptyBtn: { marginTop: 24, paddingHorizontal: 24, paddingVertical: 12, backgroundColor: Colors.primary, borderRadius: Radius.full, ...Shadows.sm },
+  emptyBtnText: { color: '#fff', fontFamily: 'Inter_600SemiBold', fontSize: 14 },
   
   headerTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   pipelineBanner: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 16, backgroundColor: '#F8FAFC', padding: 16, borderRadius: Radius.lg, borderWidth: 1, borderColor: '#F1F5F9' },

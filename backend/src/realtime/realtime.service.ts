@@ -1,4 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { OnEvent } from '@nestjs/event-emitter';
+import { PrismaService } from '../prisma.service';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
 @Injectable()
@@ -6,7 +8,7 @@ export class RealtimeService {
   private readonly supabase: SupabaseClient;
   private readonly logger = new Logger(RealtimeService.name);
 
-  constructor() {
+  constructor(private prisma: PrismaService) {
     this.supabase = createClient(
       process.env.SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!
@@ -58,6 +60,20 @@ export class RealtimeService {
       this.logger.log(`Broadcasted subscription update for store ${storeId}`);
     } catch (error) {
       this.logger.error(`Error broadcasting subscription update: ${error}`);
+    }
+  }
+  @OnEvent('order.status_changed')
+  async handleOrderStatusChanged(event: { orderId: string; status: string; customerId: string }) {
+    try {
+      const order = await this.prisma.order.findUnique({
+        where: { id: event.orderId },
+        include: { items: { include: { product: true } } }
+      });
+      if (order) {
+        await this.broadcastOrderUpdate(order.storeId, event.orderId, order);
+      }
+    } catch (e) {
+      this.logger.error('Failed to fetch order for broadcast', e);
     }
   }
 }

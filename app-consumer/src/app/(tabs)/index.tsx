@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { StyleSheet, Text, View, ScrollView, TouchableOpacity, Image, Dimensions, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -49,21 +50,13 @@ const BANNERS = [
 
 export default function HomeFeed() {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const { cart, addToCart, removeFromCart, cartItemsCount } = useCart();
   
-  const [products, setProducts] = useState<any[]>([]);
-  const [store, setStore] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [activeCategory, setActiveCategory] = useState(0);
-  const [categories, setCategories] = useState([{ name: 'All', icon: 'grid-outline', original: 'All' }]);
   const [storeId, setStoreId] = useState<string | null>(null);
   const [bannerIndex, setBannerIndex] = useState(0);
-
-  const [clearanceProducts, setClearanceProducts] = useState<any[]>([]);
-  const [newProducts, setNewProducts] = useState<any[]>([]);
-  const [popularProducts, setPopularProducts] = useState<any[]>([]);
-  const [activeCampaigns, setActiveCampaigns] = useState<any[]>([]);
 
   // Cart badge animation
   const cartScale = useSharedValue(1);
@@ -71,13 +64,12 @@ export default function HomeFeed() {
     transform: [{ scale: cartScale.value }],
   }));
 
-  // Removed animated background in favor of stock image
-
   useEffect(() => {
-    loadStoreAndProducts();
+    AsyncStorage.getItem('@selected_store_id').then(id => {
+      setStoreId(id || 'f15b0af3-3667-429a-ae2e-9f85d25e9c2f');
+    });
   }, []);
 
-  // Auto-scroll banners
   useEffect(() => {
     const interval = setInterval(() => {
       setBannerIndex(prev => (prev + 1) % BANNERS.length);
@@ -85,70 +77,61 @@ export default function HomeFeed() {
     return () => clearInterval(interval);
   }, []);
 
-  const loadStoreAndProducts = async () => {
-    try {
-      const savedStoreId = await AsyncStorage.getItem('@selected_store_id');
-      const currentStoreId = savedStoreId || 'f15b0af3-3667-429a-ae2e-9f85d25e9c2f';
-      setStoreId(currentStoreId);
-
+  const { data: dashboardData, isLoading: loading, refetch } = useQuery({
+    queryKey: ['consumerDashboard', storeId],
+    enabled: !!storeId,
+    queryFn: async () => {
       const [productsRes, storeRes, clearanceRes, newRes, popularRes, campaignRes] = await Promise.all([
-        fetch(`${API_BASE_URL}/inventory/products?storeId=${currentStoreId}`),
-        fetch(`${API_BASE_URL}/stores/${currentStoreId}`),
-        fetch(`${API_BASE_URL}/inventory/clearance?storeId=${currentStoreId}`),
-        fetch(`${API_BASE_URL}/inventory/new?storeId=${currentStoreId}`),
-        fetch(`${API_BASE_URL}/api/v1/catalog/personalized?storeId=${currentStoreId}`),
-        fetch(`${API_BASE_URL}/campaigns?storeId=${currentStoreId}`)
+        fetch(`${API_BASE_URL}/inventory/products?storeId=${storeId}`),
+        fetch(`${API_BASE_URL}/stores/${storeId}`),
+        fetch(`${API_BASE_URL}/inventory/clearance?storeId=${storeId}`),
+        fetch(`${API_BASE_URL}/inventory/new?storeId=${storeId}`),
+        fetch(`${API_BASE_URL}/api/v1/catalog/personalized?storeId=${storeId}`),
+        fetch(`${API_BASE_URL}/campaigns?storeId=${storeId}`)
       ]);
 
+      const data = {
+        products: [] as any[],
+        store: null as any,
+        clearanceProducts: [] as any[],
+        newProducts: [] as any[],
+        popularProducts: [] as any[],
+        activeCampaigns: [] as any[],
+        categories: [{ name: 'All', icon: 'grid-outline', original: 'All' }]
+      };
+
       if (productsRes.ok) {
-        const data = await productsRes.json();
-        const mapped = data.map(normalizeProduct);
-        setProducts(mapped);
-        
-        const uniqueCats = Array.from(new Set(mapped.map((p: any) => p.category))) as string[];
-        const dynamicCats = [
+        const p = await productsRes.json();
+        data.products = p.map(normalizeProduct);
+        const uniqueCats = Array.from(new Set(data.products.map((p: any) => p.category))) as string[];
+        data.categories = [
           { name: 'All', icon: 'grid-outline', original: 'All' },
           ...uniqueCats.map(c => ({ name: toTitleCase(c), icon: 'pricetag-outline', original: c }))
         ];
-        setCategories(dynamicCats);
       }
+      if (storeRes.ok) data.store = await storeRes.json();
+      if (clearanceRes.ok) data.clearanceProducts = (await clearanceRes.json()).map(normalizeProduct);
+      if (newRes.ok) data.newProducts = (await newRes.json()).map(normalizeProduct);
+      if (popularRes.ok) data.popularProducts = (await popularRes.json()).map(normalizeProduct);
+      if (campaignRes.ok) data.activeCampaigns = await campaignRes.json();
 
-      if (clearanceRes.ok) {
-        const data = await clearanceRes.json();
-        setClearanceProducts(data.map(normalizeProduct));
-      }
-
-      if (popularRes.ok) {
-        const popData = await popularRes.json(); setPopularProducts(popData.map(normalizeProduct));
-      }
-
-      if (newRes.ok) {
-        const newData = await newRes.json(); setNewProducts(newData.map(normalizeProduct));
-      }
-
-      if (campaignRes.ok) {
-        const campaigns = await campaignRes.json();
-        setActiveCampaigns(campaigns);
-      }
-
-      if (storeRes.ok) {
-        setStore(await storeRes.json());
-      } else {
-        await AsyncStorage.removeItem('@selected_store_id');
-        router.push('/store-selector');
-      }
-    } catch (e) {
-      console.error('Error fetching store data:', e);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
+      return data;
     }
-  };
+  });
 
-  const onRefresh = useCallback(() => {
+  const products = dashboardData?.products || [];
+  const store = dashboardData?.store || null;
+  const clearanceProducts = dashboardData?.clearanceProducts || [];
+  const newProducts = dashboardData?.newProducts || [];
+  const popularProducts = dashboardData?.popularProducts || [];
+  const activeCampaigns = dashboardData?.activeCampaigns || [];
+  const categories = dashboardData?.categories || [{ name: 'All', icon: 'grid-outline', original: 'All' }];
+
+  const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    loadStoreAndProducts();
-  }, []);
+    await refetch();
+    setRefreshing(false);
+  }, [refetch]);
 
   
   useEffect(() => {
@@ -158,13 +141,19 @@ export default function HomeFeed() {
       .on('broadcast', { event: 'inventory_update' }, (payload) => {
         const { productId, onHandQty, availableQty } = payload.payload;
         
-        // Update products array
-        setProducts(prev => prev.map(p => {
-          if (p.id === productId) {
-            return { ...p, stockStatus: availableQty <= 0 ? 'OUT_OF_STOCK' : 'IN_STOCK' };
-          }
-          return p;
-        }));
+        // Update products array in React Query cache
+        queryClient.setQueryData(['consumerDashboard', storeId], (oldData: any) => {
+          if (!oldData) return oldData;
+          return {
+            ...oldData,
+            products: oldData.products.map((p: any) => {
+              if (p.id === productId) {
+                return { ...p, stockStatus: availableQty <= 0 ? 'OUT_OF_STOCK' : 'IN_STOCK' };
+              }
+              return p;
+            })
+          };
+        });
       })
       .subscribe();
 
@@ -548,8 +537,8 @@ const styles = StyleSheet.create({
 
   pageContent: { paddingBottom: 100 },
   storeHeroContainer: { marginHorizontal: 20, marginTop: 16, marginBottom: 10, borderRadius: Radius.xl, backgroundColor: Colors.surface, overflow: 'hidden', ...Shadows.md },
-  storeHeroBanner: { width: '100%', height: 120, resizeMode: 'cover' },
-  storeHeroOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.3)', height: 120 },
+  storeHeroBanner: { width: '100%', height: 70, resizeMode: 'cover' },
+  storeHeroOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.3)', height: 70 },
   storeHeroContent: { flexDirection: 'row', alignItems: 'flex-end', paddingHorizontal: 16, marginTop: -30, marginBottom: 12 },
   storeHeroLogo: { width: 60, height: 60, borderRadius: 30, borderWidth: 3, borderColor: Colors.surface, backgroundColor: Colors.surface },
   storeHeroTextContainer: { marginLeft: 12, flex: 1, paddingBottom: 4 },

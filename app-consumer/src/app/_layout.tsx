@@ -10,6 +10,8 @@ import { StatusBar, View, StyleSheet } from 'react-native';
 import { supabase } from '../lib/supabase';
 import Animated, { FadeIn, ZoomIn, SlideInDown, useSharedValue, useAnimatedStyle, withSpring, withTiming, runOnJS, Easing, withDelay, withSequence } from 'react-native-reanimated';
 import { Text } from 'react-native';
+import { QueryClientProvider } from '@tanstack/react-query';
+import { queryClient } from '../lib/react-query';
 
 
 import { Dimensions } from 'react-native';
@@ -151,8 +153,9 @@ export default function RootLayout() {
   if (!fontsLoaded || hasOnboarded === null) return null;
 
   return (
-    <CartProvider>
-      {splashVisible && <AnimatedSplashScreen onFinish={() => setSplashVisible(false)} />}
+    <QueryClientProvider client={queryClient}>
+      <CartProvider>
+        {splashVisible && <AnimatedSplashScreen onFinish={() => setSplashVisible(false)} />}
       <StatusBar barStyle="dark-content" />
       <GestureHandlerRootView style={{ flex: 1 }}>
         <Animated.View style={{ flex: 1 }} entering={FadeIn.duration(800)}>
@@ -163,6 +166,7 @@ export default function RootLayout() {
             <Stack.Screen name="store-selector" />
             <Stack.Screen name="(tabs)" />
             <Stack.Screen name="product/[id]" />
+            <Stack.Screen name="store/[id]" />
             <Stack.Screen name="cart" options={{ presentation: 'modal' }} />
             <Stack.Screen name="checkout" options={{ presentation: 'modal' }} />
             <Stack.Screen name="order-confirmation" options={{ gestureEnabled: false }} />
@@ -175,5 +179,6 @@ export default function RootLayout() {
         <Toast />
       </GestureHandlerRootView>
     </CartProvider>
+    </QueryClientProvider>
   );
 }

@@ -25,9 +25,9 @@ export declare class GrnService {
         updatedAt: Date;
         storeId: string;
         status: import(".prisma/client").$Enums.POStatus;
-        notes: string | null;
         totalAmount: number;
         supplierId: string;
+        notes: string | null;
         expectedDeliveryDate: Date | null;
         shareToken: string | null;
         shareTokenExpiresAt: Date | null;

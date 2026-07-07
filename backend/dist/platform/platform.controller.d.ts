@@ -164,6 +164,8 @@ export declare class PlatformController {
             gstin: string | null;
             isActive: boolean;
             imageUrl: string | null;
+            logoUrl: string | null;
+            bannerUrl: string | null;
             operatingHours: string | null;
             rating: number;
             description: string | null;

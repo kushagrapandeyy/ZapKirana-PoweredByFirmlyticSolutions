@@ -45,6 +45,19 @@ let AuditInterceptor = AuditInterceptor_1 = class AuditInterceptor {
                 sanitizedPayload.password = '[REDACTED]';
             if (sanitizedPayload.otp)
                 sanitizedPayload.otp = '[REDACTED]';
+            await this.prisma.auditLog.create({
+                data: {
+                    action: `${method} ${endpoint}`,
+                    entityType: 'API_REQUEST',
+                    userId: userId || null,
+                    details: JSON.stringify({
+                        ip,
+                        status,
+                        durationMs,
+                        payload: sanitizedPayload
+                    })
+                }
+            });
             this.logger.log(`AUDIT [${status}] ${method} ${endpoint} by ${userId || 'anonymous'} in ${durationMs}ms`);
         }
         catch (e) {

@@ -7,9 +7,9 @@ export declare class PosService {
     constructor(prisma: PrismaService, inventoryService: InventoryService);
     createDraftBill(storeId: string, staffId: string): Promise<{
         id: string;
-        storeId: string;
         createdAt: Date;
         updatedAt: Date;
+        storeId: string;
         staffId: string | null;
         status: import(".prisma/client").$Enums.BillStatus;
         subtotal: number;
@@ -18,8 +18,8 @@ export declare class PosService {
     }>;
     addItemToBill(billId: string, productId: string, quantity: number): Promise<{
         id: string;
-        productId: string;
         createdAt: Date;
+        productId: string;
         quantity: number;
         priceAtSale: number;
         gstAtSale: number;
@@ -27,9 +27,9 @@ export declare class PosService {
     }>;
     checkoutBill(billId: string, paymentMethod: PaymentMethod, amount: number, referenceId?: string): Promise<{
         id: string;
-        storeId: string;
         createdAt: Date;
         updatedAt: Date;
+        storeId: string;
         staffId: string | null;
         status: import(".prisma/client").$Enums.BillStatus;
         subtotal: number;
@@ -38,6 +38,14 @@ export declare class PosService {
     }>;
     private recalculateBillTotals;
     getBill(billId: string): Promise<{
+        payments: {
+            id: string;
+            createdAt: Date;
+            billId: string;
+            amount: number;
+            method: import(".prisma/client").$Enums.PaymentMethod;
+            referenceId: string | null;
+        }[];
         staff: {
             id: string;
             name: string | null;
@@ -47,32 +55,24 @@ export declare class PosService {
             product: {
                 id: string;
                 name: string;
+                imageUrl: string | null;
                 barcode: string | null;
                 category: string | null;
-                imageUrl: string | null;
             };
         } & {
             id: string;
-            productId: string;
             createdAt: Date;
+            productId: string;
             quantity: number;
             priceAtSale: number;
             gstAtSale: number;
             billId: string;
         })[];
-        payments: {
-            id: string;
-            createdAt: Date;
-            billId: string;
-            amount: number;
-            method: import(".prisma/client").$Enums.PaymentMethod;
-            referenceId: string | null;
-        }[];
     } & {
         id: string;
-        storeId: string;
         createdAt: Date;
         updatedAt: Date;
+        storeId: string;
         staffId: string | null;
         status: import(".prisma/client").$Enums.BillStatus;
         subtotal: number;
@@ -81,8 +81,8 @@ export declare class PosService {
     }>;
     addItemByBarcode(billId: string, storeId: string, barcode: string, quantity: number): Promise<{
         id: string;
-        productId: string;
         createdAt: Date;
+        productId: string;
         quantity: number;
         priceAtSale: number;
         gstAtSale: number;

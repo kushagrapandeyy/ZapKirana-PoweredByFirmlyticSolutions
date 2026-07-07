@@ -23,9 +23,9 @@ export declare class DeliveryController {
         createdAt: Date;
         updatedAt: Date;
         storeId: string;
+        customerId: string;
         staffId: string | null;
         status: import(".prisma/client").$Enums.OrderStatus;
-        customerId: string;
         totalAmount: number;
         deliveryFee: number;
         gstAmount: number;

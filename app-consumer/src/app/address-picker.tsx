@@ -3,6 +3,8 @@ import { StyleSheet, Text, View, TextInput, TouchableOpacity, SafeAreaView, Keyb
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useLocalSearchParams } from 'expo-router';
 import { Colors, Shadows, Radius } from '../constants/theme';
 import { API_BASE_URL } from '../constants/api';
 
@@ -10,6 +12,7 @@ const CURRENT_CUSTOMER_ID = 'de283b71-1972-47b7-996f-6633d0f7b7f5';
 
 export default function AddressPicker() {
   const router = useRouter();
+  const { onboarding } = useLocalSearchParams();
   const [locationStr, setLocationStr] = useState('Detecting location...');
   const [coords, setCoords] = useState<{lat: number, lng: number} | null>(null);
   const [locating, setLocating] = useState(true);
@@ -92,7 +95,12 @@ export default function AddressPicker() {
         body: JSON.stringify(payload)
       });
       
-      router.back();
+      if (onboarding === 'true') {
+        await AsyncStorage.setItem('@has_onboarded', 'true');
+        router.replace('/(tabs)');
+      } else {
+        router.back();
+      }
     } catch (e) {
       console.error(e);
       alert("Failed to save address");

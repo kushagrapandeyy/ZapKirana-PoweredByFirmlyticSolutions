@@ -7,6 +7,7 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 import { API_BASE_URL, CURRENT_STORE_ID } from '../../constants/api';
 import { Colors, Shadows, Radius } from '../../constants/theme';
 import { supabase } from '../../utils/supabase';
+import { OfflineQueueService } from '../../services/OfflineQueueService';
 
 const API_URL = `${API_BASE_URL}/inventory`;
 
@@ -23,8 +24,14 @@ type PendingProduct = {
 };
 
 export default function ApprovalsScreen() {
+  const [activeTab, setActiveTab] = useState<'INVENTORY' | 'PO'>('INVENTORY');
+  
   const [pendingItems, setPendingItems] = useState<PendingProduct[]>([]);
+  const [pendingPOs, setPendingPOs] = useState<any[]>([]);
+  
   const [loading, setLoading] = useState(true);
+  const [poLoading, setPoLoading] = useState(true);
+  
   const [selectedItem, setSelectedItem] = useState<PendingProduct | null>(null);
   
   // Modal state
@@ -35,16 +42,14 @@ export default function ApprovalsScreen() {
 
   useEffect(() => {
     fetchPendingItems();
+    fetchPendingPOs();
 
-    // Subscribe to pending product inserts
     const subscription = supabase
       .channel(`approvals_updates_${CURRENT_STORE_ID}`)
       .on(
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'Product', filter: `storeId=eq.${CURRENT_STORE_ID}` },
         (payload) => {
-          // Typically we'd check if status === 'PENDING_APPROVAL' on the payload
-          console.log('Realtime Approval Alert:', payload);
           fetchPendingItems();
         }
       )
@@ -70,6 +75,21 @@ export default function ApprovalsScreen() {
     }
   };
 
+  const fetchPendingPOs = async () => {
+    setPoLoading(true);
+    try {
+      const res = await fetch(`${API_BASE_URL}/purchase-orders/store/${CURRENT_STORE_ID}`);
+      if (res.ok) {
+        const data = await res.json();
+        setPendingPOs(data.filter((po: any) => po.status === 'CREATED'));
+      }
+    } catch (error) {
+      console.error('Failed to fetch POs:', error);
+    } finally {
+      setPoLoading(false);
+    }
+  };
+
   const openApprovalModal = (item: PendingProduct) => {
     setSelectedItem(item);
     setEditName(item.suggestedName || '');
@@ -78,7 +98,7 @@ export default function ApprovalsScreen() {
     setEditSellingPrice(item.sellingPrice ? item.sellingPrice.toString() : '');
   };
 
-  const handleApprove = async () => {
+  const handleApproveInventory = async () => {
     if (!selectedItem) return;
 
     if (!editName || !editSellingPrice) {
@@ -87,7 +107,7 @@ export default function ApprovalsScreen() {
     }
 
     try {
-      const response = await fetch(`${API_URL}/products/${selectedItem.id}/approve`, {
+      const response = await OfflineQueueService.apiFetch(`${API_URL}/products/${selectedItem.id}/approve`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -99,9 +119,15 @@ export default function ApprovalsScreen() {
         }),
       });
 
-      if (response.ok) {
+      if (response.ok || response.status === 202) {
         setSelectedItem(null);
-        fetchPendingItems();
+        if (response.status === 202) {
+          Alert.alert('Offline Mode', 'Approval queued for sync.');
+          // Optimistically remove from list
+          setPendingItems(prev => prev.filter(i => i.id !== selectedItem.id));
+        } else {
+          fetchPendingItems();
+        }
       } else {
         Alert.alert('Error', 'Failed to approve item.');
       }
@@ -111,52 +137,145 @@ export default function ApprovalsScreen() {
     }
   };
 
-  const renderItem = ({ item, index }: { item: PendingProduct, index: number }) => (
+  const handleRejectInventory = async (id: string) => {
+    try {
+      const response = await OfflineQueueService.apiFetch(`${API_URL}/products/${id}`, {
+        method: 'DELETE'
+      });
+      if (response.ok || response.status === 202) {
+        if (response.status === 202) {
+          Alert.alert('Offline Mode', 'Rejection queued for sync.');
+          setPendingItems(prev => prev.filter(i => i.id !== id));
+        } else {
+          fetchPendingItems();
+        }
+      }
+    } catch(e) {
+      console.error(e);
+    }
+  }
+
+  const handleApprovePO = async (poId: string) => {
+    try {
+      const response = await OfflineQueueService.apiFetch(`${API_BASE_URL}/purchase-orders/${poId}/accept`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      if (response.ok || response.status === 202) {
+        if (response.status === 202) {
+           Alert.alert('Offline Mode', 'PO Approval queued.');
+           setPendingPOs(prev => prev.filter(p => p.id !== poId));
+        } else {
+           Alert.alert('Success', 'Purchase Order Approved and Sent.');
+           fetchPendingPOs();
+        }
+      } else {
+        Alert.alert('Error', 'Failed to approve PO.');
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const handleRejectPO = async (poId: string) => {
+    try {
+      const response = await OfflineQueueService.apiFetch(`${API_BASE_URL}/purchase-orders/${poId}`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      if (response.ok || response.status === 202) {
+        if (response.status === 202) {
+           Alert.alert('Offline Mode', 'PO Rejection queued.');
+           setPendingPOs(prev => prev.filter(p => p.id !== poId));
+        } else {
+           Alert.alert('Rejected', 'Purchase Order Draft deleted.');
+           fetchPendingPOs();
+        }
+      } else {
+        Alert.alert('Error', 'Failed to reject PO.');
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  // 1-to-1 match with inventory product card style
+  const renderInventoryItem = ({ item, index }: { item: PendingProduct, index: number }) => {
+    return (
+      <Animated.View entering={FadeInDown.delay(index * 30).springify().damping(15)}>
+        <TouchableOpacity style={styles.productCard} onPress={() => openApprovalModal(item)} activeOpacity={0.7}>
+          <Image 
+            source={{ uri: item.imageUrl || `https://placehold.co/100x100?text=${item.suggestedName?.substring(0,1) || '?'}` }} 
+            style={styles.cardImage} 
+          />
+          <View style={styles.cardInfo}>
+            <Text style={styles.productName} numberOfLines={1}>{item.suggestedName || 'Unknown Product'}</Text>
+            <Text style={styles.productCategory}>{item.suggestedCategory || 'General'}</Text>
+            <Text style={styles.productPrice}>₹{item.sellingPrice || '--'}</Text>
+          </View>
+          <View style={styles.actionsColumn}>
+            <TouchableOpacity 
+              style={[styles.actionBtn, { backgroundColor: '#F0FDF4', borderColor: Colors.success, borderWidth: 1 }]}
+              onPress={() => openApprovalModal(item)}
+            >
+              <Ionicons name="checkmark-outline" size={20} color={Colors.successDark} />
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={[styles.actionBtn, { backgroundColor: '#FEF2F2', borderColor: Colors.danger, borderWidth: 1, marginTop: 8 }]}
+              onPress={() => handleRejectInventory(item.id)}
+            >
+              <Ionicons name="close-outline" size={20} color={Colors.danger} />
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Animated.View>
+    );
+  };
+
+  const renderPOItem = ({ item, index }: { item: any, index: number }) => (
     <Animated.View entering={FadeInDown.delay(index * 50).springify().damping(15)}>
-      <View style={styles.card}>
-        <View style={styles.cardHeader}>
+      <View style={styles.poCard}>
+        <View style={styles.poCardHeader}>
           <View style={styles.barcodeWrapper}>
-            <Ionicons name="barcode-outline" size={16} color={Colors.textSecondary} style={{ marginRight: 4 }} />
-            <Text style={styles.barcodeText}>{item.barcode}</Text>
+            <Ionicons name="document-text-outline" size={16} color={Colors.textSecondary} style={{ marginRight: 4 }} />
+            <Text style={styles.barcodeText}>PO #{item.id.slice(-6).toUpperCase()}</Text>
           </View>
           <Text style={styles.timeText}>{new Date(item.createdAt).toLocaleDateString()}</Text>
         </View>
 
-        <View style={styles.cardBody}>
-          <Image 
-            source={{ uri: item.imageUrl || `https://placehold.co/100x100?text=${item.suggestedName?.substring(0,1) || '?'}` }} 
-            style={styles.productImage} 
-          />
-          <View style={styles.productInfo}>
-            <Text style={styles.productName} numberOfLines={2}>
-              {item.suggestedName || 'Unknown Product'}
+        <View style={styles.poCardBody}>
+          <View style={styles.poProductImage}>
+            <Ionicons name="business" size={32} color={Colors.textSecondary} />
+          </View>
+          <View style={styles.poProductInfo}>
+            <Text style={styles.poProductName} numberOfLines={2}>
+              {item.supplier?.name || 'Unknown Supplier'}
             </Text>
-            <Text style={styles.categoryText}>{item.suggestedCategory || 'Uncategorized'}</Text>
-            <View style={styles.priceRow}>
-              <Text style={styles.priceLabel}>Suggested Price: </Text>
-              <Text style={styles.priceValue}>₹{item.sellingPrice || '--'}</Text>
+            <Text style={styles.poCategoryText}>{item.items?.length || 0} Items Ordered</Text>
+            <View style={styles.poPriceRow}>
+              <Text style={styles.poPriceLabel}>Total Value: </Text>
+              <Text style={styles.poPriceValue}>₹{item.totalAmount?.toFixed(2) || '0.00'}</Text>
             </View>
           </View>
         </View>
 
-        <View style={styles.cardFooter}>
-          <Text style={styles.scannedByText}>
-            Scanned by: <Text style={{ fontFamily: 'Inter_700Bold' }}>{item.createdBy?.name || 'Staff'}</Text>
-          </Text>
+        <View style={styles.poCardFooter}>
+          <Text style={styles.scannedByText}>Drafted by Staff</Text>
           <View style={styles.actionRow}>
             <TouchableOpacity 
-              style={styles.rejectBtn}
+              style={styles.rejectBtn} 
               activeOpacity={0.8}
+              onPress={() => handleRejectPO(item.id)}
             >
-              <Ionicons name="close" size={20} color={Colors.danger} />
+              <Ionicons name="trash-outline" size={20} color={Colors.danger} />
             </TouchableOpacity>
             <TouchableOpacity 
               style={styles.approveCardBtn}
-              onPress={() => openApprovalModal(item)}
+              onPress={() => handleApprovePO(item.id)}
               activeOpacity={0.8}
             >
-              <Text style={styles.approveCardBtnText}>Review</Text>
-              <Ionicons name="chevron-forward" size={16} color="#fff" />
+              <Text style={styles.approveCardBtnText}>Approve & Send</Text>
+              <Ionicons name="paper-plane-outline" size={16} color="#fff" style={{ marginLeft: 4 }} />
             </TouchableOpacity>
           </View>
         </View>
@@ -170,19 +289,34 @@ export default function ApprovalsScreen() {
         <View style={styles.headerTop}>
           <Text style={styles.headerTitle}>Approvals</Text>
           <View style={styles.actionPill}>
-            <Text style={styles.actionPillText}>{pendingItems.length} ACTION REQUIRED</Text>
+            <Text style={styles.actionPillText}>{pendingItems.length + pendingPOs.length} ACTION REQUIRED</Text>
           </View>
         </View>
-        <Text style={styles.headerSub}>Review scanner inventory dumps and price overrides.</Text>
+        <Text style={styles.headerSub}>Review scanner inventory dumps and drafted POs.</Text>
       </View>
 
-      {loading ? (
+      <View style={styles.tabsContainer}>
+        <TouchableOpacity 
+          style={[styles.tabBtn, activeTab === 'INVENTORY' && styles.tabBtnActive]}
+          onPress={() => setActiveTab('INVENTORY')}
+        >
+          <Text style={[styles.tabText, activeTab === 'INVENTORY' && styles.tabTextActive]}>Inventory ({pendingItems.length})</Text>
+        </TouchableOpacity>
+        <TouchableOpacity 
+          style={[styles.tabBtn, activeTab === 'PO' && styles.tabBtnActive]}
+          onPress={() => setActiveTab('PO')}
+        >
+          <Text style={[styles.tabText, activeTab === 'PO' && styles.tabTextActive]}>Purchase Orders ({pendingPOs.length})</Text>
+        </TouchableOpacity>
+      </View>
+
+      {(activeTab === 'INVENTORY' ? loading : poLoading) ? (
         <ActivityIndicator size="large" color={Colors.primary} style={{ marginTop: 50 }} />
       ) : (
         <FlatList
-          data={pendingItems}
+          data={activeTab === 'INVENTORY' ? pendingItems : pendingPOs}
           keyExtractor={(item) => item.id}
-          renderItem={renderItem}
+          renderItem={activeTab === 'INVENTORY' ? renderInventoryItem : renderPOItem}
           contentContainerStyle={styles.listContainer}
           showsVerticalScrollIndicator={false}
           ListEmptyComponent={
@@ -195,7 +329,7 @@ export default function ApprovalsScreen() {
         />
       )}
 
-      {/* Approval Modal */}
+      {/* Approval Modal (Inventory) */}
       <Modal
         visible={!!selectedItem}
         animationType="slide"
@@ -257,7 +391,7 @@ export default function ApprovalsScreen() {
                   </View>
                 </View>
 
-                <TouchableOpacity style={styles.approveBtn} onPress={handleApprove} activeOpacity={0.8}>
+                <TouchableOpacity style={styles.approveBtn} onPress={handleApproveInventory} activeOpacity={0.8}>
                   <Ionicons name="checkmark-circle" size={20} color="#fff" />
                   <Text style={styles.approveBtnText}>Publish to Catalog</Text>
                 </TouchableOpacity>
@@ -275,24 +409,42 @@ const styles = StyleSheet.create({
   header: { padding: 20, paddingTop: 16, paddingBottom: 10 },
   headerTitle: { fontSize: 32, fontFamily: 'PlayfairDisplay_700Bold', color: Colors.textPrimary },
   headerSub: { fontSize: 14, fontFamily: 'Inter_500Medium', color: Colors.textSecondary, marginTop: 4 },
+  
+  tabsContainer: { flexDirection: 'row', paddingHorizontal: 20, marginBottom: 10 },
+  tabBtn: { flex: 1, paddingVertical: 12, alignItems: 'center', borderBottomWidth: 2, borderBottomColor: '#E2E8F0' },
+  tabBtnActive: { borderBottomColor: Colors.primary },
+  tabText: { fontFamily: 'Inter_600SemiBold', fontSize: 14, color: Colors.textSecondary },
+  tabTextActive: { color: Colors.primary, fontFamily: 'Inter_700Bold' },
+
   listContainer: { padding: 20, paddingBottom: 100 },
   
-  card: { backgroundColor: '#fff', borderRadius: Radius.xl, marginBottom: 16, overflow: 'hidden', ...Shadows.md, borderWidth: 1, borderColor: '#F1F5F9' },
-  cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#F8FAFC', paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#F1F5F9' },
+  // INVENTORY EXACT MATCH STYLES
+  productCard: { flexDirection: 'row', backgroundColor: '#fff', borderRadius: Radius.xl, padding: 12, marginBottom: 12, alignItems: 'center', ...Shadows.sm, borderWidth: 1, borderColor: '#F1F5F9' },
+  cardImage: { width: 64, height: 64, borderRadius: Radius.lg, backgroundColor: '#F8FAFC', marginRight: 16 },
+  cardInfo: { flex: 1 },
+  productName: { fontSize: 16, fontFamily: 'Inter_700Bold', color: Colors.textPrimary, marginBottom: 4 },
+  productCategory: { fontSize: 13, fontFamily: 'Inter_500Medium', color: Colors.textSecondary, marginBottom: 6 },
+  productPrice: { fontSize: 15, fontFamily: 'Inter_700Bold', color: Colors.successDark },
+  actionsColumn: { alignItems: 'center', justifyContent: 'center' },
+  actionBtn: { width: 36, height: 36, borderRadius: 18, justifyContent: 'center', alignItems: 'center' },
+
+  // PO SPECIFIC STYLES
+  poCard: { backgroundColor: '#fff', borderRadius: Radius.xl, marginBottom: 16, overflow: 'hidden', ...Shadows.md, borderWidth: 1, borderColor: '#F1F5F9' },
+  poCardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#F8FAFC', paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#F1F5F9' },
   barcodeWrapper: { flexDirection: 'row', alignItems: 'center' },
   barcodeText: { fontFamily: 'Inter_600SemiBold', fontSize: 13, color: Colors.textSecondary, letterSpacing: 0.5 },
   timeText: { fontFamily: 'Inter_500Medium', fontSize: 12, color: Colors.textMuted },
   
-  cardBody: { flexDirection: 'row', padding: 16, alignItems: 'center' },
-  productImage: { width: 64, height: 64, borderRadius: Radius.lg, backgroundColor: '#F1F5F9', marginRight: 16 },
-  productInfo: { flex: 1 },
-  productName: { fontSize: 16, fontFamily: 'Inter_700Bold', color: Colors.textPrimary, marginBottom: 4 },
-  categoryText: { fontSize: 13, fontFamily: 'Inter_500Medium', color: Colors.textSecondary, marginBottom: 8 },
-  priceRow: { flexDirection: 'row', alignItems: 'center' },
-  priceLabel: { fontSize: 13, fontFamily: 'Inter_500Medium', color: Colors.textMuted },
-  priceValue: { fontSize: 14, fontFamily: 'Inter_700Bold', color: Colors.successDark },
+  poCardBody: { flexDirection: 'row', padding: 16, alignItems: 'center' },
+  poProductImage: { width: 64, height: 64, borderRadius: Radius.lg, backgroundColor: '#F1F5F9', marginRight: 16, justifyContent: 'center', alignItems: 'center' },
+  poProductInfo: { flex: 1 },
+  poProductName: { fontSize: 16, fontFamily: 'Inter_700Bold', color: Colors.textPrimary, marginBottom: 4 },
+  poCategoryText: { fontSize: 13, fontFamily: 'Inter_500Medium', color: Colors.textSecondary, marginBottom: 8 },
+  poPriceRow: { flexDirection: 'row', alignItems: 'center' },
+  poPriceLabel: { fontSize: 13, fontFamily: 'Inter_500Medium', color: Colors.textMuted },
+  poPriceValue: { fontSize: 14, fontFamily: 'Inter_700Bold', color: Colors.successDark },
 
-  cardFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 16, paddingTop: 0 },
+  poCardFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 16, paddingTop: 0 },
   scannedByText: { fontSize: 12, fontFamily: 'Inter_400Regular', color: Colors.textSecondary },
   actionRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   rejectBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: '#FEF2F2', justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: '#FECACA' },

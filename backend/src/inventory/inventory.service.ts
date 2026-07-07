@@ -313,6 +313,27 @@ export class InventoryService {
     }
   }
 
+  // --- Products ---
+  
+  async updateProduct(id: string, storeId: string, data: any) {
+    // Also handle supplier connection and pricing
+    return this.prisma.product.update({
+      where: { id, storeId },
+      data: {
+        name: data.name,
+        category: data.category,
+        sellingPrice: data.price,
+        imageUrl: data.imageUrl,
+        rateA: data.rateA,
+        rateB: data.rateB,
+        rateC: data.rateC,
+        minimumQty: data.minimumQty,
+        reorderDays: data.reorderDays,
+        // supplier mapping goes through supplierProduct table
+      }
+    });
+  }
+
   // --- Pending Products (Approvals) ---
 
   async getPendingProducts(storeId: string) {

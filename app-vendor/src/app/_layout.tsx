@@ -6,6 +6,9 @@ import { AuthProvider } from '@/context/AuthContext';
 import { LedgerProvider } from '@/context/LedgerContext';
 import Toast from 'react-native-toast-message';
 import '@/lib/locationTracking';
+import { QueryClientProvider } from '@tanstack/react-query';
+import { queryClient } from '@/lib/react-query';
+import NetworkSyncProvider from '@/components/NetworkSyncProvider';
 
 export default function RootLayout() {
   const [fontsLoaded] = useFonts({
@@ -18,16 +21,20 @@ export default function RootLayout() {
   if (!fontsLoaded) return null;
 
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
+    <QueryClientProvider client={queryClient}>
+      <GestureHandlerRootView style={{ flex: 1 }}>
       <AuthProvider>
         <LedgerProvider>
-          <Stack screenOptions={{ headerShown: false }}>
-            <Stack.Screen name="(auth)" />
-            <Stack.Screen name="(tabs)" />
-          </Stack>
-          <Toast />
+          <NetworkSyncProvider>
+            <Stack screenOptions={{ headerShown: false }}>
+              <Stack.Screen name="(auth)" />
+              <Stack.Screen name="(tabs)" />
+            </Stack>
+            <Toast />
+          </NetworkSyncProvider>
         </LedgerProvider>
       </AuthProvider>
-    </GestureHandlerRootView>
+      </GestureHandlerRootView>
+    </QueryClientProvider>
   );
 }

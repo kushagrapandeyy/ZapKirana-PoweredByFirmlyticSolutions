@@ -1,7 +1,7 @@
 import Constants from 'expo-constants';
 
 const getApiUrl = () => {
-  return 'https://zapkirana-poweredbyfirmlyticsolutions.onrender.com';
+  return 'http://100.70.73.205:3000';
 };
 
 export const API_BASE_URL = getApiUrl();

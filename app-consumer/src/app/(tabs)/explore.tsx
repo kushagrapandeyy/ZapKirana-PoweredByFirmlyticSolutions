@@ -267,7 +267,7 @@ const styles = StyleSheet.create({
     borderWidth: 1, 
     borderColor: Colors.borderLight 
   },
-  storeCoverImage: { width: '100%', height: 180, backgroundColor: Colors.surfaceAlt },
+  storeCoverImage: { width: '100%', height: 90, backgroundColor: Colors.surfaceAlt },
   storeOverlay: { 
     position: 'absolute', 
     top: 12, left: 12, right: 12, 

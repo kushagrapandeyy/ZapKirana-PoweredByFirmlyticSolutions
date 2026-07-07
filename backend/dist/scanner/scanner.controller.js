@@ -21,90 +21,57 @@ let ScannerController = class ScannerController {
     constructor(scannerService) {
         this.scannerService = scannerService;
     }
-    getWorkflows() {
-        return this.scannerService.getWorkflows();
+    lookupBarcode(body) {
+        return this.scannerService.lookupBarcode(body.storeId, body.barcode, body.scanMode);
     }
-    resolveBarcode(body) {
-        return this.scannerService.resolveBarcode(body);
+    updateProduct(productId, req, body) {
+        const userId = req.user?.id || 'de283b71-1972-47b7-996f-6633d0f7b7f5';
+        return this.scannerService.updateProduct(userId, productId, body);
     }
-    submitEvent(body) {
-        return this.scannerService.submitScanEvent(body);
+    updateStock(req, body) {
+        const userId = req.user?.id || 'de283b71-1972-47b7-996f-6633d0f7b7f5';
+        return this.scannerService.updateStock(userId, body);
     }
-    batchSync(body) {
-        return this.scannerService.batchSync(body.storeId, body.deviceId, body.events);
-    }
-    getActivity(storeId, limit) {
-        return this.scannerService.getScannerActivity(storeId, limit ? parseInt(limit, 10) : 50);
-    }
-    getDevices(storeId) {
-        return this.scannerService.getDevices(storeId);
-    }
-    registerDevice(body) {
-        return this.scannerService.registerDevice(body);
-    }
-    heartbeat(deviceId) {
-        return this.scannerService.deviceHeartbeat(deviceId);
+    createProductDraft(req, body) {
+        const userId = req.user?.id || 'de283b71-1972-47b7-996f-6633d0f7b7f5';
+        return this.scannerService.createProductDraft(userId, body);
     }
 };
 exports.ScannerController = ScannerController;
 __decorate([
-    (0, common_1.Get)('workflows'),
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", []),
-    __metadata("design:returntype", void 0)
-], ScannerController.prototype, "getWorkflows", null);
-__decorate([
-    (0, common_1.Post)('resolve'),
+    (0, common_1.Post)('barcode/lookup'),
     __param(0, (0, common_1.Body)()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [Object]),
     __metadata("design:returntype", void 0)
-], ScannerController.prototype, "resolveBarcode", null);
+], ScannerController.prototype, "lookupBarcode", null);
 __decorate([
-    (0, common_1.Post)('events'),
-    __param(0, (0, common_1.Body)()),
+    (0, common_1.Patch)('products/:productId'),
+    __param(0, (0, common_1.Param)('productId')),
+    __param(1, (0, common_1.Req)()),
+    __param(2, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object]),
+    __metadata("design:paramtypes", [String, Object, Object]),
     __metadata("design:returntype", void 0)
-], ScannerController.prototype, "submitEvent", null);
+], ScannerController.prototype, "updateProduct", null);
 __decorate([
-    (0, common_1.Post)('sync/batch'),
-    __param(0, (0, common_1.Body)()),
+    (0, common_1.Post)('stock/update'),
+    __param(0, (0, common_1.Req)()),
+    __param(1, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object]),
+    __metadata("design:paramtypes", [Object, Object]),
     __metadata("design:returntype", void 0)
-], ScannerController.prototype, "batchSync", null);
+], ScannerController.prototype, "updateStock", null);
 __decorate([
-    (0, common_1.Get)('activity'),
-    __param(0, (0, common_1.Query)('storeId')),
-    __param(1, (0, common_1.Query)('limit')),
+    (0, common_1.Post)('product-drafts'),
+    __param(0, (0, common_1.Req)()),
+    __param(1, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, String]),
+    __metadata("design:paramtypes", [Object, Object]),
     __metadata("design:returntype", void 0)
-], ScannerController.prototype, "getActivity", null);
-__decorate([
-    (0, common_1.Get)('devices'),
-    __param(0, (0, common_1.Query)('storeId')),
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String]),
-    __metadata("design:returntype", void 0)
-], ScannerController.prototype, "getDevices", null);
-__decorate([
-    (0, common_1.Post)('devices'),
-    __param(0, (0, common_1.Body)()),
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object]),
-    __metadata("design:returntype", void 0)
-], ScannerController.prototype, "registerDevice", null);
-__decorate([
-    (0, common_1.Post)('devices/:deviceId/heartbeat'),
-    __param(0, (0, common_1.Param)('deviceId')),
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String]),
-    __metadata("design:returntype", void 0)
-], ScannerController.prototype, "heartbeat", null);
+], ScannerController.prototype, "createProductDraft", null);
 exports.ScannerController = ScannerController = __decorate([
-    (0, common_1.Controller)('api/v1/scanner'),
+    (0, common_1.Controller)('scanner'),
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
     __metadata("design:paramtypes", [scanner_service_1.ScannerService])
 ], ScannerController);

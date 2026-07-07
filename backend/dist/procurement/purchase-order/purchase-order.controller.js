@@ -41,6 +41,12 @@ let PurchaseOrderController = class PurchaseOrderController {
     async acceptPO(id) {
         return this.poService.acceptPO(id);
     }
+    async updatePOItems(id, body) {
+        return this.poService.updatePOItems(id, body.items);
+    }
+    async deletePO(id) {
+        return this.poService.deletePO(id);
+    }
     async sendPO(id) {
         return this.poService.sendPO(id);
     }
@@ -92,6 +98,21 @@ __decorate([
     __metadata("design:paramtypes", [String]),
     __metadata("design:returntype", Promise)
 ], PurchaseOrderController.prototype, "acceptPO", null);
+__decorate([
+    (0, common_1.Patch)(':id/items'),
+    __param(0, (0, common_1.Param)('id')),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, Object]),
+    __metadata("design:returntype", Promise)
+], PurchaseOrderController.prototype, "updatePOItems", null);
+__decorate([
+    (0, common_1.Delete)(':id'),
+    __param(0, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", Promise)
+], PurchaseOrderController.prototype, "deletePO", null);
 __decorate([
     (0, common_1.Patch)(':id/send'),
     __param(0, (0, common_1.Param)('id')),

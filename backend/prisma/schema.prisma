@@ -194,14 +194,57 @@ model Product {
   internalSku        String              @unique
   name               String
   description        String?
+  brand              String?
   category           String?
+  hsnSac             String?
+  baseUnit           String?             @default("PCS")
+  saleUnit           String?             @default("PCS")
+  packing            String?
+  shelfLifeDays      Int?
+  conversionToBase   Int?                @default(1)
+  
   mrp                Float
   sellingPrice       Float
   purchaseCost       Float?
+  purchaseRateBaseUnit  Float?
+  purchaseRateInputUnit Float?
+  saleRateBaseUnit   Float?
+  
   gstRate            Float               @default(0)
+  sgstPercent        Float?              @default(0)
+  cgstPercent        Float?              @default(0)
+  igstPercent        Float?              @default(0)
   gstClass           GSTClass            @default(EXEMPT)
   subscriptionDiscount Float             @default(0)
   imageUrl           String?
+  
+  barcodeType        String?
+  unitName           String?
+  rackNo             String?
+  
+  // Marg ERP Fields
+  erpStatus            String?
+  erpType              String?
+  colorType            String?
+  itemType             String?
+  company              String?
+  group                String?
+  minimumQty           Int?
+  vDisOn               Float?
+  itemDisc1            Float?
+  specialDisc          Float?
+  maximumDiscountPercent Float?
+  freeScheme           String?
+  minimumMarginPercent Float?
+  rateA                Float?
+  rateB                Float?
+  rateC                Float?
+  costPerPcs           Float?
+  negativeStockAllowed Boolean?
+  reorderDays          Int?
+  discountApplicable   Boolean?
+  manufacturF3         String?
+  
   isActive           Boolean             @default(true)
   inventory          Inventory[]
   movements          StockMovement[]
@@ -236,6 +279,7 @@ model Inventory {
   product           Product         @relation(fields: [productId], references: [id])
   batchNo           String?
   expiryDate        DateTime?
+  rackNo            String?
   onHandQty         Int             @default(0)
   reservedQty       Int             @default(0)
   blockedQty        Int             @default(0)
@@ -468,6 +512,36 @@ model Supplier {
   paymentTerms String? // e.g., "Net 30", "COD"
   onTimeRate   Float    @default(100.0) // percentage
   fillRate     Float    @default(100.0) // percentage
+  
+  // Marg ERP Ledger Fields
+  station               String?
+  accountGroup          String?
+  balancingMethod       String?
+  openingBalance        Float?
+  openingBalanceType    String?
+  mailTo                String?
+  pinCode               String?
+  holdPayment           Boolean?
+  holdPaymentPercent    Float?
+  website               String?
+  contactPersonName     String?
+  contactPersonPhone    String?
+  designation           String?
+  mobile                String?
+  faxNo                 String?
+  freezeUpto            DateTime?
+  gstinNo               String?
+  tinNo                 String?
+  foodLicenceNo         String?
+  panNo                 String?
+  ledgerDate            DateTime?
+  ledgerCategory        String?
+  state                 String?
+  country               String?
+  ledgerType            String?
+  color                 String?
+  hide                  Boolean?
+  
   isActive     Boolean  @default(true)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
@@ -820,6 +894,13 @@ model PendingProduct {
   sellingPrice      Float?
   purchasePrice     Float?
   gstRate           Float                @default(0)
+  
+  hsnSac            String?
+  baseUnit          String?
+  purchaseUnit      String?
+  conversionToBase  Int?
+  supplierId        String?
+  
   imageUrl          String?
   status            PendingProductStatus @default(PENDING_REVIEW)
   createdById       String?

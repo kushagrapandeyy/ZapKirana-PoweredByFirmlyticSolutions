@@ -1,11 +1,12 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { StyleSheet, Text, View, ScrollView, TouchableOpacity, Image, SafeAreaView, FlatList, Dimensions, RefreshControl } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { useCart } from '../../../context/CartContext';
+import { useCart } from '../../context/CartContext';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown, FadeIn, useSharedValue, useAnimatedStyle, withSpring, withSequence } from 'react-native-reanimated';
-import { Colors, Shadows, Radius } from '../../../constants/theme';
-import { API_BASE_URL, SUPABASE_URL, SUPABASE_ANON_KEY } from '../../../constants/api';
+import { Colors, Shadows, Radius } from '../../constants/theme';
+import { API_BASE_URL, SUPABASE_URL, SUPABASE_ANON_KEY } from '../../constants/api';
 import { createClient } from '@supabase/supabase-js';
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);

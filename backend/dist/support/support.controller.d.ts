@@ -9,11 +9,11 @@ export declare class SupportController {
         createdAt: Date;
         updatedAt: Date;
         storeId: string | null;
-        status: import(".prisma/client").$Enums.TicketStatus;
-        title: string;
         customerId: string | null;
+        status: import(".prisma/client").$Enums.TicketStatus;
         orderId: string | null;
         assignedToId: string | null;
+        title: string;
         priority: import(".prisma/client").$Enums.TicketPriority;
     }>;
     getTickets(query: any): Promise<({
@@ -28,6 +28,8 @@ export declare class SupportController {
             gstin: string | null;
             isActive: boolean;
             imageUrl: string | null;
+            logoUrl: string | null;
+            bannerUrl: string | null;
             operatingHours: string | null;
             rating: number;
             description: string | null;
@@ -75,11 +77,11 @@ export declare class SupportController {
         createdAt: Date;
         updatedAt: Date;
         storeId: string | null;
-        status: import(".prisma/client").$Enums.TicketStatus;
-        title: string;
         customerId: string | null;
+        status: import(".prisma/client").$Enums.TicketStatus;
         orderId: string | null;
         assignedToId: string | null;
+        title: string;
         priority: import(".prisma/client").$Enums.TicketPriority;
     })[]>;
     getTicket(id: string): Promise<{
@@ -94,6 +96,8 @@ export declare class SupportController {
             gstin: string | null;
             isActive: boolean;
             imageUrl: string | null;
+            logoUrl: string | null;
+            bannerUrl: string | null;
             operatingHours: string | null;
             rating: number;
             description: string | null;
@@ -150,11 +154,11 @@ export declare class SupportController {
         createdAt: Date;
         updatedAt: Date;
         storeId: string | null;
-        status: import(".prisma/client").$Enums.TicketStatus;
-        title: string;
         customerId: string | null;
+        status: import(".prisma/client").$Enums.TicketStatus;
         orderId: string | null;
         assignedToId: string | null;
+        title: string;
         priority: import(".prisma/client").$Enums.TicketPriority;
     }>;
     updateStatus(id: string, status: string): Promise<{
@@ -163,11 +167,11 @@ export declare class SupportController {
         createdAt: Date;
         updatedAt: Date;
         storeId: string | null;
-        status: import(".prisma/client").$Enums.TicketStatus;
-        title: string;
         customerId: string | null;
+        status: import(".prisma/client").$Enums.TicketStatus;
         orderId: string | null;
         assignedToId: string | null;
+        title: string;
         priority: import(".prisma/client").$Enums.TicketPriority;
     }>;
     interveneOrder(orderId: string, status: OrderStatus, reason: string, req: any): Promise<{
@@ -175,9 +179,9 @@ export declare class SupportController {
         createdAt: Date;
         updatedAt: Date;
         storeId: string;
+        customerId: string;
         staffId: string | null;
         status: import(".prisma/client").$Enums.OrderStatus;
-        customerId: string;
         totalAmount: number;
         deliveryFee: number;
         gstAmount: number;

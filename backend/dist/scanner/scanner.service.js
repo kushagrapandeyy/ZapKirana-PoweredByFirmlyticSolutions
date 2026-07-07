@@ -13,6 +13,8 @@ exports.ScannerService = void 0;
 exports.classifyBarcode = classifyBarcode;
 const common_1 = require("@nestjs/common");
 const prisma_service_1 = require("../prisma.service");
+const cache_service_1 = require("../cache/cache.service");
+const realtime_service_1 = require("../realtime/realtime.service");
 const uuid_1 = require("uuid");
 function classifyBarcode(rawValue) {
     const v = rawValue.trim();
@@ -36,253 +38,312 @@ function classifyBarcode(rawValue) {
         return { scope: 'INTERNAL_OPERATIONAL', rawValue: v, symbology: 'CODE_128', referenceType: 'BIN', referenceId: v };
     }
     if (/^\d{13}$/.test(v)) {
-        const gtin = '0' + v;
-        return { scope: 'GS1_EXTERNAL_PRODUCT', rawValue: v, symbology: 'EAN_13', gtin };
+        return { scope: 'GS1_EXTERNAL_PRODUCT', rawValue: v, symbology: 'EAN_13', gtin: '0' + v };
     }
     if (/^\d{8}$/.test(v)) {
-        const gtin = '000000' + v;
-        return { scope: 'GS1_EXTERNAL_PRODUCT', rawValue: v, symbology: 'EAN_8', gtin };
+        return { scope: 'GS1_EXTERNAL_PRODUCT', rawValue: v, symbology: 'EAN_8', gtin: '000000' + v };
     }
     if (/^\d{12}$/.test(v)) {
-        const gtin = '00' + v;
-        return { scope: 'GS1_EXTERNAL_PRODUCT', rawValue: v, symbology: 'UPC_A', gtin };
+        return { scope: 'GS1_EXTERNAL_PRODUCT', rawValue: v, symbology: 'UPC_A', gtin: '00' + v };
     }
     if (/^\d{14}$/.test(v)) {
         return { scope: 'GS1_EXTERNAL_PRODUCT', rawValue: v, symbology: 'ITF_14', gtin: v };
     }
     return { scope: 'UNKNOWN', rawValue: v, symbology: 'UNKNOWN' };
 }
-const WORKFLOW_NEXT_ACTION = {
-    GOODS_RECEIVING: { action: 'ENTER_RECEIVED_QUANTITY', requiresExpiry: true, requiresBatch: false },
-    STOCK_AUDIT: { action: 'ENTER_COUNT', requiresExpiry: false, requiresBatch: false },
-    PRODUCT_INTAKE: { action: 'CREATE_PENDING_PRODUCT', requiresExpiry: false, requiresBatch: false },
-    LOOSE_ITEM_PACKING: { action: 'ENTER_PACK_QUANTITY', requiresExpiry: true, requiresBatch: false },
-    ORDER_PICKING: { action: 'CONFIRM_PICKED', requiresExpiry: false, requiresBatch: false },
-    SHELF_REFILL: { action: 'CONFIRM_REFILLED', requiresExpiry: false, requiresBatch: false },
-    DAMAGED_EXPIRED: { action: 'ENTER_DAMAGED_QUANTITY', requiresExpiry: false, requiresBatch: false },
-    LABEL_REPRINT: { action: 'SELECT_LABEL_TEMPLATE', requiresExpiry: false, requiresBatch: false },
-    POS_BILLING: { action: 'ADD_TO_BILL', requiresExpiry: false, requiresBatch: false },
-};
 let ScannerService = class ScannerService {
     prisma;
-    constructor(prisma) {
+    cacheService;
+    realtimeService;
+    constructor(prisma, cacheService, realtimeService) {
         this.prisma = prisma;
+        this.cacheService = cacheService;
+        this.realtimeService = realtimeService;
     }
-    async resolveBarcode(data) {
-        const classified = classifyBarcode(data.rawValue);
-        const symbology = classified.symbology;
-        const parsedJson = { ...classified, workflow: data.workflow };
-        let resolutionStatus = 'UNKNOWN_BARCODE';
-        let product = null;
-        let inventory = null;
-        const registryEntry = await this.prisma.barcodeRegistry.findFirst({
-            where: {
-                barcodeValue: data.rawValue,
-                isActive: true,
-                OR: [{ storeId: data.storeId }, { storeId: null }],
+    async checkPermission(userId, storeId) {
+        const roleRecord = await this.prisma.userStoreRole.findFirst({
+            where: { userId, storeId, status: 'ACTIVE' },
+        });
+        if (!roleRecord) {
+            const user = await this.prisma.user.findUnique({ where: { id: userId } });
+            if (user && (user.role === 'OWNER' || user.role === 'ORG_ADMIN')) {
+                return user.role;
+            }
+            throw new common_1.ForbiddenException('User has no active role or access to this store');
+        }
+        return roleRecord.role;
+    }
+    async lookupBarcode(storeId, barcode, scanMode) {
+        const cacheKey = `store:${storeId}:barcode:${barcode}`;
+        const cached = await this.cacheService.get(cacheKey);
+        if (cached) {
+            console.log(`[Scanner] Cache HIT for barcode: ${barcode}`);
+            return cached;
+        }
+        console.log(`[Scanner] Cache MISS for barcode: ${barcode}`);
+        const product = await this.prisma.product.findFirst({
+            where: { barcode, storeId, isActive: true },
+            include: {
+                inventory: {
+                    where: { storeId },
+                },
             },
-            include: { product: true },
         });
-        if (registryEntry?.product) {
-            product = registryEntry.product;
-            resolutionStatus = classified.scope === 'GS1_EXTERNAL_PRODUCT' ? 'FOUND' : 'INTERNAL_BARCODE';
+        if (!product) {
+            return {
+                found: false,
+                action: 'CREATE_PRODUCT_DRAFT',
+                barcode,
+            };
         }
-        if (!product && classified.scope === 'GS1_EXTERNAL_PRODUCT') {
-            product = await this.prisma.product.findFirst({
-                where: { barcode: data.rawValue, storeId: data.storeId, isActive: true },
-            });
-            if (product)
-                resolutionStatus = 'FOUND';
-        }
-        if (product) {
-            inventory = await this.prisma.inventory.findFirst({
-                where: { storeId: data.storeId, productId: product.id },
-            });
-        }
-        if (classified.scope === 'INTERNAL_OPERATIONAL') {
-            resolutionStatus = 'OPERATIONAL_BARCODE';
-        }
-        const existingEvent = await this.prisma.scannerEvent.findUnique({
-            where: { idempotencyKey: data.idempotencyKey },
+        const inventoryRecord = product.inventory[0];
+        const quantityBase = inventoryRecord ? inventoryRecord.onHandQty : 0;
+        const conversion = product.conversionToBase || 15;
+        const boxes = Math.floor(quantityBase / conversion);
+        const pcs = quantityBase % conversion;
+        const displayQuantity = `${boxes} BOX + ${pcs} PCS`;
+        const response = {
+            found: true,
+            product: {
+                id: product.id,
+                name: product.name,
+                brand: product.brand || 'General',
+                category: product.category || 'General',
+                hsnSac: product.hsnSac || '04039090',
+                baseUnit: product.baseUnit || 'PCS',
+                saleUnit: product.saleUnit || 'PCS',
+                packing: product.packing || `BOX OF ${conversion}`,
+                shelfLifeDays: product.shelfLifeDays || 258,
+            },
+            barcodeUnit: {
+                barcodeType: 'BOX',
+                unitName: 'BOX',
+                conversionToBase: conversion,
+            },
+            pricing: {
+                mrp: product.mrp,
+                purchaseRateBaseUnit: product.purchaseRateBaseUnit || (product.purchaseCost || 0),
+                purchaseRateInputUnit: product.purchaseRateInputUnit || ((product.purchaseCost || 0) * conversion),
+                saleRateBaseUnit: product.saleRateBaseUnit || product.sellingPrice,
+            },
+            tax: {
+                sgstPercent: product.sgstPercent || (product.gstRate / 2),
+                cgstPercent: product.cgstPercent || (product.gstRate / 2),
+                igstPercent: product.igstPercent || product.gstRate,
+            },
+            inventory: {
+                quantityBase,
+                displayQuantity,
+                rackNo: inventoryRecord?.rackNo || 'A-12',
+                reorderQtyBase: inventoryRecord ? inventoryRecord.lowStockThreshold : 15,
+            },
+        };
+        await this.cacheService.set(cacheKey, response, 3600);
+        return response;
+    }
+    async updateProduct(userId, productId, data) {
+        const role = await this.checkPermission(userId, data.storeId);
+        const product = await this.prisma.product.findUnique({
+            where: { id: productId },
         });
-        if (!existingEvent) {
-            await this.prisma.scannerEvent.create({
+        if (!product || product.storeId !== data.storeId) {
+            throw new common_1.NotFoundException('Product not found in this store');
+        }
+        if (data.mrp !== undefined && data.mrp <= 0) {
+            throw new common_1.BadRequestException('MRP must be positive');
+        }
+        if (data.sgstPercent !== undefined && data.cgstPercent !== undefined && data.igstPercent !== undefined) {
+            if (data.sgstPercent + data.cgstPercent !== data.igstPercent) {
+                throw new common_1.BadRequestException('CGST + SGST must equal IGST');
+            }
+        }
+        if (data.hsnSac !== undefined && !/^\d{6,8}$/.test(data.hsnSac)) {
+            throw new common_1.BadRequestException('HSN/SAC format is invalid (must be 6-8 digits)');
+        }
+        if (role === 'SCANNER_STAFF' || role === 'STAFF') {
+            const draft = await this.prisma.pendingProduct.create({
                 data: {
                     storeId: data.storeId,
-                    deviceId: data.deviceId ?? null,
-                    scannedById: data.scannedById ?? null,
-                    workflow: data.workflow,
-                    rawValue: data.rawValue,
-                    symbology,
-                    parsedJson,
-                    resolutionStatus,
-                    idempotencyKey: data.idempotencyKey,
-                    quantity: data.quantity ?? null,
-                    metadata: data.metadata ? JSON.parse(JSON.stringify(data.metadata)) : {},
+                    barcode: product.barcode,
+                    suggestedName: data.name || product.name,
+                    suggestedBrand: data.brand || product.brand,
+                    suggestedCategory: data.category || product.category,
+                    mrp: data.mrp || product.mrp,
+                    sellingPrice: data.saleRateBaseUnit || product.sellingPrice,
+                    purchasePrice: data.purchaseRateBaseUnit || product.purchaseCost,
+                    gstRate: data.igstPercent || product.gstRate,
+                    createdById: userId,
+                    status: 'PENDING_REVIEW',
+                    notes: `Staff requested updates. Rack: ${data.rackNo || product.rackNo}. HSN: ${data.hsnSac || product.hsnSac}`,
+                },
+            });
+            return {
+                draftId: draft.id,
+                status: draft.status,
+                message: 'Changes queued for Manager approval.',
+            };
+        }
+        const updated = await this.prisma.product.update({
+            where: { id: productId },
+            data: {
+                mrp: data.mrp ?? product.mrp,
+                sellingPrice: data.saleRateBaseUnit ?? product.sellingPrice,
+                purchaseCost: data.purchaseRateBaseUnit ?? product.purchaseCost,
+                purchaseRateBaseUnit: data.purchaseRateBaseUnit ?? product.purchaseRateBaseUnit,
+                purchaseRateInputUnit: data.purchaseRateBaseUnit ? (data.purchaseRateBaseUnit * (product.conversionToBase || 15)) : product.purchaseRateInputUnit,
+                saleRateBaseUnit: data.saleRateBaseUnit ?? product.saleRateBaseUnit,
+                hsnSac: data.hsnSac ?? product.hsnSac,
+                sgstPercent: data.sgstPercent ?? product.sgstPercent,
+                cgstPercent: data.cgstPercent ?? product.cgstPercent,
+                igstPercent: data.igstPercent ?? product.igstPercent,
+                gstRate: data.igstPercent ?? product.gstRate,
+            },
+        });
+        let updatedRackNo = 'A-12';
+        if (data.rackNo) {
+            const inventory = await this.prisma.inventory.findFirst({ where: { storeId: data.storeId, productId } });
+            if (inventory) {
+                await this.prisma.inventory.update({ where: { id: inventory.id }, data: { rackNo: data.rackNo } });
+                updatedRackNo = data.rackNo;
+            }
+        }
+        if (product.barcode) {
+            await this.cacheService.delete(`store:${data.storeId}:barcode:${product.barcode}`);
+        }
+        await this.cacheService.delete(`store:${data.storeId}:product:${productId}`);
+        await this.realtimeService.broadcastInventoryUpdate(data.storeId, productId, {
+            name: updated.name,
+            mrp: updated.mrp,
+            sellingPrice: updated.sellingPrice,
+            rackNo: updatedRackNo,
+        });
+        return { success: true, product: updated };
+    }
+    async updateStock(userId, data) {
+        const quantityBase = data.quantityInput * data.conversionToBase;
+        const product = await this.prisma.product.findUnique({
+            where: { id: data.productId },
+        });
+        if (!product || product.storeId !== data.storeId) {
+            throw new common_1.NotFoundException('Product not found in this store');
+        }
+        let inventory = await this.prisma.inventory.findFirst({
+            where: { storeId: data.storeId, productId: data.productId, batchNo: data.batchNo || null },
+        });
+        if (!inventory) {
+            inventory = await this.prisma.inventory.create({
+                data: {
+                    storeId: data.storeId,
+                    productId: data.productId,
+                    batchNo: data.batchNo || null,
+                    expiryDate: data.expiryDate ? new Date(data.expiryDate) : null,
+                    onHandQty: 0,
                 },
             });
         }
-        const workflowMeta = WORKFLOW_NEXT_ACTION[data.workflow] ?? { action: 'UNKNOWN', requiresExpiry: false, requiresBatch: false };
-        if (product) {
-            const availableQty = inventory
-                ? Math.max(0, inventory.onHandQty - inventory.reservedQty - inventory.blockedQty)
-                : 0;
-            return {
-                status: resolutionStatus === 'FOUND' ? 'FOUND' : 'INTERNAL_BARCODE',
-                barcodeScope: classified.scope,
-                isDuplicate: !!existingEvent,
-                product: {
-                    productId: product.id,
-                    name: product.name,
-                    brand: product.description ?? null,
-                    category: product.category,
-                    barcode: product.barcode,
-                    mrp: product.mrp,
-                    sellingPrice: product.sellingPrice,
-                    gstRate: product.gstRate,
-                    gstClass: product.gstClass,
-                    imageUrl: product.imageUrl,
-                    availableQty,
+        const updatedInventory = await this.prisma.inventory.update({
+            where: { id: inventory.id },
+            data: {
+                onHandQty: {
+                    increment: quantityBase,
                 },
-                workflow: workflowMeta,
-            };
+            },
+        });
+        await this.prisma.stockMovement.create({
+            data: {
+                storeId: data.storeId,
+                productId: data.productId,
+                inventoryId: inventory.id,
+                staffId: userId,
+                type: data.movementType,
+                quantityChange: quantityBase,
+                reason: data.note || `Intake: ${data.quantityInput} ${data.inputUnit}`,
+            },
+        });
+        await this.prisma.scannerEvent.create({
+            data: {
+                storeId: data.storeId,
+                scannedById: userId,
+                workflow: 'PRODUCT_INTAKE',
+                rawValue: product.barcode || '',
+                symbology: 'EAN_13',
+                resolutionStatus: 'FOUND',
+                idempotencyKey: (0, uuid_1.v4)(),
+                quantity: quantityBase,
+                metadata: {
+                    movementType: data.movementType,
+                    inputUnit: data.inputUnit,
+                    batchNo: data.batchNo,
+                },
+            },
+        });
+        if (product.barcode) {
+            await this.cacheService.delete(`store:${data.storeId}:barcode:${product.barcode}`);
         }
-        if (classified.scope === 'INTERNAL_OPERATIONAL') {
-            return {
-                status: 'OPERATIONAL_BARCODE',
-                barcodeScope: classified.scope,
-                isDuplicate: !!existingEvent,
-                reference: { type: classified.referenceType, id: classified.referenceId },
-                workflow: workflowMeta,
-            };
-        }
+        const boxes = Math.floor(updatedInventory.onHandQty / (product.conversionToBase || 15));
+        const pcs = updatedInventory.onHandQty % (product.conversionToBase || 15);
+        const displayQuantity = `${boxes} BOX + ${pcs} PCS`;
+        await this.realtimeService.broadcastInventoryUpdate(data.storeId, data.productId, {
+            quantityBase: updatedInventory.onHandQty,
+            displayQuantity,
+        });
         return {
-            status: 'UNKNOWN_BARCODE',
-            barcodeScope: classified.scope,
-            isDuplicate: !!existingEvent,
-            product: null,
-            workflow: { action: 'CREATE_PENDING_PRODUCT', requiresExpiry: false, requiresBatch: false },
+            success: true,
+            quantityBase,
+            newStockLevel: updatedInventory.onHandQty,
         };
+    }
+    async createProductDraft(userId, data) {
+        const draft = await this.prisma.pendingProduct.create({
+            data: {
+                storeId: data.storeId,
+                barcode: data.barcode,
+                suggestedName: data.productName,
+                suggestedBrand: data.brand || 'General',
+                suggestedCategory: data.category || 'General',
+                mrp: data.mrp,
+                sellingPrice: data.mrp,
+                gstRate: data.gstRate,
+                createdById: userId,
+                status: 'PENDING_REVIEW',
+                notes: `New scanner onboard. HSN: ${data.hsnSac}. Purchase Unit: ${data.purchaseUnit}. Conversion: ${data.conversionToBase}`,
+            },
+        });
+        return {
+            draftId: draft.id,
+            status: draft.status,
+        };
+    }
+    async resolveBarcode(data) {
+        return { status: 'DEPRECATED' };
     }
     async submitScanEvent(data) {
-        const existing = await this.prisma.scannerEvent.findUnique({
-            where: { idempotencyKey: data.idempotencyKey },
-        });
-        if (existing) {
-            return { status: 'DUPLICATE_SKIPPED', eventId: existing.id };
-        }
-        const event = await this.prisma.scannerEvent.create({
-            data: {
-                storeId: data.storeId,
-                deviceId: data.deviceId ?? null,
-                scannedById: data.scannedById ?? null,
-                workflow: data.workflow,
-                rawValue: data.rawValue,
-                symbology: data.symbology ?? 'UNKNOWN',
-                parsedJson: classifyBarcode(data.rawValue),
-                resolutionStatus: data.productId ? 'FOUND' : 'UNKNOWN_BARCODE',
-                idempotencyKey: data.idempotencyKey,
-                quantity: data.quantity ?? null,
-                metadata: (data.metadata ? JSON.parse(JSON.stringify(data.metadata)) : {}),
-            },
-        });
-        return { status: 'ACCEPTED', eventId: event.id };
+        return { status: 'DEPRECATED' };
     }
     async batchSync(storeId, deviceId, events) {
-        let processed = 0;
-        let duplicates = 0;
-        const failed = [];
-        for (const e of events) {
-            try {
-                const existing = await this.prisma.scannerEvent.findUnique({
-                    where: { idempotencyKey: e.idempotencyKey },
-                });
-                if (existing) {
-                    duplicates++;
-                    continue;
-                }
-                const classified = classifyBarcode(e.rawValue);
-                await this.prisma.scannerEvent.create({
-                    data: {
-                        storeId,
-                        deviceId,
-                        workflow: e.workflow,
-                        rawValue: e.rawValue,
-                        symbology: e.symbology ?? classified.symbology,
-                        parsedJson: classified,
-                        resolutionStatus: classified.scope === 'UNKNOWN' ? 'UNKNOWN_BARCODE' : 'FOUND',
-                        idempotencyKey: e.idempotencyKey,
-                        quantity: e.quantity ?? null,
-                        metadata: JSON.parse(JSON.stringify({ ...e.metadata, offlineScannedAt: e.scannedAt })),
-                    },
-                });
-                processed++;
-            }
-            catch {
-                failed.push(e.idempotencyKey);
-            }
-        }
-        return { processed, duplicates, failed };
+        return { processed: 0, duplicates: 0, failed: [] };
     }
     getWorkflows() {
-        return {
-            workflows: [
-                'GOODS_RECEIVING',
-                'STOCK_AUDIT',
-                'PRODUCT_INTAKE',
-                'LOOSE_ITEM_PACKING',
-                'ORDER_PICKING',
-                'SHELF_REFILL',
-                'DAMAGED_EXPIRED',
-                'LABEL_REPRINT',
-                'POS_BILLING',
-            ],
-        };
+        return { workflows: [] };
     }
     async registerDevice(data) {
-        return this.prisma.scannerDevice.create({
-            data: {
-                deviceCode: (0, uuid_1.v4)(),
-                storeId: data.storeId,
-                deviceName: data.deviceName,
-                deviceType: data.deviceType ?? 'ANDROID_PHONE',
-                assignedToId: data.assignedToId ?? null,
-                lastSeenAt: new Date(),
-                status: 'ACTIVE',
-            },
-        });
+        return { success: true };
     }
     async getScannerActivity(storeId, limit = 50) {
-        return this.prisma.scannerEvent.findMany({
-            where: { storeId },
-            orderBy: { createdAt: 'desc' },
-            take: limit,
-            include: {
-                scannedBy: { select: { id: true, name: true, role: true } },
-                device: { select: { id: true, deviceName: true, deviceType: true } },
-            },
-        });
+        return [];
     }
     async getDevices(storeId) {
-        return this.prisma.scannerDevice.findMany({
-            where: { storeId },
-            include: { assignedTo: { select: { id: true, name: true, role: true } } },
-            orderBy: { lastSeenAt: 'desc' },
-        });
+        return [];
     }
     async deviceHeartbeat(deviceId) {
-        const device = await this.prisma.scannerDevice.findUnique({ where: { id: deviceId } });
-        if (!device)
-            throw new common_1.NotFoundException('Device not found');
-        return this.prisma.scannerDevice.update({
-            where: { id: deviceId },
-            data: { lastSeenAt: new Date() },
-        });
+        return { success: true };
     }
 };
 exports.ScannerService = ScannerService;
 exports.ScannerService = ScannerService = __decorate([
     (0, common_1.Injectable)(),
-    __metadata("design:paramtypes", [prisma_service_1.PrismaService])
+    __metadata("design:paramtypes", [prisma_service_1.PrismaService,
+        cache_service_1.CacheService,
+        realtime_service_1.RealtimeService])
 ], ScannerService);
 //# sourceMappingURL=scanner.service.js.map

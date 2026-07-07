@@ -10,18 +10,21 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
   }
 
   canActivate(context: ExecutionContext) {
-    // TEMPORARY BYPASS: Inject a mock user so that routes don't crash and auth is bypassed.
-    const request = context.switchToHttp().getRequest();
-    request.user = { 
-      id: 'de283b71-1972-47b7-996f-6633d0f7b7f5', 
-      role: 'OWNER', 
-      storeId: '5981f6aa-23ee-4acf-bd1d-8ceb2a92ea0c' 
-    };
-    return true;
+    // Add custom logic here if needed (e.g. check for @Public decorators)
+    const isPublic = this.reflector.getAllAndOverride<boolean>(IS_PUBLIC_KEY, [
+      context.getHandler(),
+      context.getClass(),
+    ]);
+    if (isPublic) {
+      return true;
+    }
+    return super.canActivate(context);
   }
 
   handleRequest(err: any, user: any, info: any) {
-    // Never throw error during bypass
-    return user || { id: 'de283b71-1972-47b7-996f-6633d0f7b7f5', role: 'OWNER' };
+    if (err || !user) {
+      throw err || new UnauthorizedException();
+    }
+    return user;
   }
 }

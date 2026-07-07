@@ -1,10 +1,10 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { View, Text, StyleSheet, Image, ScrollView, TouchableOpacity, SafeAreaView, FlatList, Animated } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Radius } from '../../../constants/theme';
-import { useCart } from '../../../context/CartContext';
+import { Radius } from '../../constants/theme';
+import { useCart } from '../../context/CartContext';
 import { useRef, useEffect, useState } from 'react';
-import { API_BASE_URL, CURRENT_STORE_ID } from '../../../constants/api';
+import { API_BASE_URL, CURRENT_STORE_ID } from '../../constants/api';
 
 const ROYAL_BLUE = '#1D4ED8';
 const WHITE = '#FFFFFF';

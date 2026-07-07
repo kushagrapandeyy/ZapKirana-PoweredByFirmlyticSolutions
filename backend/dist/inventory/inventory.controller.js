@@ -19,6 +19,9 @@ const client_1 = require("@prisma/client");
 const public_decorator_1 = require("../common/decorators/public.decorator");
 let InventoryController = class InventoryController {
     inventoryService;
+    async updateProduct(id, body) {
+        return this.inventoryService.updateProduct(id, body.storeId, body);
+    }
     constructor(inventoryService) {
         this.inventoryService = inventoryService;
     }
@@ -77,6 +80,14 @@ let InventoryController = class InventoryController {
     }
 };
 exports.InventoryController = InventoryController;
+__decorate([
+    (0, common_1.Patch)('products/:id'),
+    __param(0, (0, common_1.Param)('id')),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, Object]),
+    __metadata("design:returntype", Promise)
+], InventoryController.prototype, "updateProduct", null);
 __decorate([
     (0, public_decorator_1.Public)(),
     (0, public_decorator_1.Public)(),

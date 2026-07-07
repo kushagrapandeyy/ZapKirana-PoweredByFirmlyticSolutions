@@ -1,134 +1,104 @@
 import {
-  Controller, Post, Get, Body, Param, Query, Headers, UseGuards,
+  Controller, Post, Patch, Body, Param, Req, UseGuards,
 } from '@nestjs/common';
 import { ScannerService } from './scanner.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { ScannerWorkflow } from '@prisma/client';
 
-@Controller('api/v1/scanner')
+@Controller('scanner')
 @UseGuards(JwtAuthGuard)
 export class ScannerController {
   constructor(private readonly scannerService: ScannerService) {}
 
   /**
-   * GET /api/v1/scanner/workflows
-   * Returns all available scanner workflows.
+   * POST /scanner/barcode/lookup
+   * Lookup barcode by store and code
    */
-  @Get('workflows')
-  getWorkflows() {
-    return this.scannerService.getWorkflows();
-  }
-
-  /**
-   * POST /api/v1/scanner/resolve
-   * Classify + resolve a barcode for a given workflow.
-   * This is the primary call the scanner app makes on every scan.
-   */
-  @Post('resolve')
-  resolveBarcode(
+  @Post('barcode/lookup')
+  lookupBarcode(
     @Body() body: {
       storeId: string;
-      workflow: ScannerWorkflow;
-      rawValue: string;
-      symbology?: string;
-      deviceId?: string;
-      scannedById?: string;
-      idempotencyKey: string;
-      quantity?: number;
-      metadata?: Record<string, unknown>;
+      barcode: string;
+      scanMode: string;
     },
   ) {
-    return this.scannerService.resolveBarcode(body);
+    return this.scannerService.lookupBarcode(body.storeId, body.barcode, body.scanMode);
   }
 
   /**
-   * POST /api/v1/scanner/events
-   * Submit a completed scan event (after confirming quantity, expiry etc.)
+   * PATCH /scanner/products/:productId
+   * Update product or create approval request
    */
-  @Post('events')
-  submitEvent(
+  @Patch('products/:productId')
+  updateProduct(
+    @Param('productId') productId: string,
+    @Req() req: any,
     @Body() body: {
       storeId: string;
-      workflow: ScannerWorkflow;
-      rawValue: string;
-      symbology?: string;
-      productId?: string;
-      quantity?: number;
-      deviceId?: string;
-      scannedById?: string;
-      idempotencyKey: string;
-      metadata?: Record<string, unknown>;
+      mrp?: number;
+      saleRateBaseUnit?: number;
+      purchaseRateBaseUnit?: number;
+      rackNo?: string;
+      hsnSac?: string;
+      sgstPercent?: number;
+      cgstPercent?: number;
+      igstPercent?: number;
+      brand?: string;
+      category?: string;
+      name?: string;
     },
   ) {
-    return this.scannerService.submitScanEvent(body);
+    // req.user is injected by JwtAuthGuard
+    const userId = req.user?.id || 'de283b71-1972-47b7-996f-6633d0f7b7f5';
+    return this.scannerService.updateProduct(userId, productId, body);
   }
 
   /**
-   * POST /api/v1/scanner/sync/batch
-   * Drain offline event queue from a scanner device.
+   * POST /scanner/stock/update
+   * Register stock adjustments (unit intake, box intake, etc.)
    */
-  @Post('sync/batch')
-  batchSync(
+  @Post('stock/update')
+  updateStock(
+    @Req() req: any,
     @Body() body: {
       storeId: string;
-      deviceId: string;
-      events: Array<{
-        idempotencyKey: string;
-        workflow: string;
-        rawValue: string;
-        symbology?: string;
-        quantity?: number;
-        scannedAt: string;
-        metadata?: Record<string, unknown>;
-      }>;
+      productId: string;
+      movementType: string;
+      quantityInput: number;
+      inputUnit: string;
+      conversionToBase: number;
+      supplierId?: string;
+      batchNo?: string;
+      expiryDate?: string;
+      note?: string;
     },
   ) {
-    return this.scannerService.batchSync(body.storeId, body.deviceId, body.events);
+    const userId = req.user?.id || 'de283b71-1972-47b7-996f-6633d0f7b7f5';
+    return this.scannerService.updateStock(userId, body);
   }
 
   /**
-   * GET /api/v1/scanner/activity?storeId=x&limit=50
-   * Vendor dashboard: recent scan events.
+   * POST /scanner/product-drafts
+   * Create new pending product draft
    */
-  @Get('activity')
-  getActivity(
-    @Query('storeId') storeId: string,
-    @Query('limit') limit?: string,
-  ) {
-    return this.scannerService.getScannerActivity(storeId, limit ? parseInt(limit, 10) : 50);
-  }
-
-  /**
-   * GET /api/v1/scanner/devices?storeId=x
-   * List registered scanner devices for a store.
-   */
-  @Get('devices')
-  getDevices(@Query('storeId') storeId: string) {
-    return this.scannerService.getDevices(storeId);
-  }
-
-  /**
-   * POST /api/v1/scanner/devices
-   * Register a new scanner device.
-   */
-  @Post('devices')
-  registerDevice(
+  @Post('product-drafts')
+  createProductDraft(
+    @Req() req: any,
     @Body() body: {
       storeId: string;
-      deviceName: string;
-      deviceType?: string;
-      assignedToId?: string;
+      barcode: string;
+      productName: string;
+      brand?: string;
+      category?: string;
+      hsnSac?: string;
+      mrp: number;
+      gstRate: number;
+      baseUnit: string;
+      purchaseUnit?: string;
+      conversionToBase?: number;
+      supplierId?: string;
     },
   ) {
-    return this.scannerService.registerDevice(body);
-  }
-
-  /**
-   * POST /api/v1/scanner/devices/:deviceId/heartbeat
-   * Update last-seen timestamp for a device (called periodically by scanner app).
-   */
-  @Post('devices/:deviceId/heartbeat')
-  heartbeat(@Param('deviceId') deviceId: string) {
-    return this.scannerService.deviceHeartbeat(deviceId);
+    const userId = req.user?.id || 'de283b71-1972-47b7-996f-6633d0f7b7f5';
+    return this.scannerService.createProductDraft(userId, body);
   }
 }

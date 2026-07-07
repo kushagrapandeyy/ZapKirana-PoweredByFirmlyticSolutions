@@ -25,6 +25,8 @@ export default function DeliveryTrackingScreen() {
   const [nearbyStores, setNearbyStores] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const displayOrderId = orderId ? (Array.isArray(orderId) ? orderId[0] : orderId).replace(/-/g, '').substring(0, 8).toUpperCase() : '12345678';
+
   useEffect(() => {
     fetchData();
     const interval = setInterval(fetchData, 10000); // Fallback polling
@@ -141,7 +143,6 @@ export default function DeliveryTrackingScreen() {
                 <Text style={styles.otpDesc}>Share this PIN with the rider</Text>
               </View>
               <Text style={styles.otpValue}>
-                {/* Normally backend generated, mocking a pin based on orderId hash for dev */}
                 {order?.id ? order.id.replace(/\D/g, '').substring(0,4).padEnd(4, '0') : '1234'}
               </Text>
             </View>

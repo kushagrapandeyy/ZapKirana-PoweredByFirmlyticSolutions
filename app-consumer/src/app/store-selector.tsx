@@ -54,8 +54,7 @@ export default function StoreSelector() {
 
   const selectStore = async (storeId: string) => {
     await AsyncStorage.setItem('@selected_store_id', storeId);
-    await AsyncStorage.setItem('@has_onboarded', 'true');
-    router.replace('/(tabs)');
+    router.replace('/address-picker?onboarding=true');
   };
 
   const renderStore = ({ item, index }: { item: any; index: number }) => {

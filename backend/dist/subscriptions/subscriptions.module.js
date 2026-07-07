@@ -13,13 +13,14 @@ const subscriptions_service_1 = require("./subscriptions.service");
 const subscriptions_controller_1 = require("./subscriptions.controller");
 const prisma_service_1 = require("../prisma.service");
 const event_emitter_1 = require("@nestjs/event-emitter");
+const subscriptions_cron_1 = require("./subscriptions.cron");
 let SubscriptionsModule = class SubscriptionsModule {
 };
 exports.SubscriptionsModule = SubscriptionsModule;
 exports.SubscriptionsModule = SubscriptionsModule = __decorate([
     (0, common_1.Module)({
         imports: [realtime_module_1.RealtimeModule, event_emitter_1.EventEmitterModule.forRoot()],
-        providers: [subscriptions_service_1.SubscriptionsService, prisma_service_1.PrismaService],
+        providers: [subscriptions_service_1.SubscriptionsService, prisma_service_1.PrismaService, subscriptions_cron_1.SubscriptionsCron],
         controllers: [subscriptions_controller_1.SubscriptionsController],
         exports: [subscriptions_service_1.SubscriptionsService],
     })

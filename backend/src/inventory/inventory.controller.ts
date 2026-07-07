@@ -1,10 +1,18 @@
-import { Controller, Post, Body, Get, Param, Query, BadRequestException } from '@nestjs/common';
+import { Controller, Post, Body, Get, Param, Query, BadRequestException, Patch } from '@nestjs/common';
 import { InventoryService } from './inventory.service';
 import { MovementType } from '@prisma/client';
 import { Public } from '../common/decorators/public.decorator';
 
 @Controller('inventory')
 export class InventoryController {
+  @Patch('products/:id')
+  async updateProduct(
+    @Param('id') id: string,
+    @Body() body: { storeId: string; name?: string; category?: string; price?: number; imageUrl?: string; supplierId?: string }
+  ) {
+    return this.inventoryService.updateProduct(id, body.storeId, body);
+  }
+
   constructor(private readonly inventoryService: InventoryService) {}
 
   @Public()

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { StyleSheet, Text, View, TouchableOpacity, FlatList, RefreshControl, ActivityIndicator, Dimensions, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -20,74 +21,100 @@ const KANBAN_COLUMNS = [
 ];
 
 export default function FulfillmentKanban() {
-  const [orders, setOrders] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [activeColIndex, setActiveColIndex] = useState(0);
   const scrollViewRef = useRef<ScrollView>(null);
+  const tabsListRef = useRef<FlatList>(null);
   
-  const fetchOrders = async () => {
-    try {
+  const queryClient = useQueryClient();
+
+  const { data: orders = [], isLoading: loading, refetch } = useQuery({
+    queryKey: ['orders', CURRENT_STORE_ID],
+    queryFn: async () => {
       const res = await fetch(`${API_BASE_URL}/orders?storeId=${CURRENT_STORE_ID}`);
-      if (res.ok) {
-        const data = await res.json();
-        const relevantOrders = data.filter((o: any) => 
-          ['PAID', 'PICKING', 'READY_FOR_PICKUP', 'OUT_FOR_DELIVERY', 'DELIVERED'].includes(o.status)
-        );
-        // Sort newest first
-        relevantOrders.sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-        setOrders(relevantOrders);
-      }
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  };
+      if (!res.ok) throw new Error('Failed to fetch orders');
+      const data = await res.json();
+      const relevantOrders = data.filter((o: any) => 
+        ['PAID', 'PICKING', 'READY_FOR_PICKUP', 'OUT_FOR_DELIVERY', 'DELIVERED'].includes(o.status)
+      );
+      relevantOrders.sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      return relevantOrders;
+    },
+    staleTime: 1000 * 60, // 1 min
+    refetchInterval: 10000 // Polling fallback
+  });
 
   useEffect(() => {
-    fetchOrders();
-    const interval = setInterval(fetchOrders, 10000); // Fallback polling
-
     const channel = supabase.channel(`store:${CURRENT_STORE_ID}:orders`)
-      .on('broadcast', { event: 'order_update' }, (payload) => {
+      .on('broadcast', { event: 'order_update' }, ({ payload }) => {
         console.log('Realtime order update received:', payload);
-        fetchOrders(); // We can optionally just mutate the state, but fetch is safer for consistency right now
+        
+        queryClient.setQueryData(['orders', CURRENT_STORE_ID], (old: any[]) => {
+          if (!old) return [payload];
+          const exists = old.find((o) => o.id === payload.id);
+          if (exists) {
+            return old.map((o) => (o.id === payload.id ? payload : o));
+          } else {
+            // New order
+            return [payload, ...old].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+          }
+        });
       })
-      .subscribe((status) => {
-        if (status === 'SUBSCRIBED') {
-          console.log(`Subscribed to store:${CURRENT_STORE_ID}:orders realtime channel`);
-        }
-      });
+      .subscribe();
 
     return () => {
-      clearInterval(interval);
       supabase.removeChannel(channel);
     };
-  }, []);
+  }, [queryClient]);
 
-  const onRefresh = useCallback(() => {
+  const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    fetchOrders();
-  }, []);
+    await refetch();
+    setRefreshing(false);
+  }, [refetch]);
 
-  const updateOrderStatus = async (orderId: string, newStatus: string) => {
-    try {
+  const updateStatusMutation = useMutation({
+    mutationFn: async ({ orderId, newStatus }: { orderId: string, newStatus: string }) => {
       const res = await fetch(`${API_BASE_URL}/orders/${orderId}/status`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: newStatus, staffId: CURRENT_STAFF_ID })
       });
-      if (res.ok) fetchOrders();
-    } catch (e) {
-      console.error('Failed to update status', e);
+      if (!res.ok) throw new Error('Failed to update status');
+      return res.json();
+    },
+    onMutate: async ({ orderId, newStatus }) => {
+      await queryClient.cancelQueries({ queryKey: ['orders', CURRENT_STORE_ID] });
+      const previousOrders = queryClient.getQueryData(['orders', CURRENT_STORE_ID]);
+      
+      // Optimistically update
+      queryClient.setQueryData(['orders', CURRENT_STORE_ID], (old: any) => {
+        if (!old) return old;
+        return old.map((order: any) => 
+          order.id === orderId ? { ...order, status: newStatus } : order
+        );
+      });
+      
+      return { previousOrders };
+    },
+    onError: (err, variables, context) => {
+      if (context?.previousOrders) {
+        queryClient.setQueryData(['orders', CURRENT_STORE_ID], context.previousOrders);
+      }
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['orders', CURRENT_STORE_ID] });
     }
+  });
+
+  const updateOrderStatus = (orderId: string, newStatus: string) => {
+    updateStatusMutation.mutate({ orderId, newStatus });
   };
 
   const handleTabPress = (index: number) => {
     setActiveColIndex(index);
     scrollViewRef.current?.scrollTo({ x: index * width, animated: true });
+    tabsListRef.current?.scrollToIndex({ index, animated: true, viewPosition: 0.5 });
   };
 
   const handleScroll = (event: any) => {
@@ -95,6 +122,7 @@ export default function FulfillmentKanban() {
     const index = Math.round(scrollPosition / width);
     if (index !== activeColIndex) {
       setActiveColIndex(index);
+      tabsListRef.current?.scrollToIndex({ index, animated: true, viewPosition: 0.5 });
     }
   };
 
@@ -140,59 +168,70 @@ export default function FulfillmentKanban() {
     );
   };
 
-  const renderOrderCard = ({ item }: { item: any }) => (
-    <Animated.View 
-      entering={FadeInDown.duration(400)} 
-      exiting={FadeOutUp.duration(300)}
-      layout={Layout.springify()}
-      style={styles.cardContainer}
-    >
-      <View style={styles.orderCard}>
-        {/* Header */}
-        <View style={styles.cardHeader}>
-          <View style={styles.headerLeft}>
-            <View style={styles.orderIdBadge}>
-              <Text style={styles.orderIdText}>#{item.id.substring(0, 6).toUpperCase()}</Text>
-            </View>
-            <Text style={styles.orderTime}>
-              {new Date(item.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-            </Text>
-          </View>
-          <View style={styles.priceTag}>
-            <Text style={styles.priceText}>₹{item.totalAmount}</Text>
-          </View>
-        </View>
-
-        {/* Customer Info */}
-        <View style={styles.customerRow}>
-          <View style={styles.customerAvatar}>
-            <Ionicons name="person" size={16} color={Colors.primary} />
-          </View>
-          <Text style={styles.customerName}>Customer ID: {(item.customerId || item.userId || item.id || 'Unknown').substring(0, 8)}</Text>
-        </View>
-
-        <View style={styles.divider} />
-
-        {/* Items List */}
-        <View style={styles.itemsWrapper}>
-          <Text style={styles.itemsHeader}>{item.items.length} ITEMS TO PICK</Text>
-          {item.items.map((orderItem: any, i: number) => (
-            <View key={orderItem.id} style={[styles.itemRow, i % 2 !== 0 && styles.itemRowZebra]}>
-              <View style={styles.qtyBox}>
-                <Text style={styles.qtyBoxText}>{orderItem.quantity}</Text>
+  const renderOrderCard = ({ item }: { item: any }) => {
+    const isArchived = item.status === 'DELIVERED';
+    
+    return (
+      <Animated.View 
+        entering={FadeInDown.duration(400)} 
+        exiting={FadeOutUp.duration(300)}
+        layout={Layout.springify()}
+        style={styles.cardContainer}
+      >
+        <View style={[styles.orderCard, isArchived && { borderColor: Colors.borderLight, backgroundColor: '#f8fafc' }]}>
+          {/* Header */}
+          <View style={styles.cardHeader}>
+            <View style={styles.headerLeft}>
+              <View style={[styles.orderIdBadge, isArchived && { backgroundColor: '#e2e8f0' }]}>
+                <Text style={[styles.orderIdText, isArchived && { color: '#64748b' }]}>#{item.id.substring(0, 6).toUpperCase()}</Text>
               </View>
-              <Text style={styles.itemName} numberOfLines={1}>{orderItem.product?.name || 'Unknown Item'}</Text>
+              <Text style={styles.orderTime}>
+                {new Date(item.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+              </Text>
             </View>
-          ))}
-        </View>
+            <View style={[styles.priceTag, isArchived && { backgroundColor: '#d1fae5' }]}>
+              <Text style={[styles.priceText, isArchived && { color: '#065f46' }]}>₹{item.totalAmount}</Text>
+            </View>
+          </View>
 
-        {/* Footer Action */}
-        <View style={styles.cardFooter}>
-          {getActionBtn(item)}
+          {/* Customer Info */}
+          <View style={styles.customerRow}>
+            <View style={[styles.customerAvatar, isArchived && { backgroundColor: '#cbd5e1' }]}>
+              <Ionicons name="person" size={16} color={isArchived ? '#475569' : Colors.primary} />
+            </View>
+            <View>
+              <Text style={styles.customerName}>Customer ID: {(item.customerId || item.userId || item.id || 'Unknown').substring(0, 8)}</Text>
+              {isArchived && (
+                <Text style={{ fontSize: 12, color: '#64748b', marginTop: 2 }}>Payment: {item.paymentMode || 'Cash/Wallet'} • Delivered</Text>
+              )}
+            </View>
+          </View>
+
+          <View style={styles.divider} />
+
+          {/* Items List */}
+          <View style={styles.itemsWrapper}>
+            <Text style={styles.itemsHeader}>{isArchived ? `${item.items.length} ITEMS DELIVERED` : `${item.items.length} ITEMS TO PICK`}</Text>
+            {item.items.map((orderItem: any, i: number) => (
+              <View key={orderItem.id} style={[styles.itemRow, i % 2 !== 0 && styles.itemRowZebra]}>
+                <View style={[styles.qtyBox, isArchived && { backgroundColor: '#e2e8f0' }]}>
+                  <Text style={[styles.qtyBoxText, isArchived && { color: '#475569' }]}>{orderItem.quantity}</Text>
+                </View>
+                <Text style={[styles.itemName, isArchived && { color: '#475569' }]} numberOfLines={1}>{orderItem.product?.name || 'Unknown Item'}</Text>
+              </View>
+            ))}
+          </View>
+
+          {/* Footer Action */}
+          {!isArchived && (
+            <View style={styles.cardFooter}>
+              {getActionBtn(item)}
+            </View>
+          )}
         </View>
-      </View>
-    </Animated.View>
-  );
+      </Animated.View>
+    );
+  };
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -205,14 +244,19 @@ export default function FulfillmentKanban() {
 
       {/* Tabs */}
       <View style={styles.tabsContainer}>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tabsScroll}>
-          {KANBAN_COLUMNS.map((col, index) => {
+        <FlatList 
+          ref={tabsListRef}
+          horizontal 
+          showsHorizontalScrollIndicator={false} 
+          contentContainerStyle={styles.tabsScroll}
+          data={KANBAN_COLUMNS}
+          keyExtractor={(item) => item.id}
+          renderItem={({ item: col, index }) => {
             const isActive = activeColIndex === index;
             const count = orders.filter(o => o.status === col.id).length;
             
             return (
               <TouchableOpacity 
-                key={col.id} 
                 style={[styles.tabBtn, isActive && { backgroundColor: col.color, borderColor: col.color }]}
                 onPress={() => handleTabPress(index)}
               >
@@ -225,8 +269,8 @@ export default function FulfillmentKanban() {
                 </View>
               </TouchableOpacity>
             );
-          })}
-        </ScrollView>
+          }}
+        />
       </View>
 
       {/* Kanban Columns Pager */}

@@ -34,6 +34,22 @@ let AppController = class AppController {
         }
         return store;
     }
+    async updateStore(id, logoUrl, bannerUrl, imageUrl, name) {
+        const data = {};
+        if (logoUrl)
+            data.logoUrl = logoUrl;
+        if (bannerUrl)
+            data.bannerUrl = bannerUrl;
+        if (imageUrl)
+            data.imageUrl = imageUrl;
+        if (name)
+            data.name = name;
+        const store = await this.prisma.store.update({
+            where: { id },
+            data
+        });
+        return store;
+    }
     async getStoreStaff(storeId) {
         return this.prisma.user.findMany({
             where: {
@@ -105,6 +121,18 @@ __decorate([
     __metadata("design:paramtypes", [String]),
     __metadata("design:returntype", Promise)
 ], AppController.prototype, "getStore", null);
+__decorate([
+    (0, public_decorator_1.Public)(),
+    (0, common_1.Post)('stores/:id'),
+    __param(0, (0, common_1.Param)('id')),
+    __param(1, (0, common_1.Query)('logoUrl')),
+    __param(2, (0, common_1.Query)('bannerUrl')),
+    __param(3, (0, common_1.Query)('imageUrl')),
+    __param(4, (0, common_1.Query)('name')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, String, String, String, String]),
+    __metadata("design:returntype", Promise)
+], AppController.prototype, "updateStore", null);
 __decorate([
     (0, public_decorator_1.Public)(),
     (0, common_1.Get)('stores/:id/staff'),

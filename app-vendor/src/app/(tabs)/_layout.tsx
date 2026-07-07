@@ -8,14 +8,13 @@ import { useState } from 'react';
 import { TouchableOpacity } from 'react-native';
 
 import { useAuth } from '../../context/AuthContext';
-import CommandStrip from '../../components/CommandStrip';
+import OperationsHubModal from '../../components/OperationsHubModal';
 
 const DEEP_GREEN = '#064e3b'; // Premium grocery green
 
 export default function TabLayout() {
   const { role } = useAuth();
-  
-  
+  const [hubVisible, setHubVisible] = useState(false);
   
   const isDelivery = role === 'DELIVERY';
   const isStaff = role === 'STAFF';
@@ -23,7 +22,6 @@ export default function TabLayout() {
 
   return (
     <>
-      {(isManagerOrOwner || isStaff) && <View style={{paddingTop: 45, backgroundColor: '#fff'}}><CommandStrip /></View>}
       <Tabs
         screenOptions={{
         headerShown: false,
@@ -119,7 +117,7 @@ export default function TabLayout() {
                     position: 'absolute',
                     top: 0,
                     right: 0,
-                    backgroundColor: '#ef4444', // Colors.danger
+                    backgroundColor: '#10b981', // Colors.success
                     width: 24,
                     height: 24,
                     borderRadius: 12,
@@ -184,9 +182,18 @@ export default function TabLayout() {
           ),
         }}
       />
+      <Tabs.Screen
+        name="subscriptions"
+        options={{
+          href: null, // Accessed via Hub
+        }}
+      />
       </Tabs>
       
-      
+      <OperationsHubModal 
+        visible={hubVisible} 
+        onClose={() => setHubVisible(false)} 
+      />
     </>
   );
 }

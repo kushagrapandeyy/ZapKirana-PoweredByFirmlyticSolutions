@@ -45,6 +45,13 @@ const HUB_ITEMS: HubItem[] = [
     color: Colors.accentDark
   },
   {
+    title: 'Suppliers & Vendors',
+    icon: 'business',
+    route: '/operations/suppliers',
+    description: 'Manage supplier contacts & history',
+    color: Colors.primaryDark
+  },
+  {
     title: 'Staff & HR',
     icon: 'people',
     route: '/operations/staff',

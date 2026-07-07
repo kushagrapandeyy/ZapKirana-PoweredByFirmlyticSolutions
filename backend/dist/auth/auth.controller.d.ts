@@ -85,11 +85,11 @@ export declare class AuthController {
             updatedAt: Date;
             userId: string;
             address: string;
+            state: string | null;
             label: string;
             streetAddress: string | null;
             landmark: string | null;
             city: string | null;
-            state: string | null;
             pincode: string | null;
             isDefault: boolean;
         }[];

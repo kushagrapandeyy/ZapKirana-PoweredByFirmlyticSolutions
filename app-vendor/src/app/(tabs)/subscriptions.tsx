@@ -2,14 +2,14 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, SafeAreaView, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Shadows, Radius } from '../../constants/theme';
-import { useAuth } from '../../../context/AuthContext';
+import { useAuth } from '@/context/AuthContext';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { API_BASE_URL, CURRENT_STORE_ID } from '../../constants/api';
 import { supabase } from '../../utils/supabase';
 
 export default function SubscriptionsTracking() {
-  const { storeId } = useAuth();
-  const actualStoreId = storeId || CURRENT_STORE_ID;
+  const { tenantId } = useAuth();
+  const actualStoreId = tenantId || CURRENT_STORE_ID;
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<any[]>([]);
 

@@ -260,6 +260,22 @@ let InventoryService = class InventoryService {
             }
         }
     }
+    async updateProduct(id, storeId, data) {
+        return this.prisma.product.update({
+            where: { id, storeId },
+            data: {
+                name: data.name,
+                category: data.category,
+                sellingPrice: data.price,
+                imageUrl: data.imageUrl,
+                rateA: data.rateA,
+                rateB: data.rateB,
+                rateC: data.rateC,
+                minimumQty: data.minimumQty,
+                reorderDays: data.reorderDays,
+            }
+        });
+    }
     async getPendingProducts(storeId) {
         return this.prisma.pendingProduct.findMany({
             where: { storeId, status: 'PENDING_REVIEW' },

@@ -12,11 +12,15 @@ var RealtimeService_1;
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.RealtimeService = void 0;
 const common_1 = require("@nestjs/common");
+const event_emitter_1 = require("@nestjs/event-emitter");
+const prisma_service_1 = require("../prisma.service");
 const supabase_js_1 = require("@supabase/supabase-js");
 let RealtimeService = RealtimeService_1 = class RealtimeService {
+    prisma;
     supabase;
     logger = new common_1.Logger(RealtimeService_1.name);
-    constructor() {
+    constructor(prisma) {
+        this.prisma = prisma;
         this.supabase = (0, supabase_js_1.createClient)(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
     }
     async broadcastOrderUpdate(storeId, orderId, payload) {
@@ -62,10 +66,30 @@ let RealtimeService = RealtimeService_1 = class RealtimeService {
             this.logger.error(`Error broadcasting subscription update: ${error}`);
         }
     }
+    async handleOrderStatusChanged(event) {
+        try {
+            const order = await this.prisma.order.findUnique({
+                where: { id: event.orderId },
+                include: { items: { include: { product: true } } }
+            });
+            if (order) {
+                await this.broadcastOrderUpdate(order.storeId, event.orderId, order);
+            }
+        }
+        catch (e) {
+            this.logger.error('Failed to fetch order for broadcast', e);
+        }
+    }
 };
 exports.RealtimeService = RealtimeService;
+__decorate([
+    (0, event_emitter_1.OnEvent)('order.status_changed'),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", Promise)
+], RealtimeService.prototype, "handleOrderStatusChanged", null);
 exports.RealtimeService = RealtimeService = RealtimeService_1 = __decorate([
     (0, common_1.Injectable)(),
-    __metadata("design:paramtypes", [])
+    __metadata("design:paramtypes", [prisma_service_1.PrismaService])
 ], RealtimeService);
 //# sourceMappingURL=realtime.service.js.map

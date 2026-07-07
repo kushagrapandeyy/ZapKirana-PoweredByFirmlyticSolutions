@@ -86,7 +86,7 @@ export default function OrderConfirmationScreen() {
       </View>
 
       <Animated.View entering={FadeIn.delay(800).duration(800)} style={styles.footer}>
-        <TouchableOpacity style={styles.trackBtn} onPress={() => router.replace(`/delivery-tracking?orderId=${displayOrderId}`)}>
+        <TouchableOpacity style={styles.trackBtn} onPress={() => router.replace(`/delivery-tracking?orderId=${Array.isArray(orderId) ? orderId[0] : orderId}`)}>
           <Ionicons name="location-outline" size={20} color="#fff" />
           <Text style={styles.trackBtnText}>Track Live Delivery</Text>
         </TouchableOpacity>

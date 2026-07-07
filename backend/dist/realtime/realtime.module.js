@@ -9,12 +9,13 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.RealtimeModule = void 0;
 const common_1 = require("@nestjs/common");
 const realtime_service_1 = require("./realtime.service");
+const prisma_service_1 = require("../prisma.service");
 let RealtimeModule = class RealtimeModule {
 };
 exports.RealtimeModule = RealtimeModule;
 exports.RealtimeModule = RealtimeModule = __decorate([
     (0, common_1.Module)({
-        providers: [realtime_service_1.RealtimeService],
+        providers: [realtime_service_1.RealtimeService, prisma_service_1.PrismaService],
         exports: [realtime_service_1.RealtimeService],
     })
 ], RealtimeModule);

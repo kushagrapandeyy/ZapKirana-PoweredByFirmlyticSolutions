@@ -3,14 +3,17 @@ import { StyleSheet, Text, View, TouchableOpacity, FlatList, TextInput, Activity
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Ionicons } from '@expo/vector-icons';
-import { Colors, Shadows, Radius } from '../../constants/theme';
-import { API_BASE_URL, CURRENT_STORE_ID } from '../../constants/api';
-import { supabase } from '../../utils/supabase';
-import { useAuth } from '../../context/AuthContext';
+import { useRouter } from 'expo-router';
+import { Colors, Shadows, Radius } from '../../../constants/theme';
+import { API_BASE_URL, CURRENT_STORE_ID } from '../../../constants/api';
+import { supabase } from '../../../utils/supabase';
+import { useAuth } from '../../../context/AuthContext';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import BottomSheet, { BottomSheetScrollView, BottomSheetBackdrop } from '@gorhom/bottom-sheet';
+import { OfflineQueueService } from '../../../services/OfflineQueueService';
 
 export default function InventoryScreen() {
+  const router = useRouter();
   const { role } = useAuth();
   const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -87,7 +90,7 @@ export default function InventoryScreen() {
     if (!selectedProduct) return;
     
     try {
-      const res = await fetch(`${API_BASE_URL}/inventory/products/${selectedProduct.id}`, {
+      const res = await OfflineQueueService.apiFetch(`${API_BASE_URL}/inventory/products/${selectedProduct.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
@@ -96,10 +99,14 @@ export default function InventoryScreen() {
         })
       });
 
-      if (res.ok) {
+      if (res.ok || res.status === 202) {
         bottomSheetRef.current?.close();
-        loadInventory();
-        Alert.alert('Stock Updated', `${selectedProduct.name} is now at ${updateStock} units.`);
+        if (res.status === 202) {
+          Alert.alert('Offline Mode', 'Stock update queued for sync.');
+        } else {
+          loadInventory();
+          Alert.alert('Stock Updated', `${selectedProduct.name} is now at ${updateStock} units.`);
+        }
       }
     } catch (e) {
       console.error(e);
@@ -110,14 +117,18 @@ export default function InventoryScreen() {
   const updateDiscount = async () => {
     if (!selectedProduct) return;
     try {
-      const res = await fetch(`${API_BASE_URL}/products/${selectedProduct.id}/subscription-discount`, {
+      const res = await OfflineQueueService.apiFetch(`${API_BASE_URL}/products/${selectedProduct.id}/subscription-discount`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ discount: parseFloat(subDiscount) || 0 })
       });
-      if (res.ok) {
-        Alert.alert('Success', 'Subscription discount updated.');
-        loadInventory();
+      if (res.ok || res.status === 202) {
+        if (res.status === 202) {
+          Alert.alert('Offline Mode', 'Subscription discount queued for sync.');
+        } else {
+          Alert.alert('Success', 'Subscription discount updated.');
+          loadInventory();
+        }
       }
     } catch (e) {
       Alert.alert('Error', 'Failed to update discount.');
@@ -132,7 +143,7 @@ export default function InventoryScreen() {
 
     return (
       <Animated.View entering={FadeInDown.delay(index * 30).springify().damping(15)}>
-        <TouchableOpacity style={styles.productCard} onPress={() => openProductDetails(item)} activeOpacity={0.7}>
+        <TouchableOpacity style={styles.productCard} onPress={() => router.push(`/operations/inventory/${item.productId || item.id}`)} activeOpacity={0.7}>
           <Image 
             source={{ uri: item.imageUrl || `https://placehold.co/100x100?text=${item.name.substring(0,1)}` }} 
             style={styles.cardImage} 

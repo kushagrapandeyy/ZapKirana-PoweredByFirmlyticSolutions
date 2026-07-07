@@ -39,21 +39,35 @@ export default function ActionScreen() {
     setSubmitting(true);
 
     try {
-      await axios.post(`${BASE_URL}/api/v1/scanner/events`, {
-        storeId,
-        workflow,
-        rawValue,
-        symbology,
-        productId: productId || undefined,
-        quantity: qtyNum,
-        deviceId,
-        scannedById: staffId,
-        idempotencyKey: `${idempotencyKey}-submit`,
-      }, {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      });
+      // If it's a known product (productId exists) and not CREATE_PENDING_PRODUCT
+      if (productId && actionLabel !== 'CREATE_PENDING_PRODUCT') {
+        await axios.post(`${BASE_URL}/api/v1/scanner/stock/update`, {
+          storeId,
+          productId,
+          movementType: workflow === 'PRODUCT_INTAKE' ? 'IN' : 'ADJUSTMENT',
+          quantityInput: qtyNum,
+          inputUnit: 'PCS', // Defaulting to PCS, UI can be expanded to support BOX
+          conversionToBase: 1, // Defaulting to 1 for PCS
+        }, {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        });
+      } else {
+        // If it's an unknown barcode
+        await axios.post(`${BASE_URL}/api/v1/scanner/product-drafts`, {
+          storeId,
+          barcode: rawValue,
+          productName: `New Item (${rawValue})`,
+          mrp: 0,
+          gstRate: 0,
+          baseUnit: 'PCS'
+        }, {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        });
+      }
 
       router.back();
     } catch (e: any) {

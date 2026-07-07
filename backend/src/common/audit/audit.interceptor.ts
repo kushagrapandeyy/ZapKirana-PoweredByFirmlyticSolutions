@@ -52,20 +52,28 @@ export class AuditInterceptor implements NestInterceptor {
     status: string
   ) {
     try {
-      // In a real prod environment, you'd likely write this to a faster queue (Redis)
-      // or directly to a specialized logging table. Assuming Prisma has an AuditLog table:
-      
       // Let's sanitize passwords/sensitive info before logging
       const sanitizedPayload = { ...payload };
       if (sanitizedPayload.password) sanitizedPayload.password = '[REDACTED]';
       if (sanitizedPayload.otp) sanitizedPayload.otp = '[REDACTED]';
       
-      // Note: we don't have an AuditLog table defined yet in prisma. 
-      // This is a placeholder log to console, and will throw if table doesn't exist
-      // You should add an AuditLog model to your schema.prisma
+      await this.prisma.auditLog.create({
+        data: {
+          action: `${method} ${endpoint}`,
+          entityType: 'API_REQUEST',
+          userId: userId || null,
+          details: JSON.stringify({
+            ip,
+            status,
+            durationMs,
+            payload: sanitizedPayload
+          })
+        }
+      });
+      
       this.logger.log(`AUDIT [${status}] ${method} ${endpoint} by ${userId || 'anonymous'} in ${durationMs}ms`);
       
-    } catch (e) {
+    } catch (e: any) {
       this.logger.error(`Failed to write audit log: ${e.message}`);
     }
   }

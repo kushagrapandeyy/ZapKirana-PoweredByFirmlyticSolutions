@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useAuth } from '@/context/AuthContext';
 import { API_BASE_URL, CURRENT_STORE_ID, CURRENT_STAFF_ID } from '@/constants/api';
+import { OfflineQueueService } from '@/services/OfflineQueueService';
 
 const ROYAL_BLUE = '#1D4ED8';
 const WHITE = '#FFFFFF';
@@ -98,16 +99,24 @@ export default function POSScreen() {
     
     try {
       // 1. Create Draft Bill
-      const billRes = await fetch(`${API_BASE_URL}/pos/bill`, {
+      const billRes = await OfflineQueueService.apiFetch(`${API_BASE_URL}/pos/bill`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ storeId: CURRENT_STORE_ID, staffId: CURRENT_STAFF_ID })
       });
-      const bill = await billRes.json();
+      
+      let billId;
+      if (billRes.status === 202) {
+        // Offline generated bill ID
+        billId = 'offline-' + Date.now();
+      } else {
+        const bill = await billRes.json();
+        billId = bill.id;
+      }
 
       // 2. Add Items
       for (const item of cart) {
-        await fetch(`${API_BASE_URL}/pos/bill/${bill.id}/items`, {
+        await OfflineQueueService.apiFetch(`${API_BASE_URL}/pos/bill/${billId}/items`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ productId: item.id, quantity: item.qty })
@@ -115,7 +124,7 @@ export default function POSScreen() {
       }
 
       // 3. Checkout (Deducts stock via InventoryService!)
-      const checkoutRes = await fetch(`${API_BASE_URL}/pos/bill/${bill.id}/checkout`, {
+      const checkoutRes = await OfflineQueueService.apiFetch(`${API_BASE_URL}/pos/bill/${billId}/checkout`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
@@ -124,8 +133,12 @@ export default function POSScreen() {
         })
       });
 
-      if (checkoutRes.ok) {
-        alert(`Paid ₹${finalTotal.toFixed(2)} via ${method}! Inventory deducted.`);
+      if (checkoutRes.ok || checkoutRes.status === 202) {
+        if (checkoutRes.status === 202) {
+           alert(`Offline Mode: Payment of ₹${finalTotal.toFixed(2)} recorded locally. Will sync when online.`);
+        } else {
+           alert(`Paid ₹${finalTotal.toFixed(2)} via ${method}! Inventory deducted.`);
+        }
         setCart([]);
       } else {
         const err = await checkoutRes.json();

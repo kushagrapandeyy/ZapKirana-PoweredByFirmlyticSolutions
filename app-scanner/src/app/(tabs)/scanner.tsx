@@ -84,14 +84,10 @@ export default function ScannerScreen() {
     setProcessing(true);
 
     try {
-      const response = await axios.post(`${API_URL}/scanner/resolve`, {
+      const response = await axios.post(`${API_URL}/scanner/barcode/lookup`, {
         storeId,
-        workflow,
-        rawValue: data,
-        symbology: type,
-        deviceId,
-        scannedById: staffId,
-        idempotencyKey: `${Date.now()}-${data}`
+        barcode: data,
+        scanMode: workflow
       }, {
         headers: {
           Authorization: `Bearer ${token}`
@@ -101,17 +97,17 @@ export default function ScannerScreen() {
       const result = response.data;
       
       // If found, route to action screen
-      if (result.status === 'FOUND' || result.status === 'INTERNAL_BARCODE') {
+      if (result.found) {
         router.push({
           pathname: '/(tabs)/action',
           params: {
             workflow,
             rawValue: data,
             symbology: type,
-            productId: result.product?.productId,
+            productId: result.product?.id,
             productName: result.product?.name,
-            productMrp: result.product?.mrp,
-            actionLabel: result.workflow?.action || 'Enter Quantity',
+            productMrp: result.pricing?.mrp,
+            actionLabel: 'Enter Quantity',
             idempotencyKey: `${Date.now()}-${data}`
           }
         });

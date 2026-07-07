@@ -1,4 +1,4 @@
-import { Controller, Post, Get, Param, Body, Patch, Res, Header } from '@nestjs/common';
+import { Controller, Post, Get, Param, Body, Patch, Res, Header, Delete } from '@nestjs/common';
 import { PurchaseOrderService } from './purchase-order.service';
 import { GrnService } from '../grn/grn.service';
 import { Response } from 'express';
@@ -41,6 +41,16 @@ export class PurchaseOrderController {
   @Patch(':id/accept')
   async acceptPO(@Param('id') id: string) {
     return this.poService.acceptPO(id);
+  }
+
+  @Patch(':id/items')
+  async updatePOItems(@Param('id') id: string, @Body() body: { items: { productId: string, quantity: number, purchasePrice: number }[] }) {
+    return this.poService.updatePOItems(id, body.items);
+  }
+
+  @Delete(':id')
+  async deletePO(@Param('id') id: string) {
+    return this.poService.deletePO(id);
   }
 
   @Patch(':id/send')

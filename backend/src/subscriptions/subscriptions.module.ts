@@ -4,10 +4,11 @@ import { SubscriptionsService } from './subscriptions.service';
 import { SubscriptionsController } from './subscriptions.controller';
 import { PrismaService } from '../prisma.service';
 import { EventEmitterModule } from '@nestjs/event-emitter';
+import { SubscriptionsCron } from './subscriptions.cron';
 
 @Module({
   imports: [RealtimeModule, EventEmitterModule.forRoot()],
-  providers: [SubscriptionsService, PrismaService],
+  providers: [SubscriptionsService, PrismaService, SubscriptionsCron],
   controllers: [SubscriptionsController],
   exports: [SubscriptionsService],
 })

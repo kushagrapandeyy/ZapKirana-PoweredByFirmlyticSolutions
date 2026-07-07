@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, Image,
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
 import { useAuth } from '@/context/AuthContext';
 import { API_BASE_URL } from '@/constants/api';
 
@@ -32,6 +33,20 @@ export default function StoreBrandingScreen() {
       .catch(console.error)
       .finally(() => setLoading(false));
   }, [tenantId]);
+
+  const pickImage = async (type: 'logo' | 'banner') => {
+    let result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: type === 'banner' ? [16, 6] : [1, 1],
+      quality: 1,
+    });
+
+    if (!result.canceled) {
+      if (type === 'logo') setLogoUrl(result.assets[0].uri);
+      if (type === 'banner') setBannerUrl(result.assets[0].uri);
+    }
+  };
 
   const handleSave = async () => {
     setSaving(true);
@@ -82,7 +97,13 @@ export default function StoreBrandingScreen() {
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.label}>Logo Image URL</Text>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+            <Text style={styles.label}>Logo Image URL</Text>
+            <TouchableOpacity onPress={() => pickImage('logo')} style={styles.pickBtn}>
+              <Ionicons name="image-outline" size={16} color={ROYAL_BLUE} />
+              <Text style={styles.pickBtnText}>Pick & Crop</Text>
+            </TouchableOpacity>
+          </View>
           <TextInput 
             style={styles.input}
             value={logoUrl}
@@ -93,7 +114,13 @@ export default function StoreBrandingScreen() {
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.label}>Banner Image URL</Text>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+            <Text style={styles.label}>Banner Image URL</Text>
+            <TouchableOpacity onPress={() => pickImage('banner')} style={styles.pickBtn}>
+              <Ionicons name="image-outline" size={16} color={ROYAL_BLUE} />
+              <Text style={styles.pickBtnText}>Pick & Crop</Text>
+            </TouchableOpacity>
+          </View>
           <TextInput 
             style={styles.input}
             value={bannerUrl}
@@ -156,9 +183,11 @@ const styles = StyleSheet.create({
   helpText: { fontSize: 13, color: '#64748b', marginBottom: 16 },
   
   previewCard: { borderRadius: 16, backgroundColor: WHITE, overflow: 'hidden', shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 8, elevation: 4 },
-  previewBanner: { width: '100%', height: 100, resizeMode: 'cover' },
-  previewOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.3)', height: 100 },
+  previewBanner: { width: '100%', height: 70, resizeMode: 'cover' },
+  previewOverlay: { position: 'absolute', top: 0, bottom: 0, left: 0, right: 0, backgroundColor: 'rgba(0,0,0,0.3)', height: 70 },
   previewContent: { flexDirection: 'row', alignItems: 'flex-end', paddingHorizontal: 16, marginTop: -25, marginBottom: 12 },
+  pickBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 10, paddingVertical: 4, backgroundColor: '#eff6ff', borderRadius: 6, borderWidth: 1, borderColor: '#bfdbfe' },
+  pickBtnText: { color: ROYAL_BLUE, fontSize: 12, fontFamily: 'Inter_600SemiBold' },
   previewLogo: { width: 50, height: 50, borderRadius: 25, borderWidth: 2, borderColor: WHITE, backgroundColor: WHITE },
   previewTextContainer: { marginLeft: 12, flex: 1, paddingBottom: 2 },
   previewName: { fontSize: 16, fontFamily: 'PlayfairDisplay_700Bold', color: '#0f172a' },

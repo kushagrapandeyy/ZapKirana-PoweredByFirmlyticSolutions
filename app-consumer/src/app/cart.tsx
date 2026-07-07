@@ -8,7 +8,7 @@ import { Colors, Shadows, Radius } from '../constants/theme';
 
 export default function CartScreen() {
   const router = useRouter();
-  const { cart, cartTotal, addToCart, removeFromCart, clearCart } = useCart();
+  const { cart, cartTotal, addToCart, removeFromCart, clearCart, clearStoreCart } = useCart();
 
   // Group cart items by store
   const groupedCart = useMemo(() => {
@@ -115,9 +115,14 @@ export default function CartScreen() {
         {/* Cart Items Grouped By Store */}
         {Object.entries(groupedCart).map(([sId, group], groupIndex) => (
           <View key={sId} style={styles.itemsCard}>
-            <View style={styles.storeHeader}>
-              <Ionicons name="storefront-outline" size={18} color={Colors.textSecondary} />
-              <Text style={styles.storeTitle}>{group.storeName}</Text>
+            <View style={[styles.storeHeader, { justifyContent: 'space-between', flexDirection: 'row' }]}>
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <Ionicons name="storefront-outline" size={18} color={Colors.textSecondary} />
+                <Text style={[styles.storeTitle, { marginLeft: 8 }]}>{group.storeName}</Text>
+              </View>
+              <TouchableOpacity onPress={() => clearStoreCart(sId)}>
+                <Ionicons name="trash-outline" size={18} color={Colors.danger} />
+              </TouchableOpacity>
             </View>
             
             {group.items.map((item, index) => (

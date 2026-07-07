@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { StyleSheet, Text, View, SafeAreaView, TouchableOpacity, Dimensions, StatusBar } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import LottieView from 'lottie-react-native';
 import Animated, { useSharedValue, useAnimatedStyle, withTiming, interpolate, FadeInDown, FadeIn } from 'react-native-reanimated';
 import { Colors, Shadows, Radius } from '../constants/theme';
 
@@ -40,8 +41,13 @@ export default function BrandWelcomeScreen() {
         <View style={styles.content}>
           
           <Animated.View entering={FadeInDown.delay(200).springify()} style={styles.brandContainer}>
-            <View style={styles.logoBadge}>
-              <Ionicons name="basket" size={42} color={Colors.surface} />
+            <View style={[styles.logoBadge, { backgroundColor: 'transparent', elevation: 0, shadowOpacity: 0 }]}>
+              <LottieView
+                autoPlay
+                loop
+                style={{ width: 150, height: 150 }}
+                source={require('../../assets/lottie/intro.json')}
+              />
             </View>
             <Text style={styles.brandName}>ZapKirana</Text>
           </Animated.View>

@@ -34,7 +34,11 @@ export default function OperationsLayout() {
     >
       <Stack.Screen name="inventory" options={{ title: 'Inventory' }} />
       <Stack.Screen name="approvals" options={{ title: 'Scanner Approvals' }} />
-      <Stack.Screen name="suppliers" options={{ title: 'Suppliers' }} />
+      <Stack.Screen name="suppliers" options={{ headerShown: false }} />
+      <Stack.Screen name="supplier/[id]" options={{ headerShown: false }} />
+      <Stack.Screen name="po/index" options={{ headerShown: false }} />
+      <Stack.Screen name="po/draft" options={{ headerShown: false }} />
+      <Stack.Screen name="po/[id]" options={{ headerShown: false }} />
     </Stack>
   );
 }
