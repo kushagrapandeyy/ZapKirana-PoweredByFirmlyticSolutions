@@ -7,8 +7,10 @@ export class ProductsController {
 
   @Post()
   createProduct(@Body() body: any) {
-    // In production, use DTOs for validation
-    return this.productsService.createProduct(body);
+    return this.productsService.createStoreProduct({
+      ...body,
+      createdBy: body.createdBy || 'API_USER',
+    });
   }
 
   @Get()
@@ -33,13 +35,8 @@ export class ProductsController {
   }
 
   @Patch(':id/price')
-  updatePrice(@Param('id') id: string, @Body() body: { mrp: number; sellingPrice: number }) {
-    return this.productsService.updatePrice(id, body.mrp, body.sellingPrice);
-  }
-
-  @Patch(':id/subscription-discount')
-  updateSubscriptionDiscount(@Param('id') id: string, @Body() body: { discount: number }) {
-    return this.productsService.updateSubscriptionDiscount(id, body.discount);
+  updatePrice(@Param('id') id: string, @Body() body: { mrp?: number; sellingPrice?: number; updatedBy?: string }) {
+    return this.productsService.updatePricing(id, body.updatedBy || 'API_USER', body);
   }
 
   /**
@@ -60,6 +57,14 @@ export class ProductsController {
    */
   @Post('from-barcode')
   createFromBarcode(@Body() body: any) {
-    return this.productsService.createFromBarcode(body);
+    return this.productsService.createPendingFromBarcode({
+      storeId: body.storeId,
+      barcode: body.barcode,
+      createdById: body.createdBy || 'API_USER',
+      suggestedName: body.name,
+      mrp: body.mrp,
+      sellingPrice: body.sellingPrice,
+      supplierId: body.supplierId,
+    });
   }
 }

@@ -4,8 +4,10 @@ import { PlatformController } from './platform.controller';
 import { PrismaService } from '../prisma.service';
 import { CacheModule } from '../cache/cache.module';
 
+import { InventoryModule } from '../inventory/inventory.module';
+
 @Module({
-  imports: [CacheModule],
+  imports: [CacheModule, InventoryModule],
   providers: [PlatformService, PrismaService],
   controllers: [PlatformController],
   exports: [PlatformService],

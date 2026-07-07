@@ -22,7 +22,7 @@ export class AdminService {
 
   async getStores() {
     return this.prisma.store.findMany({
-      include: { _count: { select: { products: true, orders: true, users: true } } },
+      include: { _count: { select: { storeProducts: true, orders: true, users: true } } },
       orderBy: { createdAt: 'desc' }
     });
   }
@@ -168,7 +168,7 @@ export class AdminService {
       include: {
         storeConnections: { include: { store: true } },
         purchaseOrders: { orderBy: { createdAt: 'desc' }, take: 10, include: { store: true } },
-        supplierProducts: { include: { product: true } },
+        supplierProducts: { include: { storeProduct: true } },
       },
     });
     if (!supplier) throw new NotFoundException('Supplier not found');
@@ -295,12 +295,12 @@ export class AdminService {
 
     const [lowStock, expiringSoon, damagedGoods] = await Promise.all([
       this.prisma.inventory.findMany({
-        where: { storeId, onHandQty: { lte: 10 } }, // naive threshold
-        include: { product: true }
+        where: { storeId, quantityBase: { lte: 10 } }, // naive threshold
+        include: { storeProduct: { include: { product: true } } }
       }),
       this.prisma.inventory.findMany({
-        where: { storeId, expiryDate: { not: null, lte: sevenDaysFromNow }, onHandQty: { gt: 0 } },
-        include: { product: true }
+        where: { storeId, expiryDate: { not: null, lte: sevenDaysFromNow }, quantityBase: { gt: 0 } },
+        include: { storeProduct: { include: { product: true } } }
       }),
       this.prisma.stockMovement.findMany({
         where: { 
@@ -308,7 +308,7 @@ export class AdminService {
           type: 'DAMAGE', // Adjusted to DAMAGE from schema
           createdAt: { gte: thirtyDaysAgo }
         },
-        include: { inventory: { include: { product: true } } } // removed user:true
+        include: { inventory: { include: { storeProduct: { include: { product: true } } } } } // removed user:true
       })
     ]);
 

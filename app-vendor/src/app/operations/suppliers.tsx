@@ -109,7 +109,7 @@ export default function SuppliersScreen() {
           <Ionicons name="arrow-back" size={24} color={Colors.textPrimary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Suppliers</Text>
-        <TouchableOpacity style={styles.addBtn} onPress={() => setIsAddModalVisible(true)}>
+        <TouchableOpacity style={styles.addBtn} onPress={() => router.push('/operations/suppliers/create')}>
           <Ionicons name="add" size={20} color="#fff" />
         </TouchableOpacity>
       </View>
@@ -134,55 +134,6 @@ export default function SuppliersScreen() {
         showsVerticalScrollIndicator={false}
       />
 
-      {/* Add Supplier Modal */}
-      <Modal visible={isAddModalVisible} animationType="slide" transparent>
-        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.modalContainer}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Add Supplier</Text>
-              <TouchableOpacity onPress={() => setIsAddModalVisible(false)}>
-                <Ionicons name="close" size={24} color={Colors.textPrimary} />
-              </TouchableOpacity>
-            </View>
-
-            <ScrollView contentContainerStyle={styles.formContent} showsVerticalScrollIndicator={false}>
-              <View style={styles.inputGroup}>
-                <Text style={styles.label}>Company Name *</Text>
-                <TextInput style={styles.input} value={name} onChangeText={setName} placeholder="e.g. ABC Corp" />
-              </View>
-              <View style={styles.inputGroup}>
-                <Text style={styles.label}>Contact Person</Text>
-                <TextInput style={styles.input} value={contactPerson} onChangeText={setContactPerson} placeholder="e.g. Rahul Kumar" />
-              </View>
-              <View style={styles.inputGroup}>
-                <Text style={styles.label}>Phone *</Text>
-                <TextInput style={styles.input} value={contactPhone} onChangeText={setContactPhone} keyboardType="phone-pad" placeholder="e.g. +91 9876543210" />
-              </View>
-              <View style={styles.inputGroup}>
-                <Text style={styles.label}>Email</Text>
-                <TextInput style={styles.input} value={contactEmail} onChangeText={setContactEmail} keyboardType="email-address" autoCapitalize="none" placeholder="e.g. contact@abccorp.com" />
-              </View>
-              <View style={styles.inputGroup}>
-                <Text style={styles.label}>Website</Text>
-                <TextInput style={styles.input} value={website} onChangeText={setWebsite} keyboardType="url" autoCapitalize="none" placeholder="e.g. https://zapkirana.com" />
-              </View>
-
-              <View style={styles.inputGroup}>
-                <Text style={styles.label}>Address</Text>
-                <TextInput style={[styles.input, { height: 80 }]} value={address} onChangeText={setAddress} multiline placeholder="Full street address..." />
-              </View>
-
-              <TouchableOpacity 
-                style={[styles.submitBtn, createMutation.isPending && { opacity: 0.7 }]} 
-                onPress={handleAddSupplier}
-                disabled={createMutation.isPending}
-              >
-                <Text style={styles.submitBtnText}>{createMutation.isPending ? 'Saving...' : 'Save Supplier'}</Text>
-              </TouchableOpacity>
-            </ScrollView>
-          </View>
-        </KeyboardAvoidingView>
-      </Modal>
 
     </SafeAreaView>
   );

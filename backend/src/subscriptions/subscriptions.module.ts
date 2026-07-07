@@ -6,8 +6,10 @@ import { PrismaService } from '../prisma.service';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { SubscriptionsCron } from './subscriptions.cron';
 
+import { OrdersModule } from '../orders/orders.module';
+
 @Module({
-  imports: [RealtimeModule, EventEmitterModule.forRoot()],
+  imports: [RealtimeModule, EventEmitterModule.forRoot(), OrdersModule],
   providers: [SubscriptionsService, PrismaService, SubscriptionsCron],
   controllers: [SubscriptionsController],
   exports: [SubscriptionsService],

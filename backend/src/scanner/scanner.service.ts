@@ -2,8 +2,11 @@ import { Injectable, BadRequestException, NotFoundException, ForbiddenException 
 import { PrismaService } from '../prisma.service';
 import { CacheService } from '../cache/cache.service';
 import { RealtimeService } from '../realtime/realtime.service';
+import { InventoryService } from '../inventory/inventory.service';
+import { ProductsService } from '../products/products.service';
 import { ScannerWorkflow, ScanResolutionStatus, BarcodeScope, Role, MovementType } from '@prisma/client';
 import { v4 as uuidv4 } from 'uuid';
+import { Decimal } from '@prisma/client/runtime/library';
 
 export interface ClassifiedBarcode {
   scope: BarcodeScope;
@@ -59,17 +62,15 @@ export class ScannerService {
     private prisma: PrismaService,
     private cacheService: CacheService,
     private realtimeService: RealtimeService,
+    private inventoryService: InventoryService,
+    private productsService: ProductsService,
   ) {}
 
-  /**
-   * Check permissions based on user id and store id
-   */
   async checkPermission(userId: string, storeId: string): Promise<Role> {
     const roleRecord = await this.prisma.userStoreRole.findFirst({
       where: { userId, storeId, status: 'ACTIVE' },
     });
     if (!roleRecord) {
-      // Fallback: check User table directly
       const user = await this.prisma.user.findUnique({ where: { id: userId } });
       if (user && (user.role === 'OWNER' || user.role === 'ORG_ADMIN')) {
         return user.role;
@@ -79,101 +80,83 @@ export class ScannerService {
     return roleRecord.role;
   }
 
-  /**
-   * A. Barcode lookup with Redis Caching
-   */
   async lookupBarcode(storeId: string, barcode: string, scanMode: string) {
     const cacheKey = `store:${storeId}:barcode:${barcode}`;
-    
-    // 1. Try Cache
     const cached = await this.cacheService.get<any>(cacheKey);
-    if (cached) {
-      console.log(`[Scanner] Cache HIT for barcode: ${barcode}`);
-      return cached;
-    }
+    if (cached) return cached;
 
-    console.log(`[Scanner] Cache MISS for barcode: ${barcode}`);
+    try {
+      const sp = await this.prisma.storeProduct.findFirst({
+        where: { storeId, productBarcodes: { some: { barcode } } },
+        include: {
+          product: { include: { brand: true, category: true } },
+          pricing: { orderBy: { effectiveFrom: 'desc' }, take: 1 },
+          taxProfile: { orderBy: { effectiveFrom: 'desc' }, take: 1 },
+          productBarcodes: true,
+          inventoryPolicy: true,
+          rackLocations: true,
+        },
+      });
+      if (!sp) throw new Error('Not found');
 
-    // 2. Query Database using ProductBarcode registry
-    const barcodeEntry = await this.prisma.productBarcode.findFirst({
-      where: { barcode, storeId, isActive: true },
-      include: {
+      const pricing = sp.pricing?.[0];
+      const tax = sp.taxProfile?.[0];
+      const inventory = await this.inventoryService.getAvailableStock(storeId, sp.id);
+      
+      const quantityBase = inventory.onHand.toNumber();
+      const barcodeData = sp.productBarcodes?.find(b => b.barcode === barcode);
+      const conversion = 1; // conversionToBase not in new schema, assuming 1
+      
+      const boxes = conversion > 1 ? Math.floor(quantityBase / conversion) : 0;
+      const pcs = conversion > 1 ? quantityBase % conversion : quantityBase;
+      const displayQuantity = conversion > 1 ? `${boxes} BOX + ${pcs} PCS` : `${pcs} PCS`;
+
+      const response = {
+        found: true,
         product: {
-          include: {
-            inventory: { where: { storeId } },
-          }
-        }
-      }
-    });
-
-    if (!barcodeEntry || !barcodeEntry.product) {
-      // The scanner validator is basically the barcode gatekeeper, not the whole ERP data-entry system.
-      // Barcode unknown -> return action CREATE_PRODUCT_DRAFT
-      return {
-        found: false,
-        action: 'CREATE_PRODUCT_DRAFT',
-        barcode,
+          id: sp.id,
+          name: sp.displayName ?? sp.product?.name,
+          brand: sp.product?.brand?.name || 'General',
+          category: sp.product?.category?.name || 'General',
+          hsnSac: tax?.hsnSacCode || '04039090',
+          unit: 'PCS',
+          saleUnit: 'PCS',
+          packing: `BOX OF ${conversion}`,
+          shelfLifeDays: sp.inventoryPolicy?.shelfLifeDays || 258,
+          status: sp.status,
+        },
+        barcodeUnit: {
+          barcodeType: barcodeData?.barcodeType || 'ITEM',
+          unitName: 'PCS', // unitName removed from schema
+          conversionToBase: conversion,
+        },
+        pricing: {
+          mrp: pricing?.mrp?.toNumber() || 0,
+          purchaseRateBaseUnit: pricing?.purchaseRate?.toNumber() || 0,
+          purchaseRateInputUnit: (pricing?.purchaseRate?.toNumber() || 0) * conversion,
+          saleRateBaseUnit: pricing?.sellingPrice?.toNumber() || 0,
+        },
+        tax: {
+          sgstPercent: tax?.sgstRate?.toNumber() || 0,
+          cgstPercent: tax?.cgstRate?.toNumber() || 0,
+          igstPercent: tax?.igstRate?.toNumber() || tax?.gstRate?.toNumber() || 0,
+        },
+        inventory: {
+          quantityBase,
+          displayQuantity,
+          rackNo: sp.rackLocations?.[0]?.rackNo || 'A-12',
+          reorderQtyBase: sp.inventoryPolicy?.reorderQty?.toNumber() || 15,
+        },
+        allowedActions: ['STOCK_INTAKE', 'BOX_INTAKE', 'ADJUST_STOCK', 'ARCHIVE']
       };
+
+      await this.cacheService.set(cacheKey, response, 3600);
+      return response;
+    } catch {
+      return { found: false, action: 'CREATE_PRODUCT_DRAFT', barcode };
     }
-
-    const product = barcodeEntry.product;
-    const inventoryRecord = product.inventory[0];
-    const quantityBase = inventoryRecord ? inventoryRecord.quantityBase : 0;
-    
-    // Display calculation
-    const conversion = barcodeEntry.conversionToBase || product.conversionToBase || 1;
-    const boxes = conversion > 1 ? Math.floor(quantityBase / conversion) : 0;
-    const pcs = conversion > 1 ? quantityBase % conversion : quantityBase;
-    const displayQuantity = conversion > 1 ? `${boxes} BOX + ${pcs} PCS` : `${pcs} PCS`;
-
-    const response = {
-      found: true,
-      product: {
-        id: product.id,
-        name: product.name,
-        brand: product.brand || 'General',
-        category: product.category || 'General',
-        hsnSac: product.hsnSac || '04039090',
-        unit: product.unit || 'PCS',
-        saleUnit: product.saleUnit || 'PCS',
-        packing: product.packing || `BOX OF ${conversion}`,
-        shelfLifeDays: product.shelfLifeDays || 258,
-        status: product.status,
-      },
-      barcodeUnit: {
-        barcodeType: barcodeEntry.barcodeType,
-        unitName: barcodeEntry.unitName,
-        conversionToBase: conversion,
-      },
-      pricing: {
-        mrp: product.mrp,
-        purchaseRateBaseUnit: product.purchaseRateBaseUnit || (product.purchaseRate || 0),
-        purchaseRateInputUnit: product.purchaseRateInputUnit || ((product.purchaseRate || 0) * conversion),
-        saleRateBaseUnit: product.saleRateBaseUnit || product.sellingPrice,
-      },
-      tax: {
-        sgstPercent: product.sgstPercent || (product.gstRate / 2),
-        cgstPercent: product.cgstPercent || (product.gstRate / 2),
-        igstPercent: product.igstPercent || product.gstRate,
-      },
-      inventory: {
-        quantityBase,
-        displayQuantity,
-        rackNo: inventoryRecord?.rackNo || 'A-12',
-        reorderQtyBase: inventoryRecord ? inventoryRecord.lowStockThreshold : 15,
-      },
-      allowedActions: ['STOCK_INTAKE', 'BOX_INTAKE', 'ADJUST_STOCK', 'ARCHIVE']
-    };
-
-    // Cache the lookup response for 1 hour
-    await this.cacheService.set(cacheKey, response, 3600);
-
-    return response;
   }
 
-  /**
-   * B. Product update from scanner
-   */
   async updateProduct(
     userId: string,
     productId: string,
@@ -192,103 +175,74 @@ export class ScannerService {
       name?: string;
     },
   ) {
-    // 1. Fetch user role & permissions
     const role = await this.checkPermission(userId, data.storeId);
     
-    // 2. Fetch existing product
-    const product = await this.prisma.product.findUnique({
-      where: { id: productId },
-    });
-    if (!product || product.storeId !== data.storeId) {
-      throw new NotFoundException('Product not found in this store');
-    }
-
-    // 3. Validation Logic
-    if (data.mrp !== undefined && data.mrp <= 0) {
-      throw new BadRequestException('MRP must be positive');
-    }
-    if (data.sgstPercent !== undefined && data.cgstPercent !== undefined && data.igstPercent !== undefined) {
-      if (data.sgstPercent + data.cgstPercent !== data.igstPercent) {
-        throw new BadRequestException('CGST + SGST must equal IGST');
-      }
-    }
-    if (data.hsnSac !== undefined && !/^\d{6,8}$/.test(data.hsnSac)) {
-      throw new BadRequestException('HSN/SAC format is invalid (must be 6-8 digits)');
-    }
-
-    // 4. Escalation to draft if user is SCANNER_STAFF
     if (role === 'SCANNER_STAFF' || role === 'STAFF') {
+      const sp = await this.prisma.storeProduct.findFirst({ where: { id: productId, storeId: data.storeId }, include: { productBarcodes: true } });
+      if (!sp) throw new NotFoundException('StoreProduct not found');
+      
       const draft = await this.prisma.pendingProduct.create({
         data: {
           storeId: data.storeId,
-          barcode: product.barcode,
-          suggestedName: data.name || product.name,
-          suggestedBrand: data.brand || product.brand,
-          suggestedCategory: data.category || product.category,
-          mrp: data.mrp || product.mrp,
-          sellingPrice: data.saleRateBaseUnit || product.sellingPrice,
-          purchasePrice: data.purchaseRateBaseUnit || product.purchaseRate,
-          gstRate: data.igstPercent || product.gstRate,
+          barcode: sp.productBarcodes?.[0]?.barcode || '',
+          suggestedName: data.name,
+          suggestedBrand: data.brand,
+          suggestedCategory: data.category,
+          mrp: data.mrp != null ? new Decimal(data.mrp) : undefined,
+          sellingPrice: data.saleRateBaseUnit != null ? new Decimal(data.saleRateBaseUnit) : undefined,
+          purchasePrice: data.purchaseRateBaseUnit != null ? new Decimal(data.purchaseRateBaseUnit) : undefined,
+          gstRate: data.igstPercent != null ? new Decimal(data.igstPercent) : undefined,
           createdById: userId,
           status: 'PENDING_REVIEW',
-          notes: `Staff requested updates. Rack: ${data.rackNo || product.rackNo}. HSN: ${data.hsnSac || product.hsnSac}`,
+          notes: `Staff requested updates. Rack: ${data.rackNo}. HSN: ${data.hsnSac}`,
         },
       });
-      return {
-        draftId: draft.id,
-        status: draft.status,
-        message: 'Changes queued for Manager approval.',
-      };
+      return { draftId: draft.id, status: draft.status, message: 'Changes queued for Manager approval.' };
     }
 
-    // 5. Update Database directly for Managers/Owners/Admins
-    const updated = await this.prisma.product.update({
-      where: { id: productId },
-      data: {
-        mrp: data.mrp ?? product.mrp,
-        sellingPrice: data.saleRateBaseUnit ?? product.sellingPrice,
-        purchaseRate: data.purchaseRateBaseUnit ?? product.purchaseRate,
-        purchaseRateBaseUnit: data.purchaseRateBaseUnit ?? product.purchaseRateBaseUnit,
-        purchaseRateInputUnit: data.purchaseRateBaseUnit ? (data.purchaseRateBaseUnit * (product.conversionToBase || 15)) : product.purchaseRateInputUnit,
-        saleRateBaseUnit: data.saleRateBaseUnit ?? product.saleRateBaseUnit,
-        hsnSac: data.hsnSac ?? product.hsnSac,
-        sgstPercent: data.sgstPercent ?? product.sgstPercent,
-        cgstPercent: data.cgstPercent ?? product.cgstPercent,
-        igstPercent: data.igstPercent ?? product.igstPercent,
-        gstRate: data.igstPercent ?? product.gstRate,
-      },
+    await this.productsService.updatePricing(productId, userId, {
+      mrp: data.mrp,
+      sellingPrice: data.saleRateBaseUnit,
+      purchaseRate: data.purchaseRateBaseUnit,
     });
 
-    // Also update rackNo in Inventory if provided
-    let updatedRackNo = 'A-12';
+    if (data.name) {
+      await this.productsService.updateStoreProduct(productId, data.storeId, {
+        displayName: data.name,
+        updatedBy: userId,
+      });
+    }
+
     if (data.rackNo) {
-      const inventory = await this.prisma.inventory.findFirst({ where: { storeId: data.storeId, productId } });
-      if (inventory) {
-        await this.prisma.inventory.update({ where: { id: inventory.id }, data: { rackNo: data.rackNo } });
-        updatedRackNo = data.rackNo;
+      const existingRack = await this.prisma.productRackLocation.findFirst({ where: { storeProductId: productId } });
+      if (existingRack) {
+        await this.prisma.productRackLocation.update({ where: { id: existingRack.id }, data: { rackNo: data.rackNo } });
+      } else {
+        await this.prisma.productRackLocation.create({ data: { storeProductId: productId, rackNo: data.rackNo } });
       }
     }
 
-    // 6. Invalidate Cache
-    if (product.barcode) {
-      await this.cacheService.delete(`store:${data.storeId}:barcode:${product.barcode}`);
+    if (data.hsnSac || data.igstPercent !== undefined) {
+      const sp = await this.prisma.storeProduct.findUnique({ where: { id: productId }, include: { taxProfile: { orderBy: { effectiveFrom: 'desc' }, take: 1 } } });
+      const tax = sp?.taxProfile?.[0];
+      await this.prisma.productTaxProfile.create({
+        data: {
+          storeProductId: productId,
+          hsnSacCode: data.hsnSac ?? tax?.hsnSacCode,
+          isTaxable: true,
+          cgstRate: data.cgstPercent != null ? new Decimal(data.cgstPercent) : tax?.cgstRate,
+          sgstRate: data.sgstPercent != null ? new Decimal(data.sgstPercent) : tax?.sgstRate,
+          igstRate: data.igstPercent != null ? new Decimal(data.igstPercent) : tax?.igstRate,
+          gstRate: data.igstPercent != null ? new Decimal(data.igstPercent) : tax?.gstRate,
+          createdBy: userId,
+        }
+      });
     }
+
     await this.cacheService.delete(`store:${data.storeId}:product:${productId}`);
-
-    // 7. Emit Real-time Update
-    await this.realtimeService.broadcastInventoryUpdate(data.storeId, productId, {
-      name: updated.name,
-      mrp: updated.mrp,
-      sellingPrice: updated.sellingPrice,
-      rackNo: updatedRackNo,
-    });
-
-    return { success: true, product: updated };
+    return { success: true };
   }
 
-  /**
-   * C. Stock update
-   */
   async updateStock(
     userId: string,
     data: {
@@ -305,88 +259,34 @@ export class ScannerService {
     },
   ) {
     const quantityBase = data.quantityInput * data.conversionToBase;
-
-    // 1. Fetch Product
-    const product = await this.prisma.product.findUnique({
-      where: { id: data.productId },
-    });
-    if (!product || product.storeId !== data.storeId) {
-      throw new NotFoundException('Product not found in this store');
-    }
-
-    // 2. Fetch or Create Inventory Record
-    let inventory = await this.prisma.inventory.findFirst({
-      where: { storeId: data.storeId, productId: data.productId, batchNo: data.batchNo || null },
-    });
-
-    if (!inventory) {
-      inventory = await this.prisma.inventory.create({
-        data: {
-          storeId: data.storeId,
-          productId: data.productId,
-          batchNo: data.batchNo || null,
-          expiryDate: data.expiryDate ? new Date(data.expiryDate) : null,
-          quantityBase: 0,
-        },
-      });
-    }
-
     const isOutScan = ['DISPATCH', 'SALE', 'WASTE', 'WRITE_OFF', 'ADJUSTMENT_DOWN', 'SALE_RETURN'].includes(data.movementType);
-    const finalQuantityChange = isOutScan ? -Math.abs(quantityBase) : Math.abs(quantityBase);
-
-    // Check reserve stock / negative stock
-    if (isOutScan && !product.allowNegativeStock) {
-      const remainingStock = inventory.quantityBase + finalQuantityChange;
-      const minimumQty = inventory.minimumQtyBase || product.minimumQty || 0;
-      if (remainingStock < minimumQty) {
-        throw new BadRequestException(`Cannot dispatch. Remaining stock (${remainingStock}) would fall below minimum reserve quantity (${minimumQty})`);
-      }
-    }
-
-    // 3. Save Stock Movement
-    const movement = await this.prisma.stockMovement.create({
-      data: {
-        storeId: data.storeId,
-        productId: data.productId,
-        inventoryId: inventory.id,
-        createdBy: userId,
-        type: data.movementType as MovementType,
-        quantityDeltaBase: finalQuantityChange,
-        previousQuantityBase: inventory.quantityBase,
-        newQuantityBase: inventory.quantityBase + finalQuantityChange,
-        inputQuantity: data.quantityInput,
-        inputUnit: data.inputUnit,
-        conversionToBase: data.conversionToBase,
-        supplierId: data.supplierId,
-        note: data.note || `${isOutScan ? 'Out' : 'In'} scan: ${data.quantityInput} ${data.inputUnit}`,
-      },
+    let movementType: MovementType = 'MANUAL_ADJUSTMENT';
+    if (data.movementType === 'SALE') movementType = 'POS_SALE';
+    if (data.movementType === 'WASTE') movementType = 'DAMAGE_WRITE_OFF';
+    if (data.movementType === 'SALE_RETURN') movementType = 'SALE_RETURN';
+    if (data.movementType === 'STOCK_INTAKE') movementType = 'PURCHASE_RECEIPT';
+    
+    await this.inventoryService.recordMovement({
+      storeId: data.storeId,
+      storeProductId: data.productId,
+      type: movementType,
+      quantityChange: isOutScan ? -Math.abs(quantityBase) : Math.abs(quantityBase),
+      batchNo: data.batchNo,
+      expiryDate: data.expiryDate ? new Date(data.expiryDate) : undefined,
+      staffId: userId,
+      note: data.note || `${isOutScan ? 'Out' : 'In'} scan: ${data.quantityInput} ${data.inputUnit}`,
     });
 
-    // Update physical inventory stock
-    const updatedInventory = await this.prisma.inventory.update({
-      where: { id: inventory.id },
-      data: {
-        quantityBase: {
-          increment: finalQuantityChange,
-        },
-        // legacy compatibility
-        onHandQty: {
-          increment: finalQuantityChange,
-        }
-      },
-    });
-
-    // 4. Log Scanner Event
     await this.prisma.scannerEvent.create({
       data: {
         storeId: data.storeId,
         scannedById: userId,
         workflow: 'PRODUCT_INTAKE',
-        rawValue: product.barcode || '',
-        symbology: 'EAN_13',
+        rawValue: data.productId,
+        symbology: 'INTERNAL',
         resolutionStatus: 'FOUND',
         idempotencyKey: uuidv4(),
-        quantity: finalQuantityChange,
+        quantity: isOutScan ? -Math.abs(quantityBase) : Math.abs(quantityBase),
         metadata: {
           movementType: data.movementType,
           inputUnit: data.inputUnit,
@@ -395,31 +295,24 @@ export class ScannerService {
       },
     });
 
-    // 5. Invalidate Cache
-    if (product.barcode) {
-      await this.cacheService.delete(`store:${data.storeId}:barcode:${product.barcode}`);
-    }
-
-    // 6. Broadcast Real-time Update
-    const boxes = Math.floor(updatedInventory.quantityBase / (product.conversionToBase || 15));
-    const pcs = updatedInventory.quantityBase % (product.conversionToBase || 15);
+    const stock = await this.inventoryService.getAvailableStock(data.storeId, data.productId);
+    
+    const boxes = Math.floor(stock.onHand.toNumber() / (data.conversionToBase || 15));
+    const pcs = stock.onHand.toNumber() % (data.conversionToBase || 15);
     const displayQuantity = `${boxes} BOX + ${pcs} PCS`;
 
     await this.realtimeService.broadcastInventoryUpdate(data.storeId, data.productId, {
-      quantityBase: updatedInventory.quantityBase,
+      quantityBase: stock.onHand.toNumber(),
       displayQuantity,
     });
 
     return {
       success: true,
       quantityBase,
-      newStockLevel: updatedInventory.quantityBase,
+      newStockLevel: stock.onHand.toNumber(),
     };
   }
 
-  /**
-   * D. Create product draft
-   */
   async createProductDraft(
     userId: string,
     data: {
@@ -437,76 +330,29 @@ export class ScannerService {
       supplierId?: string;
     },
   ) {
-    // 1. Check if barcode already exists
-    const existing = await this.prisma.productBarcode.findFirst({
-      where: { storeId: data.storeId, barcode: data.barcode }
+    const existing = await this.prisma.storeProductBarcode.findFirst({
+      where: { barcode: data.barcode, storeProduct: { storeId: data.storeId } }
     });
     if (existing) {
       throw new BadRequestException('Barcode already registered');
     }
 
-    // 2. Create Product, ProductBarcode, ProductVersion, and Inventory in transaction
-    const product = await this.prisma.$transaction(async (tx) => {
-      const prod = await tx.product.create({
-        data: {
-          storeId: data.storeId,
-          skuCode: `SKU-${Date.now()}`,
-          name: data.productName,
-          brand: data.brand || null,
-          category: data.category || null,
-          hsnSac: data.hsnSac || null,
-          unit: data.baseUnit,
-          saleUnit: data.baseUnit,
-          mrp: data.mrp,
-          sellingPrice: data.mrp,
-          gstRate: data.gstRate,
-          
-          status: 'PENDING_APPROVAL',
-          isArchived: false,
-          createdFromBarcode: data.barcode,
-          createdBy: userId,
-          
-          inventory: {
-            create: {
-              storeId: data.storeId,
-              quantityBase: 0,
-            }
-          }
-        }
-      });
-
-      await tx.productBarcode.create({
-        data: {
-          storeId: data.storeId,
-          productId: prod.id,
-          barcode: data.barcode,
-          unitName: data.purchaseUnit || data.baseUnit,
-          conversionToBase: data.conversionToBase || 1,
-          isPrimary: true,
-        }
-      });
-
-      await tx.productVersion.create({
-        data: {
-          storeId: data.storeId,
-          productId: prod.id,
-          versionNo: 1,
-          snapshot: prod as any,
-          changedBy: userId,
-          changeReason: 'Initial Draft Registration'
-        }
-      });
-
-      return prod;
+    const draft = await this.productsService.createPendingFromBarcode({
+      storeId: data.storeId,
+      barcode: data.barcode,
+      createdById: userId,
+      suggestedName: data.productName,
+      mrp: data.mrp,
+      sellingPrice: data.mrp,
+      supplierId: data.supplierId,
     });
 
     return {
-      draftId: product.id,
-      status: product.status,
+      draftId: draft.id,
+      status: draft.status,
     };
   }
 
-  // ─── OCR Confirmation Endpoints ───────────
   async confirmProductExtraction(userId: string, extractionId: string, storeId: string, finalData: any) {
     const extraction = await this.prisma.scannerExtraction.findUnique({
       where: { id: extractionId }
@@ -515,46 +361,27 @@ export class ScannerService {
       throw new NotFoundException('Extraction not found');
     }
 
-    // Mark extraction as confirmed
     await this.prisma.scannerExtraction.update({
       where: { id: extractionId },
       data: { status: 'CONFIRMED' }
     });
 
-    // Save final fields if needed (omitted for brevity, could loop over fields to update finalValue)
-
-    // Save actual Product to DB
-    const product = await this.prisma.product.create({
-      data: {
-        storeId,
-        skuCode: `SKU-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
-        name: finalData.productName || 'Unknown Product',
-        mrp: Number(finalData.mrp) || 0,
-        sellingPrice: Number(finalData.mrp) || 0,
-        hsnSac: finalData.hsnSac,
-        unit: finalData.unit,
-        company: finalData.company,
-        category: finalData.category,
-        sgstPercent: Number(finalData.sgstPercent) || 0,
-        cgstPercent: Number(finalData.cgstPercent) || 0,
-        igstPercent: Number(finalData.igstPercent) || 0,
-        shelfLifeDays: Number(finalData.shelfLifeDays) || null,
-        source: 'scanner'
-      }
+    const product = await this.productsService.createStoreProduct({
+      storeId,
+      createdBy: userId,
+      name: finalData.productName || 'Unknown Product',
+      brandName: finalData.company,
+      categoryName: finalData.category,
+      barcode: finalData.productCode,
+      mrp: Number(finalData.mrp) || 0,
+      sellingPrice: Number(finalData.mrp) || 0,
+      hsnSacCode: finalData.hsnSac,
+      baseUnit: finalData.unit,
+      cgstRate: Number(finalData.cgstPercent) || 0,
+      sgstRate: Number(finalData.sgstPercent) || 0,
+      igstRate: Number(finalData.igstPercent) || 0,
+      shelfLifeDays: Number(finalData.shelfLifeDays) || undefined,
     });
-
-    // Also register barcode if present
-    if (finalData.productCode) {
-      await this.prisma.barcodeRegistry.create({
-        data: {
-          storeId,
-          productId: product.id,
-          barcodeValue: finalData.productCode,
-          symbology: 'EAN_13',
-          barcodeScope: 'GS1_EXTERNAL_PRODUCT'
-        }
-      });
-    }
 
     return product;
   }
@@ -580,137 +407,57 @@ export class ScannerService {
         accountGroup: finalData.accountGroup,
         gstin: finalData.gstin,
         city: finalData.city,
-        openingBalance: Number(finalData.openingBalance) || 0,
+        openingBalance: new Decimal(finalData.openingBalance || 0),
         openingBalanceType: finalData.openingBalanceType
       }
     });
 
-    // Create store connection
     await this.prisma.storeSupplierConnection.create({
-      data: {
-        storeId,
-        supplierId: supplier.id,
-        status: 'CONNECTED'
-      }
+      data: { storeId, supplierId: supplier.id, status: 'CONNECTED' }
     });
 
     return supplier;
   }
 
-  /**
-   * Generate an internal GS1 EAN-13 barcode starting with '02'.
-   * Format: 02 + 10 digits + 1 check digit.
-   */
   async generateInternalBarcode(storeId: string): Promise<string> {
     let isUnique = false;
     let finalBarcode = '';
     
-    // Loop until we find a unique barcode
     while (!isUnique) {
-      // Generate 10 random digits
       const random10 = Math.floor(Math.random() * 10000000000).toString().padStart(10, '0');
       const base = `02${random10}`;
-      
-      // Calculate check digit for EAN-13
-      let oddSum = 0;
-      let evenSum = 0;
+      let oddSum = 0; let evenSum = 0;
       for (let i = 0; i < 12; i++) {
         const digit = parseInt(base[i], 10);
-        if (i % 2 === 0) {
-          // Even index (0-based) means odd position from left
-          oddSum += digit;
-        } else {
-          // Odd index (0-based) means even position from left
-          evenSum += digit;
-        }
+        if (i % 2 === 0) oddSum += digit;
+        else evenSum += digit;
       }
-      
-      // EAN-13 Formula: (10 - ((oddSum + evenSum * 3) % 10)) % 10
-      const totalSum = oddSum + (evenSum * 3);
-      const checkDigit = (10 - (totalSum % 10)) % 10;
-      
+      const checkDigit = (10 - ((oddSum + (evenSum * 3)) % 10)) % 10;
       finalBarcode = `${base}${checkDigit}`;
       
-      // Verify uniqueness across store
-      const existing = await this.prisma.product.findFirst({
-        where: { barcode: finalBarcode, storeId }
+      const existing = await this.prisma.storeProductBarcode.findFirst({
+        where: { barcode: finalBarcode, storeProduct: { storeId } }
       });
-      
-      if (!existing) {
-        isUnique = true;
-      }
+      if (!existing) isUnique = true;
     }
     
     return finalBarcode;
   }
 
-  // ─── Legacy methods (retained to ensure zero regressions) ───────────
-  async resolveBarcode(data: any) {
-    // legacy body...
-    return { status: 'DEPRECATED' };
-  }
-  async submitScanEvent(data: any) {
-    return { status: 'DEPRECATED' };
-  }
-  async batchSync(storeId: string, deviceId: string, events: any[]) {
-    return { processed: 0, duplicates: 0, failed: [] };
-  }
-  getWorkflows() {
-    return { workflows: [] };
-  }
-  async registerDevice(data: any) {
-    return { success: true };
-  }
-  async getScannerActivity(storeId: string, limit = 50) {
-    return [];
-  }
-  async getDevices(storeId: string) {
-    return [];
-  }
-  async deviceHeartbeat(deviceId: string) {
-    return { success: true };
-  }
+  async resolveBarcode(data: any) { return { status: 'DEPRECATED' }; }
+  async submitScanEvent(data: any) { return { status: 'DEPRECATED' }; }
+  async batchSync(storeId: string, deviceId: string, events: any[]) { return { processed: 0, duplicates: 0, failed: [] }; }
+  getWorkflows() { return { workflows: [] }; }
+  async registerDevice(data: any) { return { success: true }; }
+  async getScannerActivity(storeId: string, limit = 50) { return []; }
+  async getDevices(storeId: string) { return []; }
+  async deviceHeartbeat(deviceId: string) { return { success: true }; }
   
-  /**
-   * E. Archive Product
-   */
   async archiveProduct(userId: string, productId: string, storeId: string) {
-    const product = await this.prisma.product.findUnique({
-      where: { id: productId }
+    await this.productsService.updateStoreProduct(productId, storeId, {
+      status: 'INACTIVE',
+      updatedBy: userId,
     });
-
-    if (!product || product.storeId !== storeId) {
-      throw new NotFoundException('Product not found in this store');
-    }
-
-    // Update product to archived
-    const updated = await this.prisma.product.update({
-      where: { id: productId },
-      data: {
-        status: 'ARCHIVED',
-        isArchived: true,
-        isActive: false,
-        archivedAt: new Date(),
-      }
-    });
-
-    // Create a version snapshot
-    await this.prisma.productVersion.create({
-      data: {
-        storeId,
-        productId,
-        versionNo: Date.now(),
-        snapshot: updated as any,
-        changedBy: userId,
-        changeReason: 'Archived from scanner'
-      }
-    });
-
-    // We do NOT delete the barcode. It remains mapped to this product.
-    if (product.barcode) {
-      await this.cacheService.delete(`store:${storeId}:barcode:${product.barcode}`);
-    }
-
     return { success: true, status: 'ARCHIVED' };
   }
 }

@@ -56,17 +56,17 @@ export class PaymentLedgerService {
       switch (entry.type) {
         case 'RAZORPAY_CAPTURE':
         case 'CASH_COLLECTION':
-          totalCollected += entry.amount;
+          totalCollected += entry.amount.toNumber();
           break;
         case 'RAZORPAY_SETTLEMENT':
         case 'STORE_PAYOUT':
-          totalSettled += entry.amount;
+          totalSettled += entry.amount.toNumber();
           break;
         case 'RAZORPAY_REFUND':
-          totalRefunds += entry.amount;
+          totalRefunds += entry.amount.toNumber();
           break;
         case 'COMMISSION_DEDUCTION':
-          totalCommissions += entry.amount;
+          totalCommissions += entry.amount.toNumber();
           break;
       }
     });

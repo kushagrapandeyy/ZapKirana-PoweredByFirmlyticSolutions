@@ -48,24 +48,18 @@ export class OfflineSyncProcessor {
     // Example format: { items: [{ productId, quantity }], totalAmount: 100 }
 
     for (const item of saleData.items) {
-      // 1. Verify conflict (e.g. Base version check, or simple available check)
-      const currentStock = await this.prisma.stockBalance.findUnique({
-        where: { storeId_productId: { storeId: event.storeId, productId: item.productId } }
-      });
-
-      if (!currentStock || currentStock.balance < item.quantity) {
-        throw new Error(`Insufficient stock for offline sale of ${item.productId}`);
+      try {
+        await this.inventory.recordMovement({
+          storeId: event.storeId,
+          storeProductId: item.storeProductId,
+          type: 'POS_SALE' as MovementType,
+          quantityChange: item.quantity,
+          sourceType: 'OFFLINE_POS_SALE',
+          sourceId: event.idempotencyKey,
+        });
+      } catch (error) {
+        throw new Error(`Insufficient stock for offline sale of ${item.storeProductId}: ${error.message}`);
       }
-
-      // 2. Perform strictly ledgered movement
-      await this.inventory.recordMovement({
-        storeId: event.storeId,
-        productId: item.productId,
-        type: 'SALE' as MovementType,
-        quantityChange: item.quantity,
-        sourceType: 'OFFLINE_POS_SALE',
-        sourceId: event.idempotencyKey,
-      });
     }
 
     // Emit higher-level system event to trigger payment ledgering

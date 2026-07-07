@@ -18,8 +18,11 @@ export class CartService {
       include: {
         items: {
           include: {
-            product: {
-              select: { id: true, name: true, sellingPrice: true, mrp: true, imageUrl: true }
+            storeProduct: {
+              include: {
+                product: true,
+                pricing: { orderBy: { effectiveFrom: 'desc' }, take: 1 }
+              }
             }
           },
           orderBy: { createdAt: 'asc' } as any
@@ -33,8 +36,11 @@ export class CartService {
         include: {
           items: {
             include: {
-              product: {
-                select: { id: true, name: true, sellingPrice: true, mrp: true, imageUrl: true }
+              storeProduct: {
+                include: {
+                  product: true,
+                  pricing: { orderBy: { effectiveFrom: 'desc' }, take: 1 }
+                }
               }
             }
           }
@@ -43,8 +49,8 @@ export class CartService {
     }
 
     // Calculate totals
-    const subtotal = cart.items.reduce((sum, item) => sum + (item.product.sellingPrice * item.quantity), 0);
-    const totalMrp = cart.items.reduce((sum, item) => sum + (item.product.mrp * item.quantity), 0);
+    const subtotal = cart.items.reduce((sum, item) => sum + ((item.storeProduct.pricing?.[0]?.sellingPrice?.toNumber() || 0) * item.quantity.toNumber()), 0);
+    const totalMrp = cart.items.reduce((sum, item) => sum + ((item.storeProduct.pricing?.[0]?.mrp?.toNumber() || 0) * item.quantity.toNumber()), 0);
     const discount = totalMrp - subtotal;
 
     const result = { ...cart, subtotal, totalMrp, discount };
@@ -52,22 +58,22 @@ export class CartService {
     return result;
   }
 
-  async updateCartItem(userId: string, storeId: string, productId: string, quantity: number) {
+  async updateCartItem(userId: string, storeId: string, storeProductId: string, quantity: number) {
     const cart = await this.getCart(userId, storeId);
 
     if (quantity <= 0) {
       // Remove item
       await this.prisma.cartItem.deleteMany({
-        where: { cartId: cart.id, productId },
+        where: { cartId: cart.id, storeProductId },
       });
     } else {
       // Upsert item
       await this.prisma.cartItem.upsert({
         where: {
-          cartId_productId: { cartId: cart.id, productId },
+          cartId_storeProductId: { cartId: cart.id, storeProductId },
         },
         update: { quantity },
-        create: { cartId: cart.id, productId, quantity },
+        create: { cartId: cart.id, storeProductId, quantity },
       });
     }
 

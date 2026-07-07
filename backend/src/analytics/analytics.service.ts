@@ -306,8 +306,8 @@ export class AnalyticsService {
     
     // Removed StoreExpense and WageSlip for MVP
 
-    const totalRevenue = (posSales._sum.total || 0) + (onlineSales._sum.totalAmount || 0);
-    const totalCOGS = cogs._sum?.totalAmount || 0;
+    const totalRevenue = (posSales._sum.total?.toNumber() || 0) + (onlineSales._sum.totalAmount?.toNumber() || 0);
+    const totalCOGS = cogs._sum?.totalAmount?.toNumber() || 0;
     const totalExpenses = 0; // Simplified for MVP
     const profit = totalRevenue - totalCOGS - totalExpenses;
 

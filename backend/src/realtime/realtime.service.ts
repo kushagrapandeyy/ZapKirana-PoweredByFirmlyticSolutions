@@ -67,7 +67,7 @@ export class RealtimeService {
     try {
       const order = await this.prisma.order.findUnique({
         where: { id: event.orderId },
-        include: { items: { include: { product: true } } }
+        include: { items: { include: { storeProduct: true } } }
       });
       if (order) {
         await this.broadcastOrderUpdate(order.storeId, event.orderId, order);

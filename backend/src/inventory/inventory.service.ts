@@ -1,9 +1,15 @@
-import { Injectable, BadRequestException } from '@nestjs/common';
+import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { MovementType } from '@prisma/client';
 import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
 import { CacheService } from '../cache/cache.service';
 import { RealtimeService } from '../realtime/realtime.service';
+import { Decimal } from '@prisma/client/runtime/library';
+
+/**
+ * InventoryService — operates exclusively on StoreProduct (not the legacy Product model).
+ * All movements use storeProductId. StockBalance uses storeId_storeProductId composite key.
+ */
 
 @Injectable()
 export class InventoryService {
@@ -15,12 +21,13 @@ export class InventoryService {
   ) {}
 
   /**
-   * Core function to record a stock movement.
-   * This is the only way inventory quantities should be updated.
+   * Core function — record a stock movement.
+   * This is the ONLY way inventory quantities should ever change.
+   * Operates on storeProductId (not productId).
    */
   async recordMovement(data: {
     storeId: string;
-    productId: string;
+    storeProductId: string;
     type: MovementType;
     quantityChange: number;
     batchNo?: string;
@@ -29,197 +36,235 @@ export class InventoryService {
     sourceId?: string;
     reason?: string;
     staffId?: string;
+    note?: string;
   }) {
     const result = await this.prisma.$transaction(async (tx) => {
-      // 1. Find or create the specific inventory record (by product + store + batch)
+      // 1. Find or create Inventory record (by storeProduct + store + batch)
       let inventory = await tx.inventory.findFirst({
         where: {
           storeId: data.storeId,
-          productId: data.productId,
-          batchNo: data.batchNo || null,
+          storeProductId: data.storeProductId,
+          batchNo: data.batchNo ?? null,
         },
+        include: { storeProduct: { include: { inventoryPolicy: true } } },
       });
 
       if (!inventory) {
         inventory = await tx.inventory.create({
           data: {
             storeId: data.storeId,
-            productId: data.productId,
+            storeProductId: data.storeProductId,
             batchNo: data.batchNo,
             expiryDate: data.expiryDate,
           },
+          include: { storeProduct: { include: { inventoryPolicy: true } } },
         });
       }
 
-      // 2. Create the movement log (Source of Truth)
+      // 2. Compute deltas based on movement type
+      let onHandDelta = new Decimal(0);
+      let reservedDelta = new Decimal(0);
+      let blockedDelta = new Decimal(0);
+      const qty = new Decimal(data.quantityChange);
+
+      switch (data.type) {
+        case 'OPENING_STOCK':
+        case 'PURCHASE_RECEIPT':
+        case 'SALE_RETURN':
+        case 'STOCK_TRANSFER_IN':
+        case 'MANUAL_ADJUSTMENT':
+        case 'STOCK_COUNT_CORRECTION':
+        // Legacy aliases
+        case 'STOCK_RECEIVED':
+        case 'RETURN_ACCEPTED':
+          onHandDelta = qty;
+          break;
+
+        case 'SALE_DEDUCTION':
+        case 'POS_SALE':
+        case 'SALE':
+          onHandDelta = qty.negated();
+          break;
+
+        case 'RESERVATION':
+        case 'ONLINE_ORDER_RESERVED':
+          reservedDelta = qty;
+          break;
+
+        case 'RESERVATION_RELEASE':
+        case 'ORDER_CANCELLED':
+          reservedDelta = qty.negated();
+          break;
+
+        case 'ONLINE_ORDER_PICKED':
+          // Stock finalized: remove from onHand AND release reservation
+          onHandDelta = qty.negated();
+          reservedDelta = qty.negated();
+          break;
+
+        case 'DAMAGE_WRITE_OFF':
+        case 'EXPIRY_WRITE_OFF':
+        case 'DAMAGED':
+        case 'EXPIRED':
+        case 'DAMAGE':
+          onHandDelta = qty.negated();
+          blockedDelta = qty;
+          break;
+
+        case 'STOCK_TRANSFER_OUT':
+        case 'PURCHASE_RETURN':
+          onHandDelta = qty.negated();
+          break;
+      }
+
+      // 3. Guard: never drop onHand below 0 unless allowNegativeStock is set
+      const currentQty = new Decimal(inventory.quantityBase);
+      const newQty = currentQty.plus(onHandDelta);
+
+      if (!inventory.storeProduct?.inventoryPolicy?.allowNegativeStock && newQty.lessThan(0)) {
+        throw new BadRequestException(
+          `Insufficient stock for storeProduct ${data.storeProductId}. Available: ${currentQty}, Requested: ${qty}`,
+        );
+      }
+
+      // 4. Record the immutable movement
       const movement = await tx.stockMovement.create({
         data: {
           storeId: data.storeId,
-          productId: data.productId,
+          storeProductId: data.storeProductId,
           inventoryId: inventory.id,
           type: data.type,
-          quantityChange: data.quantityChange,
+          quantityDelta: onHandDelta,
+          previousQty: currentQty,
+          newQty,
+          inputQuantity: qty,
           sourceType: data.sourceType,
           sourceId: data.sourceId,
           reason: data.reason,
+          note: data.note,
           staffId: data.staffId,
         },
       });
 
-      // 3. Update the materialized inventory quantities based on movement type
-      let onHandDelta = 0;
-      let reservedDelta = 0;
-      let blockedDelta = 0;
-
-      switch (data.type) {
-        case 'STOCK_RECEIVED':
-        case 'RETURN_ACCEPTED':
-        case 'MANUAL_ADJUSTMENT':
-        case 'STOCK_COUNT_CORRECTION':
-          onHandDelta = data.quantityChange;
-          break;
-        case 'POS_SALE':
-          onHandDelta = -data.quantityChange; // quantityChange should be positive in input
-          break;
-        case 'ONLINE_ORDER_RESERVED':
-          reservedDelta = data.quantityChange; // Reserve stock
-          break;
-        case 'ONLINE_ORDER_PICKED':
-          // Order is picked and finalized -> reduce onHand, reduce reserved
-          onHandDelta = -data.quantityChange;
-          reservedDelta = -data.quantityChange;
-          break;
-        case 'ORDER_CANCELLED':
-          // Release reservation
-          reservedDelta = -data.quantityChange;
-          break;
-        case 'DAMAGED':
-        case 'EXPIRED':
-          onHandDelta = -data.quantityChange;
-          blockedDelta = data.quantityChange; // Optionally move to blocked instead of just reducing onHand
-          break;
-      }
-
-      // Ensure we don't drop below 0 for on-hand if it's a strict deduction
-      if (inventory.onHandQty + onHandDelta < 0) {
-        throw new BadRequestException(`Insufficient stock for product ${data.productId}`);
-      }
-
-      // 4. Save the updated inventory
+      // 5. Update materialized Inventory quantities
       const updatedInventory = await tx.inventory.update({
         where: { id: inventory.id },
         data: {
-          onHandQty: { increment: onHandDelta },
-          reservedQty: { increment: reservedDelta },
-          blockedQty: { increment: blockedDelta },
+          quantityBase: { increment: onHandDelta.toNumber() },
+          reservedQty: { increment: reservedDelta.toNumber() },
+          blockedQty: { increment: blockedDelta.toNumber() },
         },
       });
 
-      // 4.5. Update StockBalance as the rigid materialized read model
+      // 6. Update StockBalance (fast read model) — key is storeId_storeProductId
       await tx.stockBalance.upsert({
-        where: {
-          storeId_productId: { storeId: data.storeId, productId: data.productId }
-        },
+        where: { storeId_storeProductId: { storeId: data.storeId, storeProductId: data.storeProductId } },
         update: {
-          balance: { increment: onHandDelta },
+          balance: { increment: onHandDelta.toNumber() },
           lastMovementId: movement.id,
-          lastCalculatedAt: new Date()
+          lastCalculatedAt: new Date(),
         },
         create: {
           storeId: data.storeId,
-          productId: data.productId,
-          balance: onHandDelta,
+          storeProductId: data.storeProductId,
+          balance: onHandDelta.toNumber(),
           lastMovementId: movement.id,
-        }
+        },
       });
 
       return { updatedInventory, onHandDelta };
     });
 
-    // 5. Emit low stock event if quantity decreased and went below threshold (e.g. 10)
-    if (result.onHandDelta < 0 && result.updatedInventory.onHandQty <= 10) {
+    // 7. Low-stock event if quantity went below reorder point
+    const policy = await this.prisma.productInventoryPolicy.findUnique({
+      where: { storeProductId: data.storeProductId },
+    });
+    const currentQty = Number(result.updatedInventory.quantityBase);
+    const reorderQty = policy?.reorderQty ? Number(policy.reorderQty) : 10;
+
+    if (result.onHandDelta.lessThan(0) && currentQty <= reorderQty) {
       this.eventEmitter.emit('inventory.low_stock', {
         storeId: data.storeId,
-        productId: data.productId,
-        onHandQty: result.updatedInventory.onHandQty
+        storeProductId: data.storeProductId,
+        currentQty,
+        reorderQty,
       });
     }
 
-    // 6. Broadcast Realtime Update
-    this.realtimeService.broadcastInventoryUpdate(data.storeId, data.productId, {
-      onHandQty: result.updatedInventory.onHandQty,
-      availableQty: result.updatedInventory.onHandQty - result.updatedInventory.reservedQty - result.updatedInventory.blockedQty,
+    // 8. Broadcast real-time update
+    this.realtimeService.broadcastInventoryUpdate(data.storeId, data.storeProductId, {
+      onHandQty: currentQty,
+      availableQty: currentQty - Number(result.updatedInventory.reservedQty) - Number(result.updatedInventory.blockedQty),
     });
 
     return result.updatedInventory;
   }
 
-  // --- Convenience Methods ---
+  // =====================================================
+  // CONVENIENCE METHODS
+  // =====================================================
 
-  async receiveStock(storeId: string, productId: string, qty: number, staffId?: string, batchNo?: string) {
+  async receiveStock(storeId: string, storeProductId: string, qty: number, staffId?: string, batchNo?: string) {
+    return this.recordMovement({ storeId, storeProductId, type: 'STOCK_RECEIVED', quantityChange: qty, batchNo, staffId });
+  }
+
+  async reserveStockForOnlineOrder(storeId: string, storeProductId: string, qty: number, orderId: string) {
     return this.recordMovement({
-      storeId,
-      productId,
-      type: 'STOCK_RECEIVED',
-      quantityChange: qty,
-      batchNo,
-      staffId,
+      storeId, storeProductId, type: 'ONLINE_ORDER_RESERVED', quantityChange: qty,
+      sourceType: 'ONLINE_ORDER', sourceId: orderId,
     });
   }
 
-  async reserveStockForOnlineOrder(storeId: string, productId: string, qty: number, orderId: string) {
+  async processPosSale(storeId: string, storeProductId: string, qty: number, billId: string, staffId: string) {
     return this.recordMovement({
-      storeId,
-      productId,
-      type: 'ONLINE_ORDER_RESERVED',
-      quantityChange: qty,
-      sourceType: 'ONLINE_ORDER',
-      sourceId: orderId,
+      storeId, storeProductId, type: 'POS_SALE', quantityChange: qty,
+      sourceType: 'POS_BILL', sourceId: billId, staffId,
     });
   }
 
-  async processPosSale(storeId: string, productId: string, qty: number, billId: string, staffId: string) {
-    return this.recordMovement({
-      storeId,
-      productId,
-      type: 'POS_SALE',
-      quantityChange: qty, // Passing positive, engine handles subtraction
-      sourceType: 'POS_BILL',
-      sourceId: billId,
-      staffId,
-    });
-  }
-
-  async getAvailableStock(storeId: string, productId: string) {
+  async getAvailableStock(storeId: string, storeProductId: string) {
     const inventory = await this.prisma.inventory.findFirst({
-      where: { storeId, productId },
+      where: { storeId, storeProductId },
     });
-    
-    if (!inventory) return { available: 0, onHand: 0, reserved: 0, blocked: 0 };
-    
-    const available = inventory.onHandQty - inventory.reservedQty - inventory.blockedQty;
-    
-    return {
-      available: Math.max(0, available),
-      onHand: inventory.onHandQty,
-      reserved: inventory.reservedQty,
-      blocked: inventory.blockedQty,
-    };
+    if (!inventory) return { available: new Decimal(0), onHand: new Decimal(0), reserved: new Decimal(0), blocked: new Decimal(0) };
+
+    const onHand = new Decimal(inventory.quantityBase);
+    const reserved = new Decimal(inventory.reservedQty);
+    const blocked = new Decimal(inventory.blockedQty);
+    const available = Decimal.max(0, onHand.minus(reserved).minus(blocked));
+
+    return { available, onHand, reserved, blocked };
   }
 
-  async getProducts(storeId?: string) {
-    const cacheKey = `inventory:products:${storeId || 'all'}`;
+  async getStockBalance(storeId: string, storeProductId: string) {
+    return this.prisma.inventory.findFirst({
+      where: { storeId, storeProductId },
+    });
+  }
+
+  // =====================================================
+  // PRODUCT LIST QUERIES (now via StoreProduct)
+  // =====================================================
+
+  async getProducts(storeId: string) {
+    const cacheKey = `inventory:storeproducts:${storeId}`;
     const cached = await this.cache.get<any[]>(cacheKey);
     if (cached) return cached;
 
-    const products = await this.prisma.product.findMany({
-      where: storeId ? { storeId, isActive: true } : { isActive: true },
+    const products = await this.prisma.storeProduct.findMany({
+      where: { storeId, status: { not: 'INACTIVE' }, isHidden: false },
       include: {
-        campaign: true,
-      }
+        product: { include: { brand: true, category: true } },
+        pricing: { orderBy: { effectiveFrom: 'desc' }, take: 1 },
+        taxProfile: { orderBy: { effectiveFrom: 'desc' }, take: 1 },
+        productBarcodes: { where: { isPrimary: true, isActive: true }, take: 1 },
+        stockBalances: true,
+        campaigns: { where: { isActive: true }, take: 1 },
+      },
+      orderBy: { displayName: 'asc' },
     });
 
-    await this.cache.set(cacheKey, products, 300); // Cache for 5 minutes
+    await this.cache.set(cacheKey, products, 300);
     return products;
   }
 
@@ -235,27 +280,35 @@ export class InventoryService {
       where: {
         storeId,
         expiryDate: { lte: threeDaysFromNow, gte: new Date() },
-        onHandQty: { gt: 0 },
+        quantityBase: { gt: 0 },
       },
-      include: { product: true },
+      include: {
+        storeProduct: {
+          include: {
+            product: { include: { brand: true } },
+            pricing: { orderBy: { effectiveFrom: 'desc' }, take: 1 },
+          },
+        },
+      },
     });
 
     const productMap = new Map();
     for (const inv of expiringInventory) {
-      if (!productMap.has(inv.productId)) {
-        const clearanceProduct = {
-          ...inv.product,
-          originalPrice: inv.product.sellingPrice,
-          sellingPrice: Number((inv.product.sellingPrice * 0.7).toFixed(2)),
+      if (!productMap.has(inv.storeProductId)) {
+        const pricing = inv.storeProduct.pricing?.[0];
+        const originalPrice = pricing?.sellingPrice ? Number(pricing.sellingPrice) : 0;
+        productMap.set(inv.storeProductId, {
+          ...inv.storeProduct,
+          originalPrice,
+          clearancePrice: Number((originalPrice * 0.7).toFixed(2)),
           clearanceReason: 'Expiring Soon',
           expiryDate: inv.expiryDate,
-        };
-        productMap.set(inv.productId, clearanceProduct);
+        });
       }
     }
 
     const result = Array.from(productMap.values());
-    await this.cache.set(cacheKey, result, 600); // Cache for 10 minutes
+    await this.cache.set(cacheKey, result, 600);
     return result;
   }
 
@@ -267,155 +320,111 @@ export class InventoryService {
     const sevenDaysAgo = new Date();
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
-    const result = await this.prisma.product.findMany({
-      where: {
-        storeId,
-        isActive: true,
-        createdAt: { gte: sevenDaysAgo },
-      },
+    const result = await this.prisma.storeProduct.findMany({
+      where: { storeId, status: { not: 'INACTIVE' }, createdAt: { gte: sevenDaysAgo } },
       orderBy: { createdAt: 'desc' },
       take: 15,
-      include: { campaign: true }
+      include: {
+        product: { include: { brand: true, category: true } },
+        pricing: { orderBy: { effectiveFrom: 'desc' }, take: 1 },
+        productBarcodes: { where: { isPrimary: true }, take: 1 },
+        campaigns: { where: { isActive: true }, take: 1 },
+      },
     });
 
-    await this.cache.set(cacheKey, result, 600); // Cache for 10 minutes
+    await this.cache.set(cacheKey, result, 600);
     return result;
   }
 
   async getPopularProducts(storeId: string) {
-    const cacheKey = `inventory:popular_products:${storeId}`;
+    const cacheKey = `inventory:popular:${storeId}`;
     const cached = await this.cache.get<any[]>(cacheKey);
     if (cached) return cached;
 
-    // A simple mock for popular products: taking top 10 products with highest inventory
-    const products = await this.prisma.product.findMany({
-      where: { storeId, isActive: true },
-      include: {
-        inventory: true,
-      },
+    // Popularity = highest movement count in last 30 days
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+    const movements = await this.prisma.stockMovement.groupBy({
+      by: ['storeProductId'],
+      where: { storeId, type: { in: ['POS_SALE', 'SALE_DEDUCTION'] }, createdAt: { gte: thirtyDaysAgo } },
+      _sum: { quantityDelta: true },
+      orderBy: { _sum: { quantityDelta: 'desc' } },
       take: 10,
     });
 
-    // Actually we could sort by something better, but let's just return a few
-    await this.cache.set(cacheKey, products, 300); // cache 5 mins
+    const storeProductIds = movements.map((m) => m.storeProductId);
+    if (!storeProductIds.length) return [];
+
+    const products = await this.prisma.storeProduct.findMany({
+      where: { id: { in: storeProductIds } },
+      include: {
+        product: { include: { brand: true, category: true } },
+        pricing: { orderBy: { effectiveFrom: 'desc' }, take: 1 },
+        productBarcodes: { where: { isPrimary: true }, take: 1 },
+        stockBalances: true,
+      },
+    });
+
+    await this.cache.set(cacheKey, products, 300);
     return products;
   }
 
-  async getMovementHistory(storeId: string, productId?: string) {
+  async getMovementHistory(storeId: string, storeProductId?: string) {
     return this.prisma.stockMovement.findMany({
-      where: {
-        storeId,
-        ...(productId ? { productId } : {}),
-      },
+      where: { storeId, ...(storeProductId ? { storeProductId } : {}) },
       orderBy: { createdAt: 'desc' },
       include: {
-        product: { select: { name: true } },
+        storeProduct: { include: { product: { select: { name: true } } } },
         staff: { select: { name: true, role: true } },
       },
       take: 100,
     });
   }
 
+  // =====================================================
+  // GRN EVENT HANDLER
+  // =====================================================
+
   @OnEvent('purchase_order.grn_completed')
   async handleGrnCompleted(event: { po: any; staffId: string }) {
     for (const item of event.po.items) {
       if (item.receivedQuantity > 0) {
+        // Items must now carry storeProductId
+        const storeProductId = item.storeProductId ?? item.productId;
         await this.receiveStock(
           event.po.storeId,
-          item.productId,
-          item.receivedQuantity,
+          storeProductId,
+          Number(item.receivedQuantity),
           event.staffId,
-          `PO-${event.po.id}`
+          `PO-${event.po.id}`,
         );
       }
     }
   }
 
-  // --- Products ---
-  
-  async updateProduct(id: string, storeId: string, data: any) {
-    // Also handle supplier connection and pricing
-    return this.prisma.product.update({
-      where: { id, storeId },
-      data: {
-        name: data.name,
-        category: data.category,
-        sellingPrice: data.price,
-        imageUrl: data.imageUrl,
-        saleRateA: data.rateA,
-        saleRateB: data.rateB,
-        saleRateC: data.rateC,
-        minimumQty: data.minimumQty,
-        reorderDays: data.reorderDays,
-        // supplier mapping goes through supplierProduct table
-      }
+  // =====================================================
+  // LOW-STOCK ALERTS
+  // =====================================================
+
+  async getLowStockProducts(storeId: string) {
+    const policies = await this.prisma.productInventoryPolicy.findMany({
+      where: { storeProduct: { storeId } },
+      include: { storeProduct: { include: { inventory: true, product: { select: { name: true } } } } },
     });
-  }
 
-  // --- Pending Products (Approvals) ---
-
-  async getPendingProducts(storeId: string) {
-    return this.prisma.pendingProduct.findMany({
-      where: { storeId, status: 'PENDING_REVIEW' },
-      orderBy: { createdAt: 'desc' },
-      include: { createdBy: { select: { name: true, role: true } } },
-    });
-  }
-
-  async approvePendingProduct(
-    id: string,
-    data: { name: string; category?: string; mrp: number; sellingPrice: number; gstClass?: any }
-  ) {
-    return this.prisma.$transaction(async (tx) => {
-      const pending = await tx.pendingProduct.findUnique({ where: { id } });
-      if (!pending) throw new BadRequestException('Pending product not found');
-      if (pending.status !== 'PENDING_REVIEW') throw new BadRequestException('Already processed');
-
-      // 1. Create the official product
-      const product = await tx.product.create({
-        data: {
-          storeId: pending.storeId,
-          name: data.name,
-          category: data.category || pending.suggestedCategory,
-          mrp: data.mrp,
-          sellingPrice: data.sellingPrice,
-          gstClass: data.gstClass || 'EXEMPT',
-          barcode: pending.barcode,
-          skuCode: `SKU-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
-          imageUrl: pending.imageUrl,
-        },
-      });
-
-      // 2. Add to barcode registry
-      if (pending.barcode) {
-        await tx.barcodeRegistry.create({
-          data: {
-            storeId: pending.storeId,
-            productId: product.id,
-            barcodeValue: pending.barcode,
-            symbology: 'EAN_13', // default assumption
-            barcodeScope: 'GS1_EXTERNAL_PRODUCT',
-          },
-        });
-      }
-
-      // 3. Update pending status
-      await tx.pendingProduct.update({
-        where: { id },
-        data: { status: 'APPROVED', approvedProductId: product.id },
-      });
-
-      return product;
-    });
-  }
-
-  async rejectPendingProduct(id: string) {
-    const pending = await this.prisma.pendingProduct.findUnique({ where: { id } });
-    if (!pending) throw new BadRequestException('Pending product not found');
-
-    return this.prisma.pendingProduct.update({
-      where: { id },
-      data: { status: 'REJECTED' },
-    });
+    return policies
+      .filter((p) => {
+        const balance = p.storeProduct?.inventory?.[0]?.quantityBase;
+        const reorderQty = p.reorderQty ?? new Decimal(10);
+        return balance != null && new Decimal(balance).lessThanOrEqualTo(reorderQty);
+      })
+      .map((p) => ({
+        storeProductId: p.storeProductId,
+        name: p.storeProduct?.displayName ?? p.storeProduct?.product?.name ?? 'Unknown',
+        currentQty: Number(p.storeProduct?.inventory?.[0]?.quantityBase ?? 0),
+        reorderQty: Number(p.reorderQty ?? 10),
+        minimumQty: Number(p.minimumQty ?? 0),
+      }));
   }
 }

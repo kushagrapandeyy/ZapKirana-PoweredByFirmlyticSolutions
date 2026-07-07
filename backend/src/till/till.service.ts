@@ -58,7 +58,7 @@ export class TillService {
     const till = await this.prisma.till.findUnique({ where: { id: tillId } });
     if (!till || till.status !== 'OPEN') throw new BadRequestException('Invalid or closed till');
 
-    const discrepancy = actualClosingBalance - till.expectedBalance;
+    const discrepancy = actualClosingBalance - (till.expectedBalance as any).toNumber();
 
     return this.prisma.till.update({
       where: { id: tillId },

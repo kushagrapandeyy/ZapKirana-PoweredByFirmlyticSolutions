@@ -15,7 +15,7 @@ export class LabelsController {
   generateBarcode(
     @Body() body: {
       storeId: string;
-      productId: string;
+      storeProductId: string;
       barcodeType: 'INTERNAL_FIXED_PACK' | 'INTERNAL_VARIABLE_WEIGHT';
       storeCode?: string;
       productCode?: string;
@@ -34,7 +34,7 @@ export class LabelsController {
   @Post('barcodes/register-external')
   registerExternal(
     @Body() body: {
-      productId: string;
+      storeProductId: string;
       barcodeValue: string;
       symbology?: string;
       storeId?: string;
@@ -49,8 +49,8 @@ export class LabelsController {
    * List all barcodes for a product.
    */
   @Get('barcodes')
-  getBarcodes(@Query('productId') productId: string) {
-    return this.labelsService.getBarcodesForProduct(productId);
+  getBarcodes(@Query('storeProductId') storeProductId: string) {
+    return this.labelsService.getBarcodesForProduct(storeProductId);
   }
 
   /**

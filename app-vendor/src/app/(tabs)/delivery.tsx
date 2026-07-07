@@ -27,10 +27,15 @@ export default function DeliveryDashboard() {
     try {
       const res = await fetch(`${API_BASE_URL}/orders?storeId=${tenantId}`);
       const data = await res.json();
+      if (!res.ok) throw new Error('Failed to fetch orders');
       
-      // Filter orders relevant to delivery
-      const relevant = data.filter((o: any) => o.status === 'PACKED' || o.status === 'OUT_FOR_DELIVERY' || o.status === 'DELIVERED');
-      setOrders(relevant);
+      if (Array.isArray(data)) {
+        // Filter orders relevant to delivery
+        const relevant = data.filter((o: any) => o.status === 'PACKED' || o.status === 'OUT_FOR_DELIVERY' || o.status === 'DELIVERED');
+        setOrders(relevant);
+      } else {
+        setOrders([]);
+      }
     } catch (err) {
       console.error('Failed to fetch orders:', err);
     } finally {

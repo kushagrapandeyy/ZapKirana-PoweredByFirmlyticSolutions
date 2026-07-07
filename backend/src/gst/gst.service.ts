@@ -1,9 +1,9 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
-import { GSTClass } from '@prisma/client';
+import { Decimal } from '@prisma/client/runtime/library';
 
 // Default category-to-GST class mapping for Indian grocery stores
-const DEFAULT_GST_RULES: Record<string, { gstClass: GSTClass; gstRate: number }> = {
+const DEFAULT_GST_RULES: Record<string, { gstClass: string; gstRate: number }> = {
   // 0% EXEMPT - Essential items
   'Milk & Dairy': { gstClass: 'EXEMPT', gstRate: 0 },
   'Fresh Vegetables': { gstClass: 'EXEMPT', gstRate: 0 },
@@ -60,7 +60,7 @@ export class GstService {
       const existing = await this.prisma.gSTCategoryRule.findUnique({ where: { category } });
       if (!existing) {
         const created = await this.prisma.gSTCategoryRule.create({
-          data: { category, gstClass: rule.gstClass, gstRate: rule.gstRate },
+          data: { category, gstClass: rule.gstClass as any, gstRate: rule.gstRate },
         });
         results.push(created);
       }
@@ -74,7 +74,7 @@ export class GstService {
   }
 
   // Create or update a GST rule
-  async upsertRule(category: string, gstClass: GSTClass, gstRate: number) {
+  async upsertRule(category: string, gstClass: any, gstRate: number) {
     return this.prisma.gSTCategoryRule.upsert({
       where: { category },
       update: { gstClass, gstRate },
@@ -88,54 +88,65 @@ export class GstService {
   }
 
   // Auto-classify a product based on its category
-  async classifyProduct(productId: string) {
-    const product = await this.prisma.product.findUnique({ where: { id: productId } });
-    if (!product) throw new NotFoundException('Product not found');
+  async classifyProduct(storeProductId: string) {
+    const storeProduct = await this.prisma.storeProduct.findUnique({ 
+      where: { id: storeProductId },
+      include: { product: { include: { category: true } } }
+    });
+    if (!storeProduct) throw new NotFoundException('Product not found');
 
-    const rule = product.category
-      ? await this.prisma.gSTCategoryRule.findUnique({ where: { category: product.category } })
+    const rule = storeProduct.product?.category?.name
+      ? await this.prisma.gSTCategoryRule.findUnique({ where: { category: storeProduct.product.category.name } })
       : null;
 
-    const gstClass = rule?.gstClass || 'EXEMPT';
     const gstRate = rule?.gstRate || 0;
 
-    return this.prisma.product.update({
-      where: { id: productId },
-      data: { gstClass, gstRate },
+    return this.prisma.productTaxProfile.create({
+      data: {
+        storeProductId,
+        gstRate: new Decimal(gstRate),
+        effectiveFrom: new Date()
+      }
     });
   }
 
   // Bulk auto-classify all products in a store
   async bulkClassify(storeId: string) {
-    const products = await this.prisma.product.findMany({ where: { storeId } });
+    const storeProducts = await this.prisma.storeProduct.findMany({ 
+      where: { storeId },
+      include: { product: { include: { category: true } } }
+    });
     const rules = await this.prisma.gSTCategoryRule.findMany();
     const ruleMap = new Map(rules.map(r => [r.category, r]));
 
     let classified = 0;
-    for (const product of products) {
-      const rule = product.category ? ruleMap.get(product.category) : null;
+    for (const sp of storeProducts) {
+      const rule = sp.product?.category?.name ? ruleMap.get(sp.product.category.name) : null;
       if (rule) {
-        await this.prisma.product.update({
-          where: { id: product.id },
-          data: { gstClass: rule.gstClass, gstRate: rule.gstRate },
+        await this.prisma.productTaxProfile.create({
+          data: { 
+            storeProductId: sp.id, 
+            gstRate: new Decimal(rule.gstRate),
+            effectiveFrom: new Date()
+          },
         });
         classified++;
       }
     }
-    return { total: products.length, classified };
+    return { total: storeProducts.length, classified };
   }
 
   // Calculate GST breakdown for an order
-  calculateGSTBreakdown(items: { priceAtOrder: number; quantity: number; gstClass: GSTClass }[]) {
+  calculateGSTBreakdown(items: { priceAtOrder: number; quantity: number; gstRate: number }[]) {
     const breakdown: Record<string, { rate: number; taxable: number; tax: number; items: number }> = {};
     let totalGST = 0;
 
     for (const item of items) {
-      const rate = this.getGSTRate(item.gstClass);
+      const rate = item.gstRate;
       const taxableAmount = item.priceAtOrder * item.quantity;
       const gstAmount = (taxableAmount * rate) / (100 + rate); // GST is inclusive in MRP
 
-      const key = item.gstClass;
+      const key = `GST_${rate}`;
       if (!breakdown[key]) {
         breakdown[key] = { rate, taxable: 0, tax: 0, items: 0 };
       }
@@ -160,16 +171,19 @@ export class GstService {
         status: 'DELIVERED',
         ...(startDate || endDate ? { createdAt: dateFilter } : {}),
       },
-      include: { items: { include: { product: true } } },
+      include: { items: { include: { storeProduct: { include: { taxProfile: { orderBy: { effectiveFrom: 'desc' }, take: 1 } } } } } },
     });
 
     const slabSummary: Record<string, { rate: number; orderCount: number; taxableValue: number; cgst: number; sgst: number; totalTax: number }> = {};
 
     for (const order of orders) {
       for (const item of order.items) {
-        const gstClass = item.product.gstClass || 'EXEMPT';
-        const rate = this.getGSTRate(gstClass);
-        const taxableAmount = item.priceAtOrder * item.quantity;
+        const rate = item.cgstRateSnapshot?.plus(item.sgstRateSnapshot || 0)?.plus(item.igstRateSnapshot || 0)?.toNumber() 
+          || item.storeProduct?.taxProfile?.[0]?.gstRate?.toNumber() 
+          || 0;
+          
+        const gstClass = `GST_${rate}`;
+        const taxableAmount = item.priceAtOrderSnapshot?.toNumber() * item.quantity.toNumber();
         const gstAmount = (taxableAmount * rate) / (100 + rate);
         const halfGST = gstAmount / 2; // CGST + SGST split
 
@@ -198,16 +212,5 @@ export class GstService {
       totalOrders: orders.length,
       slabSummary,
     };
-  }
-
-  private getGSTRate(gstClass: GSTClass): number {
-    const rates: Record<GSTClass, number> = {
-      EXEMPT: 0,
-      GST_5: 5,
-      GST_12: 12,
-      GST_18: 18,
-      GST_28: 28,
-    };
-    return rates[gstClass] || 0;
   }
 }

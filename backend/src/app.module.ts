@@ -45,6 +45,21 @@ import { EventsModule } from './common/events/events.module';
 import { BullModule } from '@nestjs/bullmq';
 import { OfflineSyncModule } from './offline-sync/offline-sync.module';
 import { AdminGovernanceModule } from './admin-governance/admin-governance.module';
+import { ErpImportModule } from './erp-import/erp-import.module';
+import { GeminiModule } from './gemini/gemini.module';
+
+const queueDriver = process.env.QUEUE_DRIVER || 'memory';
+const conditionalModules = [];
+if (queueDriver === 'redis') {
+  conditionalModules.push(
+    BullModule.forRoot({
+      connection: {
+        host: process.env.REDIS_HOST || 'localhost',
+        port: parseInt(process.env.REDIS_PORT || '6379'),
+      },
+    })
+  );
+}
 
 @Module({
   imports: [
@@ -52,12 +67,7 @@ import { AdminGovernanceModule } from './admin-governance/admin-governance.modul
       ttl: 60000,
       limit: 100, // global rate limit
     }]),
-    BullModule.forRoot({
-      connection: {
-        host: process.env.REDIS_HOST || 'localhost',
-        port: parseInt(process.env.REDIS_PORT || '6379'),
-      },
-    }),
+    ...conditionalModules,
     EventEmitterModule.forRoot(),
     ScheduleModule.forRoot(),
     InventoryModule, 
@@ -91,6 +101,8 @@ import { AdminGovernanceModule } from './admin-governance/admin-governance.modul
     EventsModule,
     OfflineSyncModule,
     AdminGovernanceModule,
+    ErpImportModule,
+    GeminiModule,
   ],
   controllers: [AppController],
   providers: [
@@ -115,10 +127,6 @@ import { AdminGovernanceModule } from './admin-governance/admin-governance.modul
     {
       provide: APP_GUARD,
       useClass: RolesGuard,
-    },
-    {
-      provide: APP_GUARD,
-      useClass: StoreScopeGuard,
     },
   ],
 })

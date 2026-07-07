@@ -11,7 +11,7 @@ export class PurchaseOrderService {
     private eventEmitter: EventEmitter2
   ) {}
 
-  async createPO(storeId: string, supplierId: string, expectedDeliveryDate: Date, items: { productId: string, quantity: number, purchasePrice: number }[], notes?: string) {
+  async createPO(storeId: string, supplierId: string, expectedDeliveryDate: Date, items: { storeProductId: string, quantity: number, purchasePrice: number }[], notes?: string) {
     let totalAmount = 0;
     for (const item of items) {
       totalAmount += (item.quantity * item.purchasePrice);
@@ -33,13 +33,13 @@ export class PurchaseOrderService {
         shareTokenExpiresAt,
         items: {
           create: items.map(i => ({
-            productId: i.productId,
+            storeProductId: i.storeProductId,
             quantity: i.quantity,
             purchasePrice: i.purchasePrice,
           }))
         }
       },
-      include: { items: { include: { product: true } }, supplier: true, store: true }
+      include: { items: { include: { storeProduct: { include: { product: true } } } }, supplier: true, store: true }
     });
 
     this.eventEmitter.emit('purchase_order.created', po);
@@ -50,7 +50,7 @@ export class PurchaseOrderService {
   async getPOs(storeId: string) {
     return this.prisma.purchaseOrder.findMany({
       where: { storeId },
-      include: { supplier: true, items: { include: { product: true } } },
+      include: { supplier: true, items: { include: { storeProduct: { include: { product: true } } } } },
       orderBy: { createdAt: 'desc' }
     });
   }
@@ -58,13 +58,13 @@ export class PurchaseOrderService {
   async getPOById(id: string) {
     const po = await this.prisma.purchaseOrder.findUnique({
       where: { id },
-      include: { supplier: true, store: true, items: { include: { product: true } } }
+      include: { supplier: true, store: true, items: { include: { storeProduct: { include: { product: true } } } } }
     });
     if (!po) throw new NotFoundException('PO not found');
     return po;
   }
 
-  async updatePOItems(id: string, items: { productId: string, quantity: number, purchasePrice: number }[]) {
+  async updatePOItems(id: string, items: { storeProductId: string, quantity: number, purchasePrice: number }[]) {
     const po = await this.getPOById(id);
     if (po.status !== POStatus.CREATED) {
       throw new BadRequestException('Can only update POs in CREATED state');
@@ -87,13 +87,13 @@ export class PurchaseOrderService {
         totalAmount,
         items: {
           create: items.map(i => ({
-            productId: i.productId,
+            storeProductId: i.storeProductId,
             quantity: i.quantity,
             purchasePrice: i.purchasePrice,
           }))
         }
       },
-      include: { items: { include: { product: true } }, supplier: true, store: true }
+      include: { items: { include: { storeProduct: { include: { product: true } } } }, supplier: true, store: true }
     });
   }
 
@@ -116,7 +116,7 @@ export class PurchaseOrderService {
   async getPOByShareToken(token: string) {
     const po = await this.prisma.purchaseOrder.findUnique({
       where: { shareToken: token },
-      include: { supplier: true, store: true, items: { include: { product: true } } }
+      include: { supplier: true, store: true, items: { include: { storeProduct: { include: { product: true } } } } }
     });
 
     if (!po) throw new NotFoundException('PO not found or link is invalid');
@@ -156,9 +156,9 @@ export class PurchaseOrderService {
       itemRows += `
         <tr>
           <td>${idx + 1}</td>
-          <td>${item.product.name}</td>
-          <td>${item.product.internalSku || 'N/A'}</td>
-          <td>1234</td> <!-- Dummy HSN -->
+          <td>${item.productNameSnapshot || item.storeProduct?.displayName || item.storeProduct?.product?.name}</td>
+          <td>${item.storeProduct?.product?.skuCode || 'N/A'}</td>
+          <td>${item.hsnSacCodeSnapshot || '1234'}</td>
           <td>${qty}</td>
           <td>₹${price.toFixed(2)}</td>
           <td>₹${amount.toFixed(2)}</td>

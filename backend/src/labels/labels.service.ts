@@ -58,7 +58,7 @@ export class LabelsService {
    */
   async generateBarcode(data: {
     storeId: string;
-    productId: string;
+    storeProductId: string;
     barcodeType: 'INTERNAL_FIXED_PACK' | 'INTERNAL_VARIABLE_WEIGHT';
     storeCode?: string;
     productCode?: string;
@@ -66,8 +66,8 @@ export class LabelsService {
     packGrams?: number;
     weightGrams?: number;
   }) {
-    const product = await this.prisma.product.findUnique({ where: { id: data.productId } });
-    if (!product) throw new NotFoundException('Product not found');
+    const storeProduct = await this.prisma.storeProduct.findUnique({ where: { id: data.storeProductId }, include: { product: true } });
+    if (!storeProduct) throw new NotFoundException('Product not found');
 
     let barcodeValue: string;
     let scope: BarcodeScope;
@@ -75,12 +75,12 @@ export class LabelsService {
     if (data.barcodeType === 'INTERNAL_FIXED_PACK') {
       if (!data.packGrams) throw new BadRequestException('packGrams is required for fixed-pack barcodes');
       const storeCode = data.storeCode ?? '01';
-      const productCode = data.productCode ?? product.skuCode.substring(0, 4);
+      const productCode = data.productCode ?? storeProduct.id.substring(0, 4) ?? 'PROD';
       barcodeValue = generateFixedPackBarcode(storeCode, productCode, data.packGrams);
       scope = 'INTERNAL_FIXED_PACK';
     } else {
       if (!data.packGrams && !data.weightGrams) throw new BadRequestException('packGrams or weightGrams is required for variable-weight barcodes');
-      const numCode = data.productNumericCode ?? Math.abs(product.id.charCodeAt(0) * 100 + product.id.charCodeAt(1));
+      const numCode = data.productNumericCode ?? Math.abs(storeProduct.id.charCodeAt(0) * 100 + storeProduct.id.charCodeAt(1));
       barcodeValue = generateVariableWeightBarcode(numCode % 100000, data.packGrams ?? data.weightGrams ?? 0);
       scope = 'INTERNAL_VARIABLE_WEIGHT';
     }
@@ -96,7 +96,7 @@ export class LabelsService {
     const registry = await this.prisma.barcodeRegistry.create({
       data: {
         storeId: data.storeId,
-        productId: data.productId,
+        storeProductId: data.storeProductId,
         barcodeValue,
         symbology: scope === 'INTERNAL_FIXED_PACK' ? 'CODE_128' : 'EAN_13',
         barcodeScope: scope,
@@ -110,7 +110,7 @@ export class LabelsService {
       barcode: barcodeValue,
       barcodeRegistryId: registry.id,
       scope,
-      productId: data.productId,
+      storeProductId: data.storeProductId,
       alreadyExisted: false,
     };
   }
@@ -122,14 +122,14 @@ export class LabelsService {
    * POST /api/v1/labels/barcodes/register-external
    */
   async registerExternalBarcode(data: {
-    productId: string;
+    storeProductId: string;
     barcodeValue: string;
     symbology?: string;
     storeId?: string;
     isPrimary?: boolean;
   }) {
-    const product = await this.prisma.product.findUnique({ where: { id: data.productId } });
-    if (!product) throw new NotFoundException('Product not found');
+    const storeProduct = await this.prisma.storeProduct.findUnique({ where: { id: data.storeProductId } });
+    if (!storeProduct) throw new NotFoundException('Product not found');
 
     const existing = await this.prisma.barcodeRegistry.findFirst({
       where: { barcodeValue: data.barcodeValue, storeId: data.storeId ?? null },
@@ -139,7 +139,7 @@ export class LabelsService {
     return this.prisma.barcodeRegistry.create({
       data: {
         storeId: data.storeId ?? null,
-        productId: data.productId,
+        storeProductId: data.storeProductId,
         barcodeValue: data.barcodeValue,
         symbology: data.symbology ?? 'EAN_13',
         barcodeScope: 'GS1_EXTERNAL_PRODUCT',
@@ -155,9 +155,9 @@ export class LabelsService {
    *
    * GET /api/v1/labels/barcodes?productId=x
    */
-  async getBarcodesForProduct(productId: string) {
+  async getBarcodesForProduct(storeProductId: string) {
     return this.prisma.barcodeRegistry.findMany({
-      where: { productId, isActive: true },
+      where: { storeProductId, isActive: true },
       orderBy: { createdAt: 'asc' },
     });
   }

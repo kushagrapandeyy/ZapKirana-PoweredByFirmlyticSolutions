@@ -27,11 +27,11 @@ export class CampaignsService {
       
       for (const pId of data.productIds) {
         // Ensure product belongs to the store
-        const product = await tx.product.findUnique({ where: { id: pId } });
+        const product = await tx.storeProduct.findUnique({ where: { id: pId } });
         if (product && product.storeId === storeId) {
-          await tx.product.update({
+          await tx.storeProduct.update({
             where: { id: pId },
-            data: { campaignId: campaign.id },
+            data: { campaigns: { connect: { id: campaign.id } } },
           });
         }
       }
@@ -60,9 +60,9 @@ export class CampaignsService {
       });
 
       // Remove campaign from products
-      await tx.product.updateMany({
-        where: { campaignId },
-        data: { campaignId: null },
+      await tx.storeCampaign.update({
+        where: { id: campaignId },
+        data: { products: { set: [] } },
       });
 
       return campaign;

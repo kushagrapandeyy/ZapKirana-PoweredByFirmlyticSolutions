@@ -44,7 +44,7 @@ export class PurchaseOrderController {
   }
 
   @Patch(':id/items')
-  async updatePOItems(@Param('id') id: string, @Body() body: { items: { productId: string, quantity: number, purchasePrice: number }[] }) {
+  async updatePOItems(@Param('id') id: string, @Body() body: { items: { storeProductId: string, quantity: number, purchasePrice: number }[] }) {
     return this.poService.updatePOItems(id, body.items);
   }
 

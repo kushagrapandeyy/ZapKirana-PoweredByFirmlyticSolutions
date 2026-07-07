@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
-
 import { CacheService } from '../cache/cache.service';
+import { InventoryService } from '../inventory/inventory.service';
 
 // Haversine formula
 function haversineKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
@@ -19,26 +19,21 @@ export class PlatformService {
   constructor(
     private prisma: PrismaService,
     private cache: CacheService,
+    private inventoryService: InventoryService
   ) {}
 
-  /**
-   * Enhanced store discovery — returns stores with live available inventory count.
-   */
   async getNearbyStores(lat: number, lng: number, radiusKm = 5) {
     const cacheKey = `platform:nearby_stores:${Math.round(lat * 100)}:${Math.round(lng * 100)}:${radiusKm}`;
     const cached = await this.cache.get<any[]>(cacheKey);
-    if (cached) {
-      return cached;
-    }
+    if (cached) return cached;
 
     const stores = await this.prisma.store.findMany({
       where: { isActive: true, latitude: { not: null }, longitude: { not: null } },
       include: {
-        inventory: { select: { onHandQty: true, reservedQty: true, blockedQty: true } },
-        products: { 
-          where: { isActive: true }, 
+        storeProducts: { 
+          where: { status: 'ACTIVE' }, 
           take: 4,
-          select: { id: true, name: true, imageUrl: true, sellingPrice: true }
+          include: { product: true, pricing: true }
         }
       },
     });
@@ -46,9 +41,6 @@ export class PlatformService {
     const result = stores
       .map((store) => {
         const distance = haversineKm(lat, lng, store.latitude!, store.longitude!);
-        const availableSkus = store.inventory.filter(
-          (i) => i.onHandQty - i.reservedQty - i.blockedQty > 0,
-        ).length;
         return {
           id: store.id,
           name: store.name,
@@ -59,187 +51,171 @@ export class PlatformService {
           rating: store.rating,
           operatingHours: store.operatingHours,
           distanceKm: Math.round(distance * 10) / 10,
-          availableSkus,
+          availableSkus: store.storeProducts.length, // approximation without checking inventory here
           description: store.description,
-          topProducts: store.products
+          topProducts: store.storeProducts.map(sp => ({
+            id: sp.id,
+            name: sp.displayName || sp.product?.name,
+            imageUrl: sp.product?.imageUrl,
+            sellingPrice: sp.pricing?.[0]?.sellingPrice?.toNumber() || 0
+          }))
         };
       })
       .filter((s) => s.distanceKm <= radiusKm)
       .sort((a, b) => a.distanceKm - b.distanceKm);
 
-    await this.cache.set(cacheKey, result, 60); // cache for 60 seconds
+    await this.cache.set(cacheKey, result, 60);
     return result;
   }
 
-  /**
-   * THE MOAT: Cross-store product search by name/query.
-   * Returns which nearby stores carry the product, with price and stock.
-   *
-   * GET /platform/catalog/search?q=atta&lat=12.9&lng=77.5&radiusKm=5
-   */
   async searchCatalog(query: string, lat: number, lng: number, radiusKm = 5) {
-    // 1. Find all matching products across all stores
-    const products = await this.prisma.product.findMany({
+    const products = await this.prisma.storeProduct.findMany({
       where: {
-        isActive: true,
+        status: 'ACTIVE',
         OR: [
-          { name: { contains: query, mode: 'insensitive' } },
-          { category: { contains: query, mode: 'insensitive' } },
-          { description: { contains: query, mode: 'insensitive' } },
+          { displayName: { contains: query, mode: 'insensitive' } },
+          { product: { name: { contains: query, mode: 'insensitive' } } },
+          { product: { category: { name: { contains: query, mode: 'insensitive' } } } },
         ],
       },
       include: {
-        store: {
-          select: {
-            id: true, name: true, latitude: true, longitude: true, rating: true, imageUrl: true,
-          },
-        },
-        inventory: { select: { onHandQty: true, reservedQty: true, blockedQty: true } },
+        store: { select: { id: true, name: true, latitude: true, longitude: true, rating: true, imageUrl: true } },
+        product: { include: { category: true } },
+        pricing: true,
+        productBarcodes: true
       },
     });
 
-    // 2. Filter by radius, compute available qty, sort by distance then price
-    const results = products
-      .filter((p) => p.store.latitude && p.store.longitude)
-      .map((p) => {
-        const distance = haversineKm(lat, lng, p.store.latitude!, p.store.longitude!);
-        const inv = p.inventory[0];
-        const available = inv ? Math.max(0, inv.onHandQty - inv.reservedQty - inv.blockedQty) : 0;
-        return {
-          productId: p.id,
-          name: p.name,
-          category: p.category,
-          mrp: p.mrp,
-          sellingPrice: p.sellingPrice,
-          imageUrl: p.imageUrl,
-          barcode: p.barcode,
-          store: { id: p.store.id, name: p.store.name, imageUrl: p.store.imageUrl, rating: p.store.rating },
-          distanceKm: Math.round(distance * 10) / 10,
-          availableQty: available,
-          inStock: available > 0,
-        };
-      })
-      .filter((p) => p.distanceKm <= radiusKm)
-      .sort((a, b) => {
-        // In-stock first, then by distance, then by price
-        if (a.inStock !== b.inStock) return a.inStock ? -1 : 1;
-        if (a.distanceKm !== b.distanceKm) return a.distanceKm - b.distanceKm;
-        return a.sellingPrice - b.sellingPrice;
-      });
+    const results = [];
+    for (const p of products) {
+      if (!p.store.latitude || !p.store.longitude) continue;
+      const distance = haversineKm(lat, lng, p.store.latitude, p.store.longitude);
+      if (distance > radiusKm) continue;
 
-    // 3. Group by product name for cleaner UX (same item from multiple stores)
-    const grouped: Record<string, any> = {};
-    for (const r of results) {
-      const key = r.name.toLowerCase().trim();
-      if (!grouped[key]) {
-        grouped[key] = { name: r.name, category: r.category, imageUrl: r.imageUrl, stores: [] };
-      }
-      grouped[key].stores.push({
-        productId: r.productId,
-        storeId: r.store.id,
-        storeName: r.store.name,
-        storeImageUrl: r.store.imageUrl,
-        storeRating: r.store.rating,
-        sellingPrice: r.sellingPrice,
-        mrp: r.mrp,
-        distanceKm: r.distanceKm,
-        availableQty: r.availableQty,
-        inStock: r.inStock,
+      const inv = await this.inventoryService.getAvailableStock(p.store.id, p.id);
+      const available = inv.onHand.toNumber();
+      
+      results.push({
+        productId: p.id,
+        name: p.displayName || p.product?.name,
+        category: p.product?.category?.name,
+        mrp: p.pricing?.[0]?.mrp?.toNumber() || 0,
+        sellingPrice: p.pricing?.[0]?.sellingPrice?.toNumber() || 0,
+        imageUrl: p.product?.imageUrl,
+        barcode: p.productBarcodes?.[0]?.barcode,
+        store: p.store,
+        distanceKm: Math.round(distance * 10) / 10,
+        availableQty: available,
+        inStock: available > 0,
       });
     }
 
+    results.sort((a, b) => {
+      if (a.inStock !== b.inStock) return a.inStock ? -1 : 1;
+      if (a.distanceKm !== b.distanceKm) return a.distanceKm - b.distanceKm;
+      return a.sellingPrice - b.sellingPrice;
+    });
+
+    const grouped: Record<string, any> = {};
+    for (const r of results) {
+      const key = (r.name || '').toLowerCase().trim();
+      if (!grouped[key]) {
+        grouped[key] = { name: r.name, category: r.category, imageUrl: r.imageUrl, stores: [] };
+      }
+      grouped[key].stores.push(r);
+    }
+
     return {
-      query,
-      lat,
-      lng,
-      radiusKm,
+      query, lat, lng, radiusKm,
       totalResults: results.length,
       products: Object.values(grouped),
     };
   }
 
-  /**
-   * THE MOAT: "Which stores near me sell this exact barcode?"
-   * GET /platform/catalog/barcode/:code?lat=&lng=&radiusKm=
-   */
   async searchByBarcode(barcode: string, lat: number, lng: number, radiusKm = 5) {
-    const products = await this.prisma.product.findMany({
-      where: { barcode, isActive: true },
+    const barcodes = await this.prisma.storeProductBarcode.findMany({
+      where: { barcode },
       include: {
-        store: {
-          select: { id: true, name: true, latitude: true, longitude: true, rating: true, imageUrl: true },
-        },
-        inventory: { select: { onHandQty: true, reservedQty: true, blockedQty: true } },
-      },
+        storeProduct: {
+          include: {
+            store: { select: { id: true, name: true, latitude: true, longitude: true, rating: true, imageUrl: true } },
+            product: { include: { category: true } },
+            pricing: true
+          }
+        }
+      }
     });
 
-    const results = products
-      .filter((p) => p.store.latitude && p.store.longitude)
-      .map((p) => {
-        const distance = haversineKm(lat, lng, p.store.latitude!, p.store.longitude!);
-        const inv = p.inventory[0];
-        const available = inv ? Math.max(0, inv.onHandQty - inv.reservedQty - inv.blockedQty) : 0;
-        return {
-          productId: p.id,
-          name: p.name,
-          category: p.category,
-          mrp: p.mrp,
-          sellingPrice: p.sellingPrice,
-          imageUrl: p.imageUrl,
-          store: { id: p.store.id, name: p.store.name, imageUrl: p.store.imageUrl, rating: p.store.rating },
-          distanceKm: Math.round(distance * 10) / 10,
-          availableQty: available,
-          inStock: available > 0,
-        };
-      })
-      .filter((p) => p.distanceKm <= radiusKm)
-      .sort((a, b) => {
-        if (a.inStock !== b.inStock) return a.inStock ? -1 : 1;
-        return a.sellingPrice - b.sellingPrice;
+    const results = [];
+    for (const b of barcodes) {
+      const p = b.storeProduct;
+      if (p.status !== 'ACTIVE' || !p.store.latitude || !p.store.longitude) continue;
+      
+      const distance = haversineKm(lat, lng, p.store.latitude, p.store.longitude);
+      if (distance > radiusKm) continue;
+
+      const inv = await this.inventoryService.getAvailableStock(p.store.id, p.id);
+      const available = inv.onHand.toNumber();
+
+      results.push({
+        productId: p.id,
+        name: p.displayName || p.product?.name,
+        category: p.product?.category?.name,
+        mrp: p.pricing?.[0]?.mrp?.toNumber() || 0,
+        sellingPrice: p.pricing?.[0]?.sellingPrice?.toNumber() || 0,
+        imageUrl: p.product?.imageUrl,
+        store: p.store,
+        distanceKm: Math.round(distance * 10) / 10,
+        availableQty: available,
+        inStock: available > 0,
       });
+    }
+
+    results.sort((a, b) => {
+      if (a.inStock !== b.inStock) return a.inStock ? -1 : 1;
+      return a.sellingPrice - b.sellingPrice;
+    });
 
     return { barcode, totalStores: results.length, stores: results };
   }
 
-  /**
-   * ONDC Catalog Sync — builds the ONDC-compatible catalog JSON for a store.
-   * POST /platform/ondc/sync?storeId=x
-   */
   async buildOndcCatalog(storeId: string) {
     const store = await this.prisma.store.findUnique({ where: { id: storeId } });
     if (!store) return { error: 'Store not found' };
 
-    const products = await this.prisma.product.findMany({
-      where: { storeId, isActive: true },
-      include: { inventory: { select: { onHandQty: true, reservedQty: true, blockedQty: true } } },
+    const products = await this.prisma.storeProduct.findMany({
+      where: { storeId, status: 'ACTIVE' },
+      include: { product: true, pricing: true, productBarcodes: true, taxProfile: { orderBy: { effectiveFrom: 'desc' }, take: 1 } },
     });
 
-    const ondcItems = products.map((p) => {
-      const inv = p.inventory[0];
-      const available = inv ? Math.max(0, inv.onHandQty - inv.reservedQty - inv.blockedQty) : 0;
-      return {
+    const ondcItems = [];
+    for (const p of products) {
+      const inv = await this.inventoryService.getAvailableStock(storeId, p.id);
+      const available = inv.onHand.toNumber();
+
+      ondcItems.push({
         id: p.id,
         descriptor: {
-          name: p.name,
-          short_desc: p.description ?? '',
-          images: p.imageUrl ? [p.imageUrl] : [],
-          code: p.barcode ?? p.skuCode,
+          name: p.displayName || p.product?.name,
+          short_desc: p.product?.packagingDescription ?? '',
+          images: p.product?.imageUrl ? [p.product?.imageUrl] : [],
+          code: p.productBarcodes?.[0]?.barcode ?? p.product?.id,
         },
         price: {
           currency: 'INR',
-          value: String(p.sellingPrice),
-          maximum_value: String(p.mrp),
+          value: String(p.pricing?.[0]?.sellingPrice?.toNumber() || 0),
+          maximum_value: String(p.pricing?.[0]?.mrp?.toNumber() || 0),
         },
         quantity: {
           available: { count: String(available) },
           maximum: { count: String(available) },
         },
-        category_id: p.category ?? 'grocery',
+        category_id: 'grocery',
         tags: [
-          { code: 'tax_rate', list: [{ code: 'tax_rate', value: String(p.gstRate) }] },
+          { code: 'tax_rate', list: [{ code: 'tax_rate', value: String(p.taxProfile?.[0]?.gstRate?.toNumber() || 0) }] },
         ],
-      };
-    });
+      });
+    }
 
     const catalog = {
       bpp_id: `zapkirana-${storeId}`,
@@ -265,10 +241,6 @@ export class PlatformService {
     return catalog;
   }
 
-  /**
-   * Automated Vendor Onboarding
-   * Creates Organization, Store, and Owner User in a single transaction.
-   */
   async onboardVendor(data: {
     ownerName: string;
     ownerEmail: string;
@@ -281,56 +253,29 @@ export class PlatformService {
     gstin?: string;
   }) {
     return this.prisma.$transaction(async (tx) => {
-      // 1. Create Organization
       const org = await tx.organization.create({
-        data: {
-          name: `${data.storeName} Org`,
-          legalName: data.storeName,
-          gstin: data.gstin,
-        },
+        data: { name: `${data.storeName} Org`, legalName: data.storeName, gstin: data.gstin },
       });
 
-      // 2. Create Store
       const store = await tx.store.create({
         data: {
-          organizationId: org.id,
-          name: data.storeName,
-          location: data.storeLocation,
-          latitude: data.latitude,
-          longitude: data.longitude,
-          gstin: data.gstin,
-          taxId: data.fssai,
+          organizationId: org.id, name: data.storeName, location: data.storeLocation,
+          latitude: data.latitude, longitude: data.longitude, gstin: data.gstin, taxId: data.fssai,
         },
       });
 
-      // 3. Create Owner User
       const user = await tx.user.create({
         data: {
-          name: data.ownerName,
-          email: data.ownerEmail,
-          phone: data.ownerPhone,
-          role: 'OWNER',
-          organizationId: org.id,
-          storeId: store.id,
+          name: data.ownerName, email: data.ownerEmail, phone: data.ownerPhone,
+          role: 'OWNER', organizationId: org.id, storeId: store.id,
         },
       });
 
-      // 4. Assign Roles
       await tx.userStoreRole.create({
-        data: {
-          userId: user.id,
-          storeId: store.id,
-          organizationId: org.id,
-          role: 'OWNER',
-        },
+        data: { userId: user.id, storeId: store.id, organizationId: org.id, role: 'OWNER' },
       });
 
-      return {
-        message: 'Vendor successfully onboarded',
-        organization: org,
-        store,
-        user,
-      };
+      return { message: 'Vendor successfully onboarded', organization: org, store, user };
     });
   }
 }

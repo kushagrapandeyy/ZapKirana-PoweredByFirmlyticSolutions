@@ -9,5 +9,6 @@ import { RealtimeModule } from '../realtime/realtime.module';
   imports: [InventoryModule, RealtimeModule],
   controllers: [OrdersController],
   providers: [OrdersService, PrismaService],
+  exports: [OrdersService],
 })
 export class OrdersModule {}

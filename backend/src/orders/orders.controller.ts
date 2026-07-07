@@ -30,7 +30,7 @@ export class OrdersController {
   createOrder(@Body() body: { 
     storeId: string; 
     customerId: string; 
-    items: { productId: string, quantity: number }[];
+    items: { storeProductId: string, quantity: number }[];
     delivery?: { address: string, lat: number, lng: number };
     requireOtp?: boolean;
   }) {

@@ -5,13 +5,6 @@ import { Public } from '../common/decorators/public.decorator';
 
 @Controller('inventory')
 export class InventoryController {
-  @Patch('products/:id')
-  async updateProduct(
-    @Param('id') id: string,
-    @Body() body: { storeId: string; name?: string; category?: string; price?: number; imageUrl?: string; supplierId?: string }
-  ) {
-    return this.inventoryService.updateProduct(id, body.storeId, body);
-  }
 
   constructor(private readonly inventoryService: InventoryService) {}
 
@@ -38,14 +31,14 @@ export class InventoryController {
 
   @Post('receive')
   receiveStock(
-    @Body() body: { storeId: string; productId: string; quantity: number; staffId?: string; batchNo?: string }
+    @Body() body: { storeId: string; storeProductId: string; quantity: number; staffId?: string; batchNo?: string }
   ) {
-    if (!body.storeId || !body.productId || body.quantity == null) {
-      throw new BadRequestException('storeId, productId, and quantity are required');
+    if (!body.storeId || !body.storeProductId || body.quantity == null) {
+      throw new BadRequestException('storeId, storeProductId, and quantity are required');
     }
     return this.inventoryService.receiveStock(
       body.storeId,
-      body.productId,
+      body.storeProductId,
       body.quantity,
       body.staffId,
       body.batchNo,
@@ -54,15 +47,15 @@ export class InventoryController {
 
   @Post('adjust')
   manualAdjustment(
-    @Body() body: { storeId: string; productId: string; quantityChange: number; reason: string; staffId: string }
+    @Body() body: { storeId: string; storeProductId: string; quantityChange: number; reason: string; staffId: string }
   ) {
-    if (!body.storeId || !body.productId || body.quantityChange == null || !body.reason || !body.staffId) {
-      throw new BadRequestException('storeId, productId, quantityChange, reason, and staffId are required');
+    if (!body.storeId || !body.storeProductId || body.quantityChange == null || !body.reason || !body.staffId) {
+      throw new BadRequestException('storeId, storeProductId, quantityChange, reason, and staffId are required');
     }
     
     return this.inventoryService.recordMovement({
       storeId: body.storeId,
-      productId: body.productId,
+      storeProductId: body.storeProductId,
       type: MovementType.MANUAL_ADJUSTMENT,
       quantityChange: body.quantityChange,
       reason: body.reason,
@@ -71,42 +64,23 @@ export class InventoryController {
   }
 
   @Public()
-  @Get(':productId/available')
+  @Get(':storeProductId/available')
   getAvailableStock(
-    @Param('productId') productId: string,
+    @Param('storeProductId') storeProductId: string,
     @Query('storeId') storeId: string,
   ) {
     if (!storeId) throw new BadRequestException('storeId is required');
-    return this.inventoryService.getAvailableStock(storeId, productId);
+    return this.inventoryService.getAvailableStock(storeId, storeProductId);
   }
 
   @Get('ledger')
   getMovementHistory(
     @Query('storeId') storeId: string,
-    @Query('productId') productId?: string,
+    @Query('storeProductId') storeProductId?: string,
   ) {
     if (!storeId) throw new BadRequestException('storeId is required');
-    return this.inventoryService.getMovementHistory(storeId, productId);
+    return this.inventoryService.getMovementHistory(storeId, storeProductId);
   }
 
-  // --- Approvals ---
 
-  @Get('pending')
-  getPendingProducts(@Query('storeId') storeId: string) {
-    if (!storeId) throw new BadRequestException('storeId is required');
-    return this.inventoryService.getPendingProducts(storeId);
-  }
-
-  @Post('pending/:id/approve')
-  approvePendingProduct(
-    @Param('id') id: string,
-    @Body() body: { name: string; category?: string; mrp: number; sellingPrice: number; gstClass?: any }
-  ) {
-    return this.inventoryService.approvePendingProduct(id, body);
-  }
-
-  @Post('pending/:id/reject')
-  rejectPendingProduct(@Param('id') id: string) {
-    return this.inventoryService.rejectPendingProduct(id);
-  }
 }

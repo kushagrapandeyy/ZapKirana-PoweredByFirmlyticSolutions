@@ -1,7 +1,11 @@
 import Constants from 'expo-constants';
 
 const getApiUrl = () => {
-  return 'http://100.70.73.205:3000';
+  const hostUri = Constants.expoConfig?.hostUri;
+  if (hostUri) {
+    return `http://${hostUri.split(':')[0]}:3000`;
+  }
+  return 'http://localhost:3000';
 };
 
 export const API_BASE_URL = getApiUrl();

@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { CacheService } from '../cache/cache.service';
+import { Decimal } from '@prisma/client/runtime/library';
 
 const OPEN_FOOD_FACTS_URL = 'https://world.openfoodfacts.org/api/v2/product';
 
@@ -19,18 +20,24 @@ const GST_RATE_MAP: Record<string, number> = { EXEMPT: 0, GST_5: 5, GST_12: 12, 
 export class CatalogService {
   constructor(private prisma: PrismaService) {}
 
-  /**
-   * Unified barcode resolver.
-   * Resolution chain:
-   *   1. BarcodeRegistry (internal + registered external)
-   *   2. Product table by barcode field (store-scoped)
-   *   3. Open Food Facts (GS1 barcodes only)
-   *   4. UNKNOWN → prompt pending product intake
-   *
-   * GET /api/v1/catalog/resolve-barcode/:barcode?storeId=x
-   */
   async resolveBarcode(barcode: string, storeId?: string) {
-    // 1. BarcodeRegistry
+    // 1. StoreProductBarcode
+    if (storeId) {
+      const spb = await this.prisma.storeProductBarcode.findFirst({
+        where: { barcode, storeProduct: { storeId } },
+        include: { storeProduct: { include: { product: true, pricing: true, taxProfile: true } } },
+      });
+      if (spb?.storeProduct) {
+        return {
+          status: 'FOUND',
+          source: 'store_product_barcode',
+          barcodeScope: spb.barcodeType,
+          product: this.formatStoreProduct(spb.storeProduct, barcode),
+        };
+      }
+    }
+
+    // 2. BarcodeRegistry
     const registryEntry = await this.prisma.barcodeRegistry.findFirst({
       where: {
         barcodeValue: barcode,
@@ -40,34 +47,19 @@ export class CatalogService {
           { storeId: null },
         ],
       },
-      include: { product: true },
+      include: { storeProduct: { include: { product: true, pricing: true, taxProfile: true } } },
     });
 
-    if (registryEntry?.product) {
+    if ((registryEntry as any)?.storeProduct) {
       return {
         status: 'FOUND',
         source: 'barcode_registry',
-        barcodeScope: registryEntry.barcodeScope,
-        product: this.formatProduct(registryEntry.product),
+        barcodeScope: registryEntry?.barcodeScope,
+        product: this.formatStoreProduct((registryEntry as any).storeProduct, barcode),
       };
     }
 
-    // 2. Product table (store-scoped)
-    if (storeId) {
-      const product = await this.prisma.product.findFirst({
-        where: { barcode, storeId, isActive: true },
-      });
-      if (product) {
-        return {
-          status: 'FOUND',
-          source: 'product_table',
-          barcodeScope: 'GS1_EXTERNAL_PRODUCT',
-          product: this.formatProduct(product),
-        };
-      }
-    }
-
-    // 3. Open Food Facts (only for digit-only barcodes likely to be GS1)
+    // 3. Open Food Facts
     if (/^\d{8,14}$/.test(barcode)) {
       try {
         const res = await fetch(`${OPEN_FOOD_FACTS_URL}/${barcode}.json?fields=product_name,brands,categories,image_url`);
@@ -96,9 +88,7 @@ export class CatalogService {
             };
           }
         }
-      } catch {
-        // OFF unavailable — fall through
-      }
+      } catch {}
     }
 
     // 4. Unknown
@@ -111,26 +101,21 @@ export class CatalogService {
     };
   }
 
-  private formatProduct(p: any) {
+  private formatStoreProduct(sp: any, barcode: string) {
     return {
-      productId: p.id,
-      name: p.name,
-      category: p.category,
-      barcode: p.barcode,
-      mrp: p.mrp,
-      sellingPrice: p.sellingPrice,
-      gstRate: p.gstRate,
-      gstClass: p.gstClass,
-      imageUrl: p.imageUrl,
-      internalSku: p.internalSku,
+      productId: sp.id, // we return storeProductId as productId for legacy clients
+      name: sp.displayName ?? sp.product?.name,
+      category: sp.product?.categoryId,
+      barcode: barcode,
+      mrp: sp.pricing?.[0]?.mrp?.toNumber() ?? 0,
+      sellingPrice: sp.pricing?.[0]?.sellingPrice?.toNumber() ?? 0,
+      gstRate: sp.taxProfile?.[0]?.gstRate?.toNumber() ?? 0,
+      gstClass: `GST_${sp.taxProfile?.[0]?.gstRate?.toNumber() ?? 0}`,
+      imageUrl: sp.product?.imageUrl,
+      internalSku: sp.product?.id,
     };
   }
 
-  /**
-   * Submit an unknown barcode as a pending product for admin approval.
-   *
-   * POST /api/v1/catalog/pending-products
-   */
   async createPendingProduct(data: {
     storeId: string;
     barcode?: string;
@@ -145,7 +130,6 @@ export class CatalogService {
     createdById?: string;
     notes?: string;
   }) {
-    // Don't create duplicates for the same barcode in the same store
     if (data.barcode) {
       const existing = await this.prisma.pendingProduct.findFirst({
         where: {
@@ -166,10 +150,10 @@ export class CatalogService {
         suggestedName: data.suggestedName ?? null,
         suggestedBrand: data.suggestedBrand ?? null,
         suggestedCategory: data.suggestedCategory ?? null,
-        mrp: data.mrp ?? null,
-        sellingPrice: data.sellingPrice ?? null,
-        purchasePrice: data.purchasePrice ?? null,
-        gstRate: data.gstRate ?? 0,
+        mrp: data.mrp != null ? new Decimal(data.mrp) : null,
+        sellingPrice: data.sellingPrice != null ? new Decimal(data.sellingPrice) : null,
+        purchasePrice: data.purchasePrice != null ? new Decimal(data.purchasePrice) : null,
+        gstRate: data.gstRate != null ? new Decimal(data.gstRate) : new Decimal(0),
         imageUrl: data.imageUrl ?? null,
         createdById: data.createdById ?? null,
         notes: data.notes ?? null,
@@ -178,11 +162,6 @@ export class CatalogService {
     });
   }
 
-  /**
-   * List pending products for a store.
-   *
-   * GET /api/v1/catalog/pending-products?storeId=x&status=PENDING_REVIEW
-   */
   async listPendingProducts(storeId: string, status?: string) {
     return this.prisma.pendingProduct.findMany({
       where: {
@@ -194,11 +173,6 @@ export class CatalogService {
     });
   }
 
-  /**
-   * Approve a pending product — creates a real Product record and registers its barcode.
-   *
-   * POST /api/v1/catalog/pending-products/:id/approve
-   */
   async approvePendingProduct(
     id: string,
     overrides: {
@@ -220,68 +194,84 @@ export class CatalogService {
     if (!name) throw new BadRequestException('Product name is required');
     if (!overrides.mrp && !pending.mrp) throw new BadRequestException('MRP is required');
 
-    // Generate a unique internal SKU if not provided
     const internalSku = overrides.internalSku ?? `SKU-${pending.storeId.substring(0, 4).toUpperCase()}-${Date.now()}`;
 
-    // Create the product
+    // Create global Product first
     const product = await this.prisma.product.create({
       data: {
-        storeId: pending.storeId,
-        barcode: pending.barcode ?? null,
-        skuCode: internalSku,
         name,
-        category: overrides.category ?? pending.suggestedCategory ?? 'Grocery',
-        mrp: overrides.mrp ?? pending.mrp ?? 0,
-        sellingPrice: overrides.sellingPrice ?? pending.sellingPrice ?? 0,
-        purchaseRate: overrides.purchasePrice ?? pending.purchasePrice ?? null,
-        gstRate: overrides.gstRate ?? pending.gstRate ?? 0,
         imageUrl: pending.imageUrl ?? null,
-        isActive: true,
       },
     });
 
-    // Register barcode if we have one
+    // Create StoreProduct
+    const storeProduct = await this.prisma.storeProduct.create({
+      data: {
+        storeId: pending.storeId,
+        productId: product.id,
+        displayName: name,
+        status: 'ACTIVE',
+      },
+    });
+
+    // Create Pricing
+    await this.prisma.storeProductPricing.create({
+      data: {
+        storeProductId: storeProduct.id,
+        mrp: overrides.mrp ?? pending.mrp ?? 0,
+        sellingPrice: overrides.sellingPrice ?? pending.sellingPrice ?? 0,
+        purchaseRate: overrides.purchasePrice ?? pending.purchasePrice ?? null,
+      },
+    });
+
+    // Create Tax Profile
+    await this.prisma.productTaxProfile.create({
+      data: {
+        storeProductId: storeProduct.id,
+        gstRate: overrides.gstRate ?? pending.gstRate ?? 0,
+      },
+    });
+    // Create Barcode
     if (pending.barcode) {
-      const existingReg = await this.prisma.barcodeRegistry.findFirst({
-        where: { barcodeValue: pending.barcode, storeId: pending.storeId },
+      await this.prisma.storeProductBarcode.create({
+        data: {
+          storeProductId: storeProduct.id,
+          barcode: pending.barcode,
+          barcodeType: 'ITEM',
+          isPrimary: true,
+        },
       });
 
-      if (!existingReg) {
-        const isInternal = pending.barcode.startsWith('BK') || pending.barcode.startsWith('29');
-        await this.prisma.barcodeRegistry.create({
-          data: {
-            storeId: pending.storeId,
-            productId: product.id,
-            barcodeValue: pending.barcode,
-            symbology: isInternal ? 'CODE_128' : 'EAN_13',
-            barcodeScope: isInternal ? 'INTERNAL_FIXED_PACK' : 'GS1_EXTERNAL_PRODUCT',
-            isInternal,
-            isPrimary: true,
-            isActive: true,
-          },
-        });
-      }
+      // Legacy support for BarcodeRegistry
+      const isInternal = pending.barcode.startsWith('BK') || pending.barcode.startsWith('29');
+      await this.prisma.barcodeRegistry.create({
+        data: {
+          storeId: pending.storeId,
+          storeProductId: storeProduct.id,
+          barcodeValue: pending.barcode,
+          symbology: isInternal ? 'CODE_128' : 'EAN_13',
+          barcodeScope: isInternal ? 'INTERNAL_FIXED_PACK' : 'GS1_EXTERNAL_PRODUCT',
+          isInternal,
+          isPrimary: true,
+          isActive: true,
+        },
+      });
     }
 
     // Mark pending product as approved
     await this.prisma.pendingProduct.update({
       where: { id },
-      data: { status: 'APPROVED', approvedProductId: product.id },
+      data: { status: 'APPROVED', approvedProductId: storeProduct.id },
     });
 
     return {
       status: 'APPROVED',
-      productId: product.id,
-      skuCode: product.skuCode,
+      productId: storeProduct.id,
+      skuCode: internalSku,
       barcodeRegistered: !!pending.barcode,
     };
   }
 
-  /**
-   * Reject a pending product.
-   *
-   * POST /api/v1/catalog/pending-products/:id/reject
-   */
   async rejectPendingProduct(id: string, reason?: string) {
     const pending = await this.prisma.pendingProduct.findUnique({ where: { id } });
     if (!pending) throw new NotFoundException('Pending product not found');
@@ -293,75 +283,57 @@ export class CatalogService {
     });
   }
 
-  /**
-   * Get personalized recommendations for a user based on their order history.
-   * If they have no history, falls back to top selling products in the store.
-   * 
-   * GET /api/v1/catalog/personalized?storeId=x&userId=y
-   */
   async getPersonalizedRecommendations(storeId: string, userId?: string) {
-    // Basic fallback: just return 8 random active products for now, or you could do top sellers
-    // But since the request is for personalization based on history:
-    
     if (!userId) {
-      // Fallback for non-logged in users: return top 8 active products
-      return this.prisma.product.findMany({
-        where: { storeId, isActive: true },
+      return this.prisma.storeProduct.findMany({
+        where: { storeId, status: 'ACTIVE' },
         take: 8,
+        include: { product: true, pricing: true },
       });
     }
 
-    // 1. Fetch user's past completed orders in this store
     const pastOrders = await this.prisma.order.findMany({
-      where: { 
-        storeId, 
-        customerId: userId,
-        status: 'DELIVERED'
-      },
-      include: {
-        items: true
-      }
+      where: { storeId, customerId: userId, status: 'DELIVERED' },
+      include: { items: true }
     });
 
     if (pastOrders.length === 0) {
-      // Fallback for users with no history
-      return this.prisma.product.findMany({
-        where: { storeId, isActive: true },
+      return this.prisma.storeProduct.findMany({
+        where: { storeId, status: 'ACTIVE' },
         take: 8,
+        include: { product: true, pricing: true },
       });
     }
 
-    // 2. Count product frequencies
     const productCounts: Record<string, number> = {};
     pastOrders.forEach(order => {
       order.items.forEach((item: any) => {
-        productCounts[item.productId] = (productCounts[item.productId] || 0) + item.qty;
+        productCounts[item.storeProductId] = (productCounts[item.storeProductId] || 0) + item.quantity;
       });
     });
 
-    // 3. Sort by frequency descending
     const sortedProductIds = Object.entries(productCounts)
       .sort((a, b) => b[1] - a[1])
       .map(entry => entry[0])
-      .slice(0, 8); // Top 8 personalized products
+      .slice(0, 8);
 
-    // 4. Fetch the actual product details for these IDs
-    const personalizedProducts = await this.prisma.product.findMany({
+    const personalizedProducts = await this.prisma.storeProduct.findMany({
       where: {
         storeId,
         id: { in: sortedProductIds },
-        isActive: true,
-      }
+        status: 'ACTIVE',
+      },
+      include: { product: true, pricing: true }
     });
 
-    // 5. Fill with random products if less than 8
     if (personalizedProducts.length < 8) {
-      const fillProducts = await this.prisma.product.findMany({
+      const fillProducts = await this.prisma.storeProduct.findMany({
         where: { 
           storeId, 
-          isActive: true,
+          status: 'ACTIVE',
           id: { notIn: sortedProductIds }
         },
+        include: { product: true, pricing: true },
         take: 8 - personalizedProducts.length,
       });
       personalizedProducts.push(...fillProducts);

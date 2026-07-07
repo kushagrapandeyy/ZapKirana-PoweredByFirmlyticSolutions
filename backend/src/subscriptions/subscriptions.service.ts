@@ -4,6 +4,7 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 import { PrismaService } from '../prisma.service';
 import { RealtimeService } from '../realtime/realtime.service';
 import { SubscriptionFrequency, SubscriptionStatus, OrderStatus } from '@prisma/client';
+import { OrdersService } from '../orders/orders.service';
 
 @Injectable()
 export class SubscriptionsService {
@@ -13,6 +14,7 @@ export class SubscriptionsService {
     private prisma: PrismaService,
     private eventEmitter: EventEmitter2,
     private realtimeService: RealtimeService,
+    private ordersService: OrdersService,
   ) {}
 
   async createSubscription(data: {
@@ -22,7 +24,7 @@ export class SubscriptionsService {
     customDays?: any;
     discountApplied?: number;
     deliverySlot?: string;
-    items: { productId: string; productName: string; quantity: number }[];
+    items: { storeProductId: string; productName: string; quantity: number }[];
   }) {
     if (!data.items || data.items.length === 0) {
       throw new BadRequestException('At least one item is required');
@@ -42,7 +44,7 @@ export class SubscriptionsService {
         status: SubscriptionStatus.ACTIVE,
         items: {
           create: data.items.map(item => ({
-            productId: item.productId,
+            storeProductId: item.storeProductId,
             productName: item.productName,
             quantity: item.quantity,
           })),
@@ -100,7 +102,7 @@ export class SubscriptionsService {
     });
   }
 
-  async updateSubscriptionItems(id: string, items: { productId: string; productName: string; quantity: number }[]) {
+  async updateSubscriptionItems(id: string, items: { storeProductId: string; productName: string; quantity: number }[]) {
     // Delete existing items and recreate
     await this.prisma.subscriptionItem.deleteMany({ where: { subscriptionId: id } });
     
@@ -109,7 +111,7 @@ export class SubscriptionsService {
       data: {
         items: {
           create: items.map(item => ({
-            productId: item.productId,
+            storeProductId: item.storeProductId,
             productName: item.productName,
             quantity: item.quantity,
           })),
@@ -190,33 +192,23 @@ export class SubscriptionsService {
         const defaultAddress = firstSub.customer.savedAddresses.find((a: any) => a.isDefault) || firstSub.customer.savedAddresses[0];
 
         // Combine items from all subscriptions in this bundle
-        const combinedItems: any[] = [];
-        let totalAmount = 0;
-        let totalSavings = 0;
+        const combinedItems: { storeProductId: string; quantity: number }[] = [];
         
         for (const sub of subs) {
           for (const item of sub.items) {
             combinedItems.push({
-              productId: item.productId,
-              quantity: item.quantity,
-              priceAtOrder: 0,
-              gstAtOrder: 0,
+              storeProductId: item.storeProductId,
+              quantity: item.quantity.toNumber ? item.quantity.toNumber() : item.quantity,
             });
           }
         }
 
-        const bundledOrder = await this.prisma.order.create({
-          data: {
-            storeId: firstSub.storeId,
-            customerId: firstSub.customerId,
-            status: OrderStatus.PAYMENT_PENDING,
-            totalAmount: 0, 
-            subscriptionId: firstSub.id, // Primary reference
-            deliveryAddress: defaultAddress?.address,
-            deliveryLat: defaultAddress?.latitude,
-            deliveryLng: defaultAddress?.longitude,
-            items: { create: combinedItems },
-          },
+        const delivery = defaultAddress ? { address: defaultAddress.address, lat: defaultAddress.latitude, lng: defaultAddress.longitude } : undefined;
+        const bundledOrder = await this.ordersService.createOrder(firstSub.storeId, firstSub.customerId, combinedItems, delivery, false);
+
+        await this.prisma.order.update({
+          where: { id: bundledOrder.id },
+          data: { subscriptionId: firstSub.id }
         });
 
         results.push(bundledOrder);
