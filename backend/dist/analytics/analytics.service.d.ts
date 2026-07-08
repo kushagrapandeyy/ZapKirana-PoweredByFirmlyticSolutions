@@ -50,8 +50,8 @@ export declare class AnalyticsService {
     }>;
     getProfitAnalytics(storeId: string): Promise<{
         storeId: string;
-        totalRevenue: number;
-        totalCOGS: number;
+        totalRevenue: any;
+        totalCOGS: number | import("@prisma/client/runtime/library").Decimal;
         totalExpenses: number;
         netProfit: number;
         profitMargin: string;

@@ -4,11 +4,11 @@ export declare class SupportService {
     constructor(prisma: PrismaService);
     createTicket(data: any): Promise<{
         id: string;
-        status: import(".prisma/client").$Enums.TicketStatus;
+        description: string;
         createdAt: Date;
         updatedAt: Date;
         storeId: string | null;
-        description: string;
+        status: import(".prisma/client").$Enums.TicketStatus;
         customerId: string | null;
         orderId: string | null;
         assignedToId: string | null;
@@ -18,16 +18,14 @@ export declare class SupportService {
     getTickets(query: any): Promise<({
         store: {
             id: string;
-            name: string;
-            gstin: string | null;
-            pan: string | null;
-            createdAt: Date;
-            updatedAt: Date;
             organizationId: string | null;
+            name: string;
+            location: string | null;
             latitude: number | null;
             longitude: number | null;
-            location: string | null;
             operatingRadiusKm: number;
+            gstin: string | null;
+            pan: string | null;
             fssaiLicenseNo: string | null;
             isActive: boolean;
             imageUrl: string | null;
@@ -41,19 +39,21 @@ export declare class SupportService {
             taxId: string | null;
             stateCode: string | null;
             stateName: string | null;
+            createdAt: Date;
+            updatedAt: Date;
         } | null;
         customer: {
             id: string;
+            organizationId: string | null;
             name: string | null;
             createdAt: Date;
             updatedAt: Date;
-            organizationId: string | null;
-            storeId: string | null;
-            role: import(".prisma/client").$Enums.Role;
             email: string;
             password: string | null;
             pin: string | null;
             phone: string | null;
+            role: import(".prisma/client").$Enums.Role;
+            storeId: string | null;
             avatarUrl: string | null;
             isVerified: boolean;
             pushToken: string | null;
@@ -61,16 +61,16 @@ export declare class SupportService {
         } | null;
         assignedTo: {
             id: string;
+            organizationId: string | null;
             name: string | null;
             createdAt: Date;
             updatedAt: Date;
-            organizationId: string | null;
-            storeId: string | null;
-            role: import(".prisma/client").$Enums.Role;
             email: string;
             password: string | null;
             pin: string | null;
             phone: string | null;
+            role: import(".prisma/client").$Enums.Role;
+            storeId: string | null;
             avatarUrl: string | null;
             isVerified: boolean;
             pushToken: string | null;
@@ -78,11 +78,11 @@ export declare class SupportService {
         } | null;
     } & {
         id: string;
-        status: import(".prisma/client").$Enums.TicketStatus;
+        description: string;
         createdAt: Date;
         updatedAt: Date;
         storeId: string | null;
-        description: string;
+        status: import(".prisma/client").$Enums.TicketStatus;
         customerId: string | null;
         orderId: string | null;
         assignedToId: string | null;
@@ -92,16 +92,14 @@ export declare class SupportService {
     getTicket(id: string): Promise<{
         store: {
             id: string;
-            name: string;
-            gstin: string | null;
-            pan: string | null;
-            createdAt: Date;
-            updatedAt: Date;
             organizationId: string | null;
+            name: string;
+            location: string | null;
             latitude: number | null;
             longitude: number | null;
-            location: string | null;
             operatingRadiusKm: number;
+            gstin: string | null;
+            pan: string | null;
             fssaiLicenseNo: string | null;
             isActive: boolean;
             imageUrl: string | null;
@@ -115,19 +113,21 @@ export declare class SupportService {
             taxId: string | null;
             stateCode: string | null;
             stateName: string | null;
+            createdAt: Date;
+            updatedAt: Date;
         } | null;
         customer: {
             id: string;
+            organizationId: string | null;
             name: string | null;
             createdAt: Date;
             updatedAt: Date;
-            organizationId: string | null;
-            storeId: string | null;
-            role: import(".prisma/client").$Enums.Role;
             email: string;
             password: string | null;
             pin: string | null;
             phone: string | null;
+            role: import(".prisma/client").$Enums.Role;
+            storeId: string | null;
             avatarUrl: string | null;
             isVerified: boolean;
             pushToken: string | null;
@@ -136,16 +136,16 @@ export declare class SupportService {
         messages: ({
             sender: {
                 id: string;
+                organizationId: string | null;
                 name: string | null;
                 createdAt: Date;
                 updatedAt: Date;
-                organizationId: string | null;
-                storeId: string | null;
-                role: import(".prisma/client").$Enums.Role;
                 email: string;
                 password: string | null;
                 pin: string | null;
                 phone: string | null;
+                role: import(".prisma/client").$Enums.Role;
+                storeId: string | null;
                 avatarUrl: string | null;
                 isVerified: boolean;
                 pushToken: string | null;
@@ -155,17 +155,17 @@ export declare class SupportService {
             id: string;
             createdAt: Date;
             isInternal: boolean;
-            ticketId: string;
             senderId: string;
             text: string;
+            ticketId: string;
         })[];
     } & {
         id: string;
-        status: import(".prisma/client").$Enums.TicketStatus;
+        description: string;
         createdAt: Date;
         updatedAt: Date;
         storeId: string | null;
-        description: string;
+        status: import(".prisma/client").$Enums.TicketStatus;
         customerId: string | null;
         orderId: string | null;
         assignedToId: string | null;
@@ -174,11 +174,11 @@ export declare class SupportService {
     }>;
     updateTicketStatus(id: string, status: any): Promise<{
         id: string;
-        status: import(".prisma/client").$Enums.TicketStatus;
+        description: string;
         createdAt: Date;
         updatedAt: Date;
         storeId: string | null;
-        description: string;
+        status: import(".prisma/client").$Enums.TicketStatus;
         customerId: string | null;
         orderId: string | null;
         assignedToId: string | null;
@@ -187,11 +187,11 @@ export declare class SupportService {
     }>;
     interveneOrder(orderId: string, status: any, reason: string, adminId: string): Promise<{
         id: string;
-        status: import(".prisma/client").$Enums.OrderStatus;
         createdAt: Date;
         updatedAt: Date;
         storeId: string;
         staffId: string | null;
+        status: import(".prisma/client").$Enums.OrderStatus;
         discount: import("@prisma/client/runtime/library").Decimal;
         customerId: string;
         totalAmount: import("@prisma/client/runtime/library").Decimal;

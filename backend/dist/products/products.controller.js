@@ -41,6 +41,16 @@ let ProductsController = class ProductsController {
     findOne(id) {
         return this.productsService.findOne(id);
     }
+    findOneMaster(id) {
+        return this.productsService.findOneMaster(id);
+    }
+    updateMaster(id, body) {
+        const { updatedBy, ...payload } = body;
+        return this.productsService.updateMaster(id, payload, updatedBy ?? 'API_USER');
+    }
+    validateMaster(body) {
+        return this.productsService.validateMaster(body);
+    }
     updatePrice(id, body) {
         return this.productsService.updatePricing(id, body.updatedBy || 'API_USER', body);
     }
@@ -91,6 +101,28 @@ __decorate([
     __metadata("design:paramtypes", [String]),
     __metadata("design:returntype", void 0)
 ], ProductsController.prototype, "findOne", null);
+__decorate([
+    (0, common_1.Get)(':id/master'),
+    __param(0, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", void 0)
+], ProductsController.prototype, "findOneMaster", null);
+__decorate([
+    (0, common_1.Patch)(':id/master'),
+    __param(0, (0, common_1.Param)('id')),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, Object]),
+    __metadata("design:returntype", void 0)
+], ProductsController.prototype, "updateMaster", null);
+__decorate([
+    (0, common_1.Post)('validate'),
+    __param(0, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", void 0)
+], ProductsController.prototype, "validateMaster", null);
 __decorate([
     (0, common_1.Patch)(':id/price'),
     __param(0, (0, common_1.Param)('id')),

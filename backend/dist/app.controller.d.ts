@@ -7,16 +7,14 @@ export declare class AppController {
     getHello(): string;
     getStore(id: string): Promise<{
         id: string;
-        name: string;
-        gstin: string | null;
-        pan: string | null;
-        createdAt: Date;
-        updatedAt: Date;
         organizationId: string | null;
+        name: string;
+        location: string | null;
         latitude: number | null;
         longitude: number | null;
-        location: string | null;
         operatingRadiusKm: number;
+        gstin: string | null;
+        pan: string | null;
         fssaiLicenseNo: string | null;
         isActive: boolean;
         imageUrl: string | null;
@@ -30,53 +28,29 @@ export declare class AppController {
         taxId: string | null;
         stateCode: string | null;
         stateName: string | null;
-    }>;
-    updateStore(id: string, logoUrl: string, bannerUrl: string, imageUrl: string, name: string): Promise<{
-        id: string;
-        name: string;
-        gstin: string | null;
-        pan: string | null;
         createdAt: Date;
         updatedAt: Date;
-        organizationId: string | null;
-        latitude: number | null;
-        longitude: number | null;
-        location: string | null;
-        operatingRadiusKm: number;
-        fssaiLicenseNo: string | null;
-        isActive: boolean;
-        imageUrl: string | null;
-        logoUrl: string | null;
-        bannerUrl: string | null;
-        operatingHours: import("@prisma/client/runtime/library").JsonValue | null;
-        rating: number;
-        description: string | null;
-        bankAccountNumber: string | null;
-        bankRoutingNumber: string | null;
-        taxId: string | null;
-        stateCode: string | null;
-        stateName: string | null;
     }>;
     getStoreStaff(storeId: string): Promise<{
         id: string;
         name: string | null;
         createdAt: Date;
-        role: import(".prisma/client").$Enums.Role;
         email: string;
         phone: string | null;
+        role: import(".prisma/client").$Enums.Role;
     }[]>;
     updateStaffRole(storeId: string, userId: string, role: string): Promise<{
         id: string;
+        organizationId: string | null;
         name: string | null;
         createdAt: Date;
         updatedAt: Date;
-        organizationId: string | null;
-        storeId: string | null;
-        role: import(".prisma/client").$Enums.Role;
         email: string;
         password: string | null;
         pin: string | null;
         phone: string | null;
+        role: import(".prisma/client").$Enums.Role;
+        storeId: string | null;
         avatarUrl: string | null;
         isVerified: boolean;
         pushToken: string | null;
@@ -85,16 +59,14 @@ export declare class AppController {
     getNearbyStores(lat: string, lng: string, radiusKm?: string): Promise<{
         distanceKm: number;
         id: string;
-        name: string;
-        gstin: string | null;
-        pan: string | null;
-        createdAt: Date;
-        updatedAt: Date;
         organizationId: string | null;
+        name: string;
+        location: string | null;
         latitude: number | null;
         longitude: number | null;
-        location: string | null;
         operatingRadiusKm: number;
+        gstin: string | null;
+        pan: string | null;
         fssaiLicenseNo: string | null;
         isActive: boolean;
         imageUrl: string | null;
@@ -108,6 +80,8 @@ export declare class AppController {
         taxId: string | null;
         stateCode: string | null;
         stateName: string | null;
+        createdAt: Date;
+        updatedAt: Date;
     }[] | {
         error: string;
     }>;

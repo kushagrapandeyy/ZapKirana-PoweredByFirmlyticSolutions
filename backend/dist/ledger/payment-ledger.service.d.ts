@@ -15,14 +15,14 @@ export declare class PaymentLedgerService {
         status?: string;
     }): Promise<{
         id: string;
-        status: string;
         createdAt: Date;
         storeId: string;
         metadata: import("@prisma/client/runtime/library").JsonValue | null;
         type: import(".prisma/client").$Enums.PaymentLedgerType;
-        currency: string;
+        status: string;
         amount: import("@prisma/client/runtime/library").Decimal;
         referenceId: string | null;
+        currency: string;
         razorpayPaymentId: string | null;
         razorpayOrderId: string | null;
     }>;

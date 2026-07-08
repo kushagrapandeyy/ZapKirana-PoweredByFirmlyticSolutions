@@ -17,17 +17,15 @@ export declare class PlatformController {
         stores: {
             productId: string;
             name: string;
-            category: string | undefined;
-            mrp: number;
-            sellingPrice: number;
+            category: any;
+            mrp: any;
+            sellingPrice: any;
             imageUrl: string | null;
             store: {
-                id: string;
-                name: string;
-                latitude: number | null;
-                longitude: number | null;
-                imageUrl: string | null;
-                rating: number;
+                id: any;
+                name: any;
+                imageUrl: any;
+                rating: any;
             };
             distanceKm: number;
             availableQty: number;
@@ -57,9 +55,9 @@ export declare class PlatformController {
             id: string;
             descriptor: {
                 name: string;
-                short_desc: string;
+                short_desc: any;
                 images: string[];
-                code: string;
+                code: any;
             };
             price: {
                 currency: string;
@@ -74,7 +72,7 @@ export declare class PlatformController {
                     count: string;
                 };
             };
-            category_id: string;
+            category_id: any;
             tags: {
                 code: string;
                 list: {
@@ -111,9 +109,9 @@ export declare class PlatformController {
             id: string;
             descriptor: {
                 name: string;
-                short_desc: string;
+                short_desc: any;
                 images: string[];
-                code: string;
+                code: any;
             };
             price: {
                 currency: string;
@@ -128,7 +126,7 @@ export declare class PlatformController {
                     count: string;
                 };
             };
-            category_id: string;
+            category_id: any;
             tags: {
                 code: string;
                 list: {
@@ -147,26 +145,24 @@ export declare class PlatformController {
         organization: {
             id: string;
             name: string;
-            legalName: string | null;
             gstin: string | null;
             pan: string | null;
-            plan: string;
-            status: string;
             createdAt: Date;
             updatedAt: Date;
+            status: string;
+            legalName: string | null;
+            plan: string;
         };
         store: {
             id: string;
-            name: string;
-            gstin: string | null;
-            pan: string | null;
-            createdAt: Date;
-            updatedAt: Date;
             organizationId: string | null;
+            name: string;
+            location: string | null;
             latitude: number | null;
             longitude: number | null;
-            location: string | null;
             operatingRadiusKm: number;
+            gstin: string | null;
+            pan: string | null;
             fssaiLicenseNo: string | null;
             isActive: boolean;
             imageUrl: string | null;
@@ -180,19 +176,21 @@ export declare class PlatformController {
             taxId: string | null;
             stateCode: string | null;
             stateName: string | null;
+            createdAt: Date;
+            updatedAt: Date;
         };
         user: {
             id: string;
+            organizationId: string | null;
             name: string | null;
             createdAt: Date;
             updatedAt: Date;
-            organizationId: string | null;
-            storeId: string | null;
-            role: import(".prisma/client").$Enums.Role;
             email: string;
             password: string | null;
             pin: string | null;
             phone: string | null;
+            role: import(".prisma/client").$Enums.Role;
+            storeId: string | null;
             avatarUrl: string | null;
             isVerified: boolean;
             pushToken: string | null;

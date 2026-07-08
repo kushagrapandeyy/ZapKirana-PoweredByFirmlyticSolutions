@@ -1,179 +1,173 @@
 import { ScannerService } from './scanner.service';
-import { OcrService } from './ocr.service';
+import { ScannerWorkflow } from '@prisma/client';
 export declare class ScannerController {
     private readonly scannerService;
-    private readonly ocrService;
-    constructor(scannerService: ScannerService, ocrService: OcrService);
-    extractProductMaster(body: {
+    constructor(scannerService: ScannerService);
+    getWorkflows(): {
+        workflows: string[];
+    };
+    resolveBarcode(body: {
         storeId: string;
-        rawText: string;
+        workflow: ScannerWorkflow;
+        rawValue: string;
+        symbology?: string;
+        deviceId?: string;
+        scannedById?: string;
+        idempotencyKey: string;
+        quantity?: number;
+        metadata?: Record<string, unknown>;
     }): Promise<{
-        fields: {
+        status: string;
+        barcodeScope: import(".prisma/client").$Enums.BarcodeScope;
+        isDuplicate: boolean;
+        product: {
+            productId: any;
+            name: any;
+            brand: any;
+            category: any;
+            barcode: any;
+            mrp: any;
+            sellingPrice: any;
+            gstRate: any;
+            gstClass: any;
+            imageUrl: any;
+            availableQty: number;
+        };
+        workflow: {
+            action: string;
+            requiresExpiry: boolean;
+            requiresBatch: boolean;
+        };
+        reference?: undefined;
+    } | {
+        status: string;
+        barcodeScope: "INTERNAL_OPERATIONAL";
+        isDuplicate: boolean;
+        reference: {
+            type: "ORDER" | "PO" | "BIN" | "SUPPLIER_CRATE" | undefined;
+            id: string | undefined;
+        };
+        workflow: {
+            action: string;
+            requiresExpiry: boolean;
+            requiresBatch: boolean;
+        };
+        product?: undefined;
+    } | {
+        status: string;
+        barcodeScope: "GS1_EXTERNAL_PRODUCT" | "INTERNAL_FIXED_PACK" | "INTERNAL_VARIABLE_WEIGHT" | "UNKNOWN";
+        isDuplicate: boolean;
+        product: null;
+        workflow: {
+            action: string;
+            requiresExpiry: boolean;
+            requiresBatch: boolean;
+        };
+        reference?: undefined;
+    }>;
+    submitEvent(body: {
+        storeId: string;
+        workflow: ScannerWorkflow;
+        rawValue: string;
+        symbology?: string;
+        productId?: string;
+        quantity?: number;
+        deviceId?: string;
+        scannedById?: string;
+        idempotencyKey: string;
+        metadata?: Record<string, unknown>;
+    }): Promise<{
+        status: string;
+        eventId: string;
+    }>;
+    batchSync(body: {
+        storeId: string;
+        deviceId: string;
+        events: Array<{
+            idempotencyKey: string;
+            workflow: string;
+            rawValue: string;
+            symbology?: string;
+            quantity?: number;
+            scannedAt: string;
+            metadata?: Record<string, unknown>;
+        }>;
+    }): Promise<{
+        processed: number;
+        duplicates: number;
+        failed: string[];
+    }>;
+    getActivity(storeId: string, limit?: string): Promise<({
+        device: {
             id: string;
-            extractionId: string;
-            fieldKey: string;
-            extractedValue: string | null;
-            confidence: number | null;
-            isEdited: boolean;
-            finalValue: string | null;
-        }[];
+            deviceName: string;
+            deviceType: import(".prisma/client").$Enums.DeviceType;
+        } | null;
+        scannedBy: {
+            id: string;
+            name: string | null;
+            role: import(".prisma/client").$Enums.Role;
+        } | null;
     } & {
         id: string;
-        status: string;
         createdAt: Date;
-        updatedAt: Date;
-        storeId: string;
-        imageUrl: string | null;
-        type: string;
-        rawText: string | null;
-        confidenceScore: number | null;
-    }>;
-    extractSupplierLedger(body: {
-        storeId: string;
-        rawText: string;
-    }): Promise<{
-        fields: {
-            id: string;
-            extractionId: string;
-            fieldKey: string;
-            extractedValue: string | null;
-            confidence: number | null;
-            isEdited: boolean;
-            finalValue: string | null;
-        }[];
-    } & {
-        id: string;
-        status: string;
-        createdAt: Date;
-        updatedAt: Date;
-        storeId: string;
-        imageUrl: string | null;
-        type: string;
-        rawText: string | null;
-        confidenceScore: number | null;
-    }>;
-    confirmProductDraft(req: any, body: {
-        extractionId: string;
-        storeId: string;
-        finalData: any;
-    }): Promise<{
-        id: string;
-        status: string;
-        createdAt: Date;
-        updatedAt: Date;
         storeId: string;
         metadata: import("@prisma/client/runtime/library").JsonValue | null;
-        itemType: string | null;
-        productId: string;
-        legacyCode: string | null;
-        displayName: string | null;
-        type: string | null;
-        isHidden: boolean;
-        allowDecimalQty: boolean;
-        packagingText: string | null;
-        colorType: string | null;
-        groupId: string | null;
-        manufacturerLegacyRef: string | null;
-        createdBy: string | null;
-        updatedBy: string | null;
-        source: string | null;
-    }>;
-    confirmSupplierDraft(req: any, body: {
-        extractionId: string;
-        storeId: string;
-        finalData: any;
-    }): Promise<{
+        symbology: string | null;
+        quantity: import("@prisma/client/runtime/library").Decimal | null;
+        deviceId: string | null;
+        idempotencyKey: string;
+        scannedById: string | null;
+        workflow: import(".prisma/client").$Enums.ScannerWorkflow;
+        rawValue: string;
+        parsedJson: import("@prisma/client/runtime/library").JsonValue | null;
+        resolutionStatus: import(".prisma/client").$Enums.ScanResolutionStatus;
+    })[]>;
+    getDevices(storeId: string): Promise<({
+        assignedTo: {
+            id: string;
+            name: string | null;
+            role: import(".prisma/client").$Enums.Role;
+        } | null;
+    } & {
         id: string;
-        name: string;
-        gstin: string | null;
-        pan: string | null;
         createdAt: Date;
         updatedAt: Date;
         storeId: string;
-        email: string | null;
-        phone: string | null;
-        city: string | null;
-        state: string | null;
-        pincode: string | null;
-        address: string | null;
-        isActive: boolean;
-        country: string | null;
-        accountGroup: string | null;
-        mobile: string | null;
-        ledgerName: string | null;
-        openingBalance: import("@prisma/client/runtime/library").Decimal | null;
-        openingBalanceType: string | null;
-        contactPerson: string | null;
-        foodLicenseNo: string | null;
-        importBatchId: string | null;
-    }>;
-    lookupBarcode(body: {
+        status: import(".prisma/client").$Enums.DeviceStatus;
+        deviceCode: string;
+        deviceName: string;
+        deviceType: import(".prisma/client").$Enums.DeviceType;
+        assignedToId: string | null;
+        lastSeenAt: Date | null;
+    })[]>;
+    registerDevice(body: {
         storeId: string;
-        barcode: string;
-        scanMode: string;
-    }): Promise<any>;
-    generateInternalBarcode(storeId: string): Promise<string>;
-    updateProduct(productId: string, req: any, body: {
-        storeId: string;
-        mrp?: number;
-        saleRateBaseUnit?: number;
-        purchaseRateBaseUnit?: number;
-        rackNo?: string;
-        hsnSac?: string;
-        sgstPercent?: number;
-        cgstPercent?: number;
-        igstPercent?: number;
-        brand?: string;
-        category?: string;
-        name?: string;
+        deviceName: string;
+        deviceType?: string;
+        assignedToId?: string;
     }): Promise<{
-        draftId: string;
-        status: import(".prisma/client").$Enums.PendingProductStatus;
-        message: string;
-        success?: undefined;
-    } | {
-        success: boolean;
-        draftId?: undefined;
-        status?: undefined;
-        message?: undefined;
-    }>;
-    archiveProduct(productId: string, req: any, body: {
+        id: string;
+        createdAt: Date;
+        updatedAt: Date;
         storeId: string;
-    }): Promise<{
-        success: boolean;
-        status: string;
+        status: import(".prisma/client").$Enums.DeviceStatus;
+        deviceCode: string;
+        deviceName: string;
+        deviceType: import(".prisma/client").$Enums.DeviceType;
+        assignedToId: string | null;
+        lastSeenAt: Date | null;
     }>;
-    updateStock(req: any, body: {
+    heartbeat(deviceId: string): Promise<{
+        id: string;
+        createdAt: Date;
+        updatedAt: Date;
         storeId: string;
-        productId: string;
-        movementType: string;
-        quantityInput: number;
-        inputUnit: string;
-        conversionToBase: number;
-        supplierId?: string;
-        batchNo?: string;
-        expiryDate?: string;
-        note?: string;
-    }): Promise<{
-        success: boolean;
-        quantityBase: number;
-        newStockLevel: number;
-    }>;
-    createProductDraft(req: any, body: {
-        storeId: string;
-        barcode: string;
-        productName: string;
-        brand?: string;
-        category?: string;
-        hsnSac?: string;
-        mrp: number;
-        gstRate: number;
-        baseUnit: string;
-        purchaseUnit?: string;
-        conversionToBase?: number;
-        supplierId?: string;
-    }): Promise<{
-        draftId: string;
-        status: import(".prisma/client").$Enums.PendingProductStatus;
+        status: import(".prisma/client").$Enums.DeviceStatus;
+        deviceCode: string;
+        deviceName: string;
+        deviceType: import(".prisma/client").$Enums.DeviceType;
+        assignedToId: string | null;
+        lastSeenAt: Date | null;
     }>;
 }

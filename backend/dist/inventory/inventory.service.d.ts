@@ -3,7 +3,6 @@ import { MovementType } from '@prisma/client';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { CacheService } from '../cache/cache.service';
 import { RealtimeService } from '../realtime/realtime.service';
-import { Decimal } from '@prisma/client/runtime/library';
 export declare class InventoryService {
     private prisma;
     private eventEmitter;
@@ -12,7 +11,7 @@ export declare class InventoryService {
     constructor(prisma: PrismaService, eventEmitter: EventEmitter2, cache: CacheService, realtimeService: RealtimeService);
     recordMovement(data: {
         storeId: string;
-        storeProductId: string;
+        productId: string;
         type: MovementType;
         quantityChange: number;
         batchNo?: string;
@@ -21,148 +20,179 @@ export declare class InventoryService {
         sourceId?: string;
         reason?: string;
         staffId?: string;
-        note?: string;
     }): Promise<{
         id: string;
         createdAt: Date;
         updatedAt: Date;
         storeId: string;
         storeProductId: string;
-        rackNo: string | null;
         batchNo: string | null;
         mfgDate: Date | null;
         expiryDate: Date | null;
-        quantityBase: Decimal;
-        reservedQty: Decimal;
-        blockedQty: Decimal;
+        rackNo: string | null;
+        quantityBase: import("@prisma/client/runtime/library").Decimal;
+        reservedQty: import("@prisma/client/runtime/library").Decimal;
+        blockedQty: import("@prisma/client/runtime/library").Decimal;
     }>;
-    receiveStock(storeId: string, storeProductId: string, qty: number, staffId?: string, batchNo?: string): Promise<{
+    receiveStock(storeId: string, productId: string, qty: number, staffId?: string, batchNo?: string): Promise<{
         id: string;
         createdAt: Date;
         updatedAt: Date;
         storeId: string;
         storeProductId: string;
-        rackNo: string | null;
         batchNo: string | null;
         mfgDate: Date | null;
         expiryDate: Date | null;
-        quantityBase: Decimal;
-        reservedQty: Decimal;
-        blockedQty: Decimal;
+        rackNo: string | null;
+        quantityBase: import("@prisma/client/runtime/library").Decimal;
+        reservedQty: import("@prisma/client/runtime/library").Decimal;
+        blockedQty: import("@prisma/client/runtime/library").Decimal;
     }>;
-    reserveStockForOnlineOrder(storeId: string, storeProductId: string, qty: number, orderId: string): Promise<{
+    reserveStockForOnlineOrder(storeId: string, productId: string, qty: number, orderId: string): Promise<{
         id: string;
         createdAt: Date;
         updatedAt: Date;
         storeId: string;
         storeProductId: string;
-        rackNo: string | null;
         batchNo: string | null;
         mfgDate: Date | null;
         expiryDate: Date | null;
-        quantityBase: Decimal;
-        reservedQty: Decimal;
-        blockedQty: Decimal;
+        rackNo: string | null;
+        quantityBase: import("@prisma/client/runtime/library").Decimal;
+        reservedQty: import("@prisma/client/runtime/library").Decimal;
+        blockedQty: import("@prisma/client/runtime/library").Decimal;
     }>;
-    processPosSale(storeId: string, storeProductId: string, qty: number, billId: string, staffId: string): Promise<{
+    processPosSale(storeId: string, productId: string, qty: number, billId: string, staffId: string): Promise<{
         id: string;
         createdAt: Date;
         updatedAt: Date;
         storeId: string;
         storeProductId: string;
-        rackNo: string | null;
         batchNo: string | null;
         mfgDate: Date | null;
         expiryDate: Date | null;
-        quantityBase: Decimal;
-        reservedQty: Decimal;
-        blockedQty: Decimal;
-    }>;
-    getAvailableStock(storeId: string, storeProductId: string): Promise<{
-        available: Decimal;
-        onHand: Decimal;
-        reserved: Decimal;
-        blocked: Decimal;
-    }>;
-    getStockBalance(storeId: string, storeProductId: string): Promise<{
-        id: string;
-        createdAt: Date;
-        updatedAt: Date;
-        storeId: string;
-        storeProductId: string;
         rackNo: string | null;
-        batchNo: string | null;
-        mfgDate: Date | null;
-        expiryDate: Date | null;
-        quantityBase: Decimal;
-        reservedQty: Decimal;
-        blockedQty: Decimal;
-    } | null>;
-    getProducts(storeId: string): Promise<any[]>;
+        quantityBase: import("@prisma/client/runtime/library").Decimal;
+        reservedQty: import("@prisma/client/runtime/library").Decimal;
+        blockedQty: import("@prisma/client/runtime/library").Decimal;
+    }>;
+    getAvailableStock(storeId: string, productId: string): Promise<{
+        available: number;
+        onHand: number;
+        reserved: number;
+        blocked: number;
+    } | {
+        available: number;
+        onHand: any;
+        reserved: import("@prisma/client/runtime/library").Decimal;
+        blocked: import("@prisma/client/runtime/library").Decimal;
+    }>;
+    getProducts(storeId?: string): Promise<any[]>;
     getClearanceProducts(storeId: string): Promise<any[]>;
     getNewProducts(storeId: string): Promise<any[]>;
     getPopularProducts(storeId: string): Promise<any[]>;
-    getMovementHistory(storeId: string, storeProductId?: string): Promise<({
-        storeProduct: {
-            product: {
-                name: string;
-            };
-        } & {
-            id: string;
-            status: string;
-            createdAt: Date;
-            updatedAt: Date;
-            storeId: string;
-            metadata: import("@prisma/client/runtime/library").JsonValue | null;
-            itemType: string | null;
-            productId: string;
-            legacyCode: string | null;
-            displayName: string | null;
-            type: string | null;
-            isHidden: boolean;
-            allowDecimalQty: boolean;
-            packagingText: string | null;
-            colorType: string | null;
-            groupId: string | null;
-            manufacturerLegacyRef: string | null;
-            createdBy: string | null;
-            updatedBy: string | null;
-            source: string | null;
-        };
-        staff: {
+    getMovementHistory(storeId: string, productId?: string): Promise<{
+        id: string;
+        createdAt: Date;
+        storeId: string;
+        storeProductId: string;
+        inventoryId: string | null;
+        type: import(".prisma/client").$Enums.MovementType;
+        quantityDelta: import("@prisma/client/runtime/library").Decimal;
+        previousQty: import("@prisma/client/runtime/library").Decimal | null;
+        newQty: import("@prisma/client/runtime/library").Decimal | null;
+        inputQuantity: import("@prisma/client/runtime/library").Decimal | null;
+        inputUnit: string | null;
+        conversionToBase: import("@prisma/client/runtime/library").Decimal | null;
+        supplierId: string | null;
+        sourceType: string | null;
+        sourceId: string | null;
+        note: string | null;
+        reason: string | null;
+        createdBy: string | null;
+        staffId: string | null;
+    }[]>;
+    handleGrnCompleted(event: {
+        po: any;
+        staffId: string;
+    }): Promise<void>;
+    getPendingProducts(storeId: string): Promise<({
+        createdBy: {
             name: string | null;
             role: import(".prisma/client").$Enums.Role;
         } | null;
     } & {
         id: string;
+        imageUrl: string | null;
         createdAt: Date;
+        updatedAt: Date;
         storeId: string;
-        type: import(".prisma/client").$Enums.MovementType;
-        createdBy: string | null;
-        storeProductId: string;
-        reason: string | null;
-        sourceType: string | null;
-        sourceId: string | null;
-        inventoryId: string | null;
-        quantityDelta: Decimal;
-        previousQty: Decimal | null;
-        newQty: Decimal | null;
-        inputQuantity: Decimal | null;
-        inputUnit: string | null;
-        conversionToBase: Decimal | null;
+        productId: string | null;
+        baseUnit: string | null;
+        conversionToBase: import("@prisma/client/runtime/library").Decimal | null;
         supplierId: string | null;
-        note: string | null;
-        staffId: string | null;
+        barcode: string | null;
+        suggestedName: string | null;
+        suggestedBrand: string | null;
+        suggestedCategory: string | null;
+        mrp: import("@prisma/client/runtime/library").Decimal | null;
+        sellingPrice: import("@prisma/client/runtime/library").Decimal | null;
+        purchasePrice: import("@prisma/client/runtime/library").Decimal | null;
+        gstRate: import("@prisma/client/runtime/library").Decimal;
+        hsnSac: string | null;
+        purchaseUnit: string | null;
+        status: import(".prisma/client").$Enums.PendingProductStatus;
+        createdById: string | null;
+        approvedProductId: string | null;
+        notes: string | null;
     })[]>;
-    handleGrnCompleted(event: {
-        po: any;
-        staffId: string;
-    }): Promise<void>;
-    getLowStockProducts(storeId: string): Promise<{
-        storeProductId: string;
+    approvePendingProduct(id: string, data: {
         name: string;
-        currentQty: number;
-        reorderQty: number;
-        minimumQty: number;
-    }[]>;
+        category?: string;
+        mrp: number;
+        sellingPrice: number;
+        gstClass?: any;
+    }): Promise<{
+        id: string;
+        name: string;
+        imageUrl: string | null;
+        createdAt: Date;
+        updatedAt: Date;
+        normalizedName: string | null;
+        baseUnit: string | null;
+        brandId: string | null;
+        manufacturerId: string | null;
+        categoryId: string | null;
+        hsnSacCode: string | null;
+        itemType: string | null;
+        productType: string | null;
+        packagingDescription: string | null;
+        allowDecimalQuantity: boolean;
+        metadata: import("@prisma/client/runtime/library").JsonValue | null;
+    }>;
+    rejectPendingProduct(id: string): Promise<{
+        id: string;
+        imageUrl: string | null;
+        createdAt: Date;
+        updatedAt: Date;
+        storeId: string;
+        productId: string | null;
+        baseUnit: string | null;
+        conversionToBase: import("@prisma/client/runtime/library").Decimal | null;
+        supplierId: string | null;
+        barcode: string | null;
+        suggestedName: string | null;
+        suggestedBrand: string | null;
+        suggestedCategory: string | null;
+        mrp: import("@prisma/client/runtime/library").Decimal | null;
+        sellingPrice: import("@prisma/client/runtime/library").Decimal | null;
+        purchasePrice: import("@prisma/client/runtime/library").Decimal | null;
+        gstRate: import("@prisma/client/runtime/library").Decimal;
+        hsnSac: string | null;
+        purchaseUnit: string | null;
+        status: import(".prisma/client").$Enums.PendingProductStatus;
+        createdById: string | null;
+        approvedProductId: string | null;
+        notes: string | null;
+    }>;
 }

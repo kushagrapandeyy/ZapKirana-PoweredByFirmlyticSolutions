@@ -5,7 +5,7 @@ export declare class CartService {
     private cache;
     constructor(prisma: PrismaService, cache: CacheService);
     getCart(userId: string, storeId: string): Promise<any>;
-    updateCartItem(userId: string, storeId: string, storeProductId: string, quantity: number): Promise<any>;
+    updateCartItem(userId: string, storeId: string, productId: string, quantity: number): Promise<any>;
     clearCart(userId: string, storeId: string): Promise<{
         success: boolean;
     }>;

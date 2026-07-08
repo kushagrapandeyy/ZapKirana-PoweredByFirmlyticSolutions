@@ -10,52 +10,62 @@ export declare class ProductsService {
         product: {
             brand: {
                 id: string;
-                name: string;
+                metadata: import("@prisma/client/runtime/library").JsonValue | null;
                 createdAt: Date;
                 updatedAt: Date;
-                logoUrl: string | null;
+                name: string;
                 normalizedName: string | null;
                 country: string | null;
-                metadata: import("@prisma/client/runtime/library").JsonValue | null;
+                logoUrl: string | null;
             } | null;
             manufacturer: {
                 id: string;
-                name: string;
-                gstin: string | null;
+                metadata: import("@prisma/client/runtime/library").JsonValue | null;
                 createdAt: Date;
                 updatedAt: Date;
+                name: string;
                 normalizedName: string | null;
                 country: string | null;
-                metadata: import("@prisma/client/runtime/library").JsonValue | null;
+                gstin: string | null;
             } | null;
             category: {
                 id: string;
-                name: string;
                 createdAt: Date;
                 updatedAt: Date;
                 isActive: boolean;
+                name: string;
                 parentId: string | null;
                 iconUrl: string | null;
                 sortOrder: number;
             } | null;
         } & {
             id: string;
-            name: string;
+            itemType: string | null;
+            metadata: import("@prisma/client/runtime/library").JsonValue | null;
             createdAt: Date;
             updatedAt: Date;
-            imageUrl: string | null;
+            name: string;
             normalizedName: string | null;
-            metadata: import("@prisma/client/runtime/library").JsonValue | null;
             baseUnit: string | null;
             brandId: string | null;
             manufacturerId: string | null;
             categoryId: string | null;
             hsnSacCode: string | null;
-            itemType: string | null;
             productType: string | null;
             packagingDescription: string | null;
             allowDecimalQuantity: boolean;
+            imageUrl: string | null;
         };
+        productBarcodes: {
+            id: string;
+            source: string | null;
+            createdAt: Date;
+            isActive: boolean;
+            storeProductId: string;
+            barcode: string;
+            barcodeType: string | null;
+            isPrimary: boolean;
+        }[];
         stockBalances: {
             id: string;
             storeId: string;
@@ -64,21 +74,12 @@ export declare class ProductsService {
             lastMovementId: string | null;
             lastCalculatedAt: Date;
         }[];
-        productBarcodes: {
-            id: string;
-            createdAt: Date;
-            isActive: boolean;
-            source: string | null;
-            storeProductId: string;
-            barcode: string;
-            barcodeType: string | null;
-            isPrimary: boolean;
-        }[];
         pricing: {
             id: string;
-            createdAt: Date;
             createdBy: string | null;
             updatedBy: string | null;
+            createdAt: Date;
+            effectiveFrom: Date;
             storeProductId: string;
             mrp: Decimal | null;
             sellingPrice: Decimal | null;
@@ -92,19 +93,18 @@ export declare class ProductsService {
             retailRate: Decimal | null;
             priceIncludesTax: boolean;
             currency: string;
-            effectiveFrom: Date;
             effectiveTo: Date | null;
         }[];
         taxProfile: {
             id: string;
-            createdAt: Date;
-            updatedAt: Date;
-            hsnSacCode: string | null;
             createdBy: string | null;
             updatedBy: string | null;
             source: string | null;
-            storeProductId: string;
+            createdAt: Date;
+            updatedAt: Date;
             effectiveFrom: Date;
+            hsnSacCode: string | null;
+            storeProductId: string;
             effectiveTo: Date | null;
             localTaxabilityStatus: string | null;
             centralTaxabilityStatus: string | null;
@@ -119,10 +119,10 @@ export declare class ProductsService {
         }[];
         inventoryPolicy: {
             id: string;
-            createdAt: Date;
-            updatedAt: Date;
             createdBy: string | null;
             updatedBy: string | null;
+            createdAt: Date;
+            updatedAt: Date;
             storeProductId: string;
             allowNegativeStock: boolean;
             minimumQty: Decimal | null;
@@ -140,10 +140,10 @@ export declare class ProductsService {
         } | null;
         discountPolicy: {
             id: string;
-            createdAt: Date;
-            updatedAt: Date;
             createdBy: string | null;
             updatedBy: string | null;
+            createdAt: Date;
+            updatedAt: Date;
             storeProductId: string;
             discountApplicable: boolean;
             visibleDiscountOn: Decimal | null;
@@ -172,16 +172,13 @@ export declare class ProductsService {
         }[];
     } & {
         id: string;
-        status: string;
-        createdAt: Date;
-        updatedAt: Date;
         storeId: string;
-        metadata: import("@prisma/client/runtime/library").JsonValue | null;
-        itemType: string | null;
         productId: string;
         legacyCode: string | null;
         displayName: string | null;
+        status: string;
         type: string | null;
+        itemType: string | null;
         isHidden: boolean;
         allowDecimalQty: boolean;
         packagingText: string | null;
@@ -191,62 +188,65 @@ export declare class ProductsService {
         createdBy: string | null;
         updatedBy: string | null;
         source: string | null;
+        metadata: import("@prisma/client/runtime/library").JsonValue | null;
+        createdAt: Date;
+        updatedAt: Date;
     })[]>;
     findOne(storeProductId: string): Promise<{
         product: {
             brand: {
                 id: string;
-                name: string;
+                metadata: import("@prisma/client/runtime/library").JsonValue | null;
                 createdAt: Date;
                 updatedAt: Date;
-                logoUrl: string | null;
+                name: string;
                 normalizedName: string | null;
                 country: string | null;
-                metadata: import("@prisma/client/runtime/library").JsonValue | null;
+                logoUrl: string | null;
             } | null;
             manufacturer: {
                 id: string;
-                name: string;
-                gstin: string | null;
+                metadata: import("@prisma/client/runtime/library").JsonValue | null;
                 createdAt: Date;
                 updatedAt: Date;
+                name: string;
                 normalizedName: string | null;
                 country: string | null;
-                metadata: import("@prisma/client/runtime/library").JsonValue | null;
+                gstin: string | null;
             } | null;
             category: {
                 id: string;
-                name: string;
                 createdAt: Date;
                 updatedAt: Date;
                 isActive: boolean;
+                name: string;
                 parentId: string | null;
                 iconUrl: string | null;
                 sortOrder: number;
             } | null;
         } & {
             id: string;
-            name: string;
+            itemType: string | null;
+            metadata: import("@prisma/client/runtime/library").JsonValue | null;
             createdAt: Date;
             updatedAt: Date;
-            imageUrl: string | null;
+            name: string;
             normalizedName: string | null;
-            metadata: import("@prisma/client/runtime/library").JsonValue | null;
             baseUnit: string | null;
             brandId: string | null;
             manufacturerId: string | null;
             categoryId: string | null;
             hsnSacCode: string | null;
-            itemType: string | null;
             productType: string | null;
             packagingDescription: string | null;
             allowDecimalQuantity: boolean;
+            imageUrl: string | null;
         };
         inventory: {
             id: string;
+            storeId: string;
             createdAt: Date;
             updatedAt: Date;
-            storeId: string;
             storeProductId: string;
             rackNo: string | null;
             batchNo: string | null;
@@ -256,6 +256,16 @@ export declare class ProductsService {
             reservedQty: Decimal;
             blockedQty: Decimal;
         }[];
+        productBarcodes: {
+            id: string;
+            source: string | null;
+            createdAt: Date;
+            isActive: boolean;
+            storeProductId: string;
+            barcode: string;
+            barcodeType: string | null;
+            isPrimary: boolean;
+        }[];
         stockBalances: {
             id: string;
             storeId: string;
@@ -264,21 +274,12 @@ export declare class ProductsService {
             lastMovementId: string | null;
             lastCalculatedAt: Date;
         }[];
-        productBarcodes: {
-            id: string;
-            createdAt: Date;
-            isActive: boolean;
-            source: string | null;
-            storeProductId: string;
-            barcode: string;
-            barcodeType: string | null;
-            isPrimary: boolean;
-        }[];
         pricing: {
             id: string;
-            createdAt: Date;
             createdBy: string | null;
             updatedBy: string | null;
+            createdAt: Date;
+            effectiveFrom: Date;
             storeProductId: string;
             mrp: Decimal | null;
             sellingPrice: Decimal | null;
@@ -292,19 +293,18 @@ export declare class ProductsService {
             retailRate: Decimal | null;
             priceIncludesTax: boolean;
             currency: string;
-            effectiveFrom: Date;
             effectiveTo: Date | null;
         }[];
         taxProfile: {
             id: string;
-            createdAt: Date;
-            updatedAt: Date;
-            hsnSacCode: string | null;
             createdBy: string | null;
             updatedBy: string | null;
             source: string | null;
-            storeProductId: string;
+            createdAt: Date;
+            updatedAt: Date;
             effectiveFrom: Date;
+            hsnSacCode: string | null;
+            storeProductId: string;
             effectiveTo: Date | null;
             localTaxabilityStatus: string | null;
             centralTaxabilityStatus: string | null;
@@ -319,10 +319,10 @@ export declare class ProductsService {
         }[];
         inventoryPolicy: {
             id: string;
-            createdAt: Date;
-            updatedAt: Date;
             createdBy: string | null;
             updatedBy: string | null;
+            createdAt: Date;
+            updatedAt: Date;
             storeProductId: string;
             allowNegativeStock: boolean;
             minimumQty: Decimal | null;
@@ -340,10 +340,10 @@ export declare class ProductsService {
         } | null;
         discountPolicy: {
             id: string;
-            createdAt: Date;
-            updatedAt: Date;
             createdBy: string | null;
             updatedBy: string | null;
+            createdAt: Date;
+            updatedAt: Date;
             storeProductId: string;
             discountApplicable: boolean;
             visibleDiscountOn: Decimal | null;
@@ -362,10 +362,10 @@ export declare class ProductsService {
         } | null;
         schemes: {
             id: string;
+            createdBy: string | null;
             createdAt: Date;
             updatedAt: Date;
             isActive: boolean;
-            createdBy: string | null;
             storeProductId: string;
             minimumQty: Decimal | null;
             maximumQty: Decimal | null;
@@ -414,16 +414,13 @@ export declare class ProductsService {
         }[];
     } & {
         id: string;
-        status: string;
-        createdAt: Date;
-        updatedAt: Date;
         storeId: string;
-        metadata: import("@prisma/client/runtime/library").JsonValue | null;
-        itemType: string | null;
         productId: string;
         legacyCode: string | null;
         displayName: string | null;
+        status: string;
         type: string | null;
+        itemType: string | null;
         isHidden: boolean;
         allowDecimalQty: boolean;
         packagingText: string | null;
@@ -433,13 +430,17 @@ export declare class ProductsService {
         createdBy: string | null;
         updatedBy: string | null;
         source: string | null;
+        metadata: import("@prisma/client/runtime/library").JsonValue | null;
+        createdAt: Date;
+        updatedAt: Date;
     }>;
     findByBarcode(storeId: string, barcode: string): Promise<{
         pricing: {
             id: string;
-            createdAt: Date;
             createdBy: string | null;
             updatedBy: string | null;
+            createdAt: Date;
+            effectiveFrom: Date;
             storeProductId: string;
             mrp: Decimal | null;
             sellingPrice: Decimal | null;
@@ -453,21 +454,17 @@ export declare class ProductsService {
             retailRate: Decimal | null;
             priceIncludesTax: boolean;
             currency: string;
-            effectiveFrom: Date;
             effectiveTo: Date | null;
         }[];
     } & {
         id: string;
-        status: string;
-        createdAt: Date;
-        updatedAt: Date;
         storeId: string;
-        metadata: import("@prisma/client/runtime/library").JsonValue | null;
-        itemType: string | null;
         productId: string;
         legacyCode: string | null;
         displayName: string | null;
+        status: string;
         type: string | null;
+        itemType: string | null;
         isHidden: boolean;
         allowDecimalQty: boolean;
         packagingText: string | null;
@@ -477,6 +474,54 @@ export declare class ProductsService {
         createdBy: string | null;
         updatedBy: string | null;
         source: string | null;
+        metadata: import("@prisma/client/runtime/library").JsonValue | null;
+        createdAt: Date;
+        updatedAt: Date;
+    }>;
+    findOneMaster(storeProductId: string): Promise<{
+        id: string;
+        storeId: string;
+        productId: string;
+        legacyCode: string | null;
+        displayName: string | null;
+        status: string;
+        type: string | null;
+        itemType: string | null;
+        isHidden: boolean;
+        allowDecimalQty: boolean;
+        packagingText: string | null;
+        colorType: string | null;
+        groupId: string | null;
+        manufacturerLegacyRef: string | null;
+        createdBy: string | null;
+        updatedBy: string | null;
+        source: string | null;
+        metadata: import("@prisma/client/runtime/library").JsonValue | null;
+        createdAt: Date;
+        updatedAt: Date;
+    }>;
+    validateMaster(data: ProductMasterPayload): ProductValidationResult;
+    updateMaster(storeProductId: string, data: ProductMasterPayload, updatedBy: string): Promise<{
+        id: string;
+        storeId: string;
+        productId: string;
+        legacyCode: string | null;
+        displayName: string | null;
+        status: string;
+        type: string | null;
+        itemType: string | null;
+        isHidden: boolean;
+        allowDecimalQty: boolean;
+        packagingText: string | null;
+        colorType: string | null;
+        groupId: string | null;
+        manufacturerLegacyRef: string | null;
+        createdBy: string | null;
+        updatedBy: string | null;
+        source: string | null;
+        metadata: import("@prisma/client/runtime/library").JsonValue | null;
+        createdAt: Date;
+        updatedAt: Date;
     }>;
     createStoreProduct(data: {
         storeId: string;
@@ -519,16 +564,13 @@ export declare class ProductsService {
         rackNo?: string;
     }): Promise<{
         id: string;
-        status: string;
-        createdAt: Date;
-        updatedAt: Date;
         storeId: string;
-        metadata: import("@prisma/client/runtime/library").JsonValue | null;
-        itemType: string | null;
         productId: string;
         legacyCode: string | null;
         displayName: string | null;
+        status: string;
         type: string | null;
+        itemType: string | null;
         isHidden: boolean;
         allowDecimalQty: boolean;
         packagingText: string | null;
@@ -538,6 +580,9 @@ export declare class ProductsService {
         createdBy: string | null;
         updatedBy: string | null;
         source: string | null;
+        metadata: import("@prisma/client/runtime/library").JsonValue | null;
+        createdAt: Date;
+        updatedAt: Date;
     }>;
     updateStoreProduct(storeProductId: string, storeId: string, data: {
         displayName?: string;
@@ -548,16 +593,13 @@ export declare class ProductsService {
         updatedBy?: string;
     }): Promise<{
         id: string;
-        status: string;
-        createdAt: Date;
-        updatedAt: Date;
         storeId: string;
-        metadata: import("@prisma/client/runtime/library").JsonValue | null;
-        itemType: string | null;
         productId: string;
         legacyCode: string | null;
         displayName: string | null;
+        status: string;
         type: string | null;
+        itemType: string | null;
         isHidden: boolean;
         allowDecimalQty: boolean;
         packagingText: string | null;
@@ -567,6 +609,9 @@ export declare class ProductsService {
         createdBy: string | null;
         updatedBy: string | null;
         source: string | null;
+        metadata: import("@prisma/client/runtime/library").JsonValue | null;
+        createdAt: Date;
+        updatedAt: Date;
     }>;
     updatePricing(storeProductId: string, updatedBy: string, data: {
         mrp?: number;
@@ -578,9 +623,10 @@ export declare class ProductsService {
         costPerPiece?: number;
     }): Promise<{
         id: string;
-        createdAt: Date;
         createdBy: string | null;
         updatedBy: string | null;
+        createdAt: Date;
+        effectiveFrom: Date;
         storeProductId: string;
         mrp: Decimal | null;
         sellingPrice: Decimal | null;
@@ -594,7 +640,6 @@ export declare class ProductsService {
         retailRate: Decimal | null;
         priceIncludesTax: boolean;
         currency: string;
-        effectiveFrom: Date;
         effectiveTo: Date | null;
     }>;
     enrichFromBarcode(barcode: string, storeId: string): Promise<{
@@ -647,28 +692,28 @@ export declare class ProductsService {
         } | null;
     } & {
         id: string;
+        storeId: string;
+        productId: string | null;
         status: import(".prisma/client").$Enums.PendingProductStatus;
         createdAt: Date;
         updatedAt: Date;
-        storeId: string;
-        imageUrl: string | null;
         baseUnit: string | null;
-        productId: string | null;
+        imageUrl: string | null;
         barcode: string | null;
         mrp: Decimal | null;
         sellingPrice: Decimal | null;
         gstRate: Decimal;
-        conversionToBase: Decimal | null;
-        supplierId: string | null;
-        notes: string | null;
-        purchasePrice: Decimal | null;
         suggestedName: string | null;
         suggestedBrand: string | null;
         suggestedCategory: string | null;
+        purchasePrice: Decimal | null;
         hsnSac: string | null;
         purchaseUnit: string | null;
+        conversionToBase: Decimal | null;
+        supplierId: string | null;
         createdById: string | null;
         approvedProductId: string | null;
+        notes: string | null;
     })[]>;
     approvePendingProduct(id: string, approvedBy: string, data: {
         name: string;
@@ -680,16 +725,13 @@ export declare class ProductsService {
         hsnSacCode?: string;
     }): Promise<{
         id: string;
-        status: string;
-        createdAt: Date;
-        updatedAt: Date;
         storeId: string;
-        metadata: import("@prisma/client/runtime/library").JsonValue | null;
-        itemType: string | null;
         productId: string;
         legacyCode: string | null;
         displayName: string | null;
+        status: string;
         type: string | null;
+        itemType: string | null;
         isHidden: boolean;
         allowDecimalQty: boolean;
         packagingText: string | null;
@@ -699,31 +741,34 @@ export declare class ProductsService {
         createdBy: string | null;
         updatedBy: string | null;
         source: string | null;
+        metadata: import("@prisma/client/runtime/library").JsonValue | null;
+        createdAt: Date;
+        updatedAt: Date;
     }>;
     rejectPendingProduct(id: string): Promise<{
         id: string;
+        storeId: string;
+        productId: string | null;
         status: import(".prisma/client").$Enums.PendingProductStatus;
         createdAt: Date;
         updatedAt: Date;
-        storeId: string;
-        imageUrl: string | null;
         baseUnit: string | null;
-        productId: string | null;
+        imageUrl: string | null;
         barcode: string | null;
         mrp: Decimal | null;
         sellingPrice: Decimal | null;
         gstRate: Decimal;
-        conversionToBase: Decimal | null;
-        supplierId: string | null;
-        notes: string | null;
-        purchasePrice: Decimal | null;
         suggestedName: string | null;
         suggestedBrand: string | null;
         suggestedCategory: string | null;
+        purchasePrice: Decimal | null;
         hsnSac: string | null;
         purchaseUnit: string | null;
+        conversionToBase: Decimal | null;
+        supplierId: string | null;
         createdById: string | null;
         approvedProductId: string | null;
+        notes: string | null;
     }>;
     createPendingFromBarcode(data: {
         storeId: string;
@@ -735,27 +780,116 @@ export declare class ProductsService {
         supplierId?: string;
     }): Promise<{
         id: string;
+        storeId: string;
+        productId: string | null;
         status: import(".prisma/client").$Enums.PendingProductStatus;
         createdAt: Date;
         updatedAt: Date;
-        storeId: string;
-        imageUrl: string | null;
         baseUnit: string | null;
-        productId: string | null;
+        imageUrl: string | null;
         barcode: string | null;
         mrp: Decimal | null;
         sellingPrice: Decimal | null;
         gstRate: Decimal;
-        conversionToBase: Decimal | null;
-        supplierId: string | null;
-        notes: string | null;
-        purchasePrice: Decimal | null;
         suggestedName: string | null;
         suggestedBrand: string | null;
         suggestedCategory: string | null;
+        purchasePrice: Decimal | null;
         hsnSac: string | null;
         purchaseUnit: string | null;
+        conversionToBase: Decimal | null;
+        supplierId: string | null;
         createdById: string | null;
         approvedProductId: string | null;
+        notes: string | null;
     }>;
+}
+export interface ProductMasterPayload {
+    storeProduct?: Partial<{
+        displayName: string;
+        legacyCode: string;
+        status: string;
+        type: string;
+        itemType: string;
+        isHidden: boolean;
+        allowDecimalQty: boolean;
+        packagingText: string;
+        colorType: string;
+        manufacturerLegacyRef: string;
+    }>;
+    product?: Partial<{
+        name: string;
+        baseUnit: string;
+        hsnSacCode: string;
+    }>;
+    pricing?: Partial<{
+        mrp: number;
+        sellingPrice: number;
+        rateA: number;
+        rateB: number;
+        rateC: number;
+        purchaseRate: number;
+        costPerPiece: number;
+        landingCost: number;
+    }>;
+    taxProfile?: Partial<{
+        hsnSacCode: string;
+        localTaxabilityStatus: string;
+        centralTaxabilityStatus: string;
+        isTaxable: boolean;
+        taxInclusive: boolean;
+        cgstRate: number;
+        sgstRate: number;
+        igstRate: number;
+        cessRate: number;
+        cessAmountPerUnit: number;
+    }>;
+    inventoryPolicy?: Partial<{
+        allowNegativeStock: boolean;
+        minimumQty: number;
+        maximumQty: number;
+        reorderQty: number;
+        defaultSaleQty: number;
+        boxConversionQty: number;
+        shelfLifeDays: number;
+        trackBatch: boolean;
+        trackExpiry: boolean;
+        trackSerial: boolean;
+        stockUom: string;
+        saleUom: string;
+        purchaseUom: string;
+    }>;
+    discountPolicy?: Partial<{
+        discountApplicable: boolean;
+        visibleDiscountOn: number;
+        itemDiscount1Percent: number;
+        itemDiscount2Percent: number;
+        specialDiscountPercent: number;
+        maximumDiscountPercent: number;
+        purchaseDiscountPercent: number;
+        discountLessPercent: number;
+        rateOverrideAllowed: boolean;
+    }>;
+    rack?: Partial<{
+        rackNo: string;
+        shelfNo: string;
+        binNo: string;
+        zone: string;
+    }>;
+}
+export interface GstPreview {
+    mrp: number;
+    taxInclusive: boolean;
+    gstRate: number;
+    cgstRate: number;
+    sgstRate: number;
+    igstRate: number;
+    taxableValue: number;
+    gstAmount: number;
+    finalSalePrice: number;
+}
+export interface ProductValidationResult {
+    valid: boolean;
+    errors: string[];
+    gstPreview: GstPreview | null;
 }

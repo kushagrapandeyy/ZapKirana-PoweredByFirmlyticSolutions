@@ -20,6 +20,26 @@ let SuppliersController = class SuppliersController {
     constructor(suppliersService) {
         this.suppliersService = suppliersService;
     }
+    listLedgers(storeId, accountGroup) {
+        if (!storeId)
+            throw new common_1.BadRequestException('storeId is required');
+        return this.suppliersService.listLedgers(storeId, { accountGroup });
+    }
+    createLedger(body) {
+        if (!body.storeId)
+            throw new common_1.BadRequestException('storeId is required');
+        const { storeId, ...payload } = body;
+        return this.suppliersService.createLedger(storeId, payload);
+    }
+    getLedgerView(id) {
+        return this.suppliersService.getLedgerView(id);
+    }
+    updateLedger(id, body) {
+        if (!body.storeId)
+            throw new common_1.BadRequestException('storeId is required');
+        const { storeId, ...payload } = body;
+        return this.suppliersService.updateLedger(id, storeId, payload);
+    }
     getAllSuppliers() {
         return this.suppliersService.getAllSuppliers();
     }
@@ -36,6 +56,36 @@ let SuppliersController = class SuppliersController {
     }
 };
 exports.SuppliersController = SuppliersController;
+__decorate([
+    (0, common_1.Get)('ledger'),
+    __param(0, (0, common_1.Query)('storeId')),
+    __param(1, (0, common_1.Query)('accountGroup')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, String]),
+    __metadata("design:returntype", void 0)
+], SuppliersController.prototype, "listLedgers", null);
+__decorate([
+    (0, common_1.Post)('ledger'),
+    __param(0, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", void 0)
+], SuppliersController.prototype, "createLedger", null);
+__decorate([
+    (0, common_1.Get)('ledger/:id'),
+    __param(0, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", void 0)
+], SuppliersController.prototype, "getLedgerView", null);
+__decorate([
+    (0, common_1.Patch)('ledger/:id'),
+    __param(0, (0, common_1.Param)('id')),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, Object]),
+    __metadata("design:returntype", void 0)
+], SuppliersController.prototype, "updateLedger", null);
 __decorate([
     (0, common_1.Get)(),
     __metadata("design:type", Function),

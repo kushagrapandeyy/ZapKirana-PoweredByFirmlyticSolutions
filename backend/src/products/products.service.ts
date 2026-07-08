@@ -1,26 +1,8 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { Decimal } from '@prisma/client/runtime/library';
+import { OPEN_FOOD_FACTS_URL, GST_RATE_MAP, inferGstClass, OffEnrichmentResult } from '../common/gst/gst.utils';
 
-/**
- * ProductsService — operates on StoreProduct (store-local layer) not the global Product.
- * All pricing reads come from StoreProductPricing (latest active record).
- * All tax reads come from ProductTaxProfile (latest active record).
- * All barcodes come from StoreProductBarcode.
- */
-
-const OPEN_FOOD_FACTS_URL = 'https://world.openfoodfacts.org/api/v2/product';
-
-function inferGstClass(categories: string): string {
-  const c = categories.toLowerCase();
-  if (c.includes('beverage') || c.includes('aerated') || c.includes('cola') || c.includes('soda')) return 'GST_28';
-  if (c.includes('biscuit') || c.includes('pasta') || c.includes('noodle') || c.includes('ice cream') || c.includes('chocolate')) return 'GST_18';
-  if (c.includes('juice') || c.includes('butter') || c.includes('cheese') || c.includes('ghee') || c.includes('namkeen')) return 'GST_12';
-  if (c.includes('oil') || c.includes('sugar') || c.includes('spice') || c.includes('tea') || c.includes('coffee')) return 'GST_5';
-  return 'EXEMPT';
-}
-
-const GST_RATE_MAP: Record<string, number> = { EXEMPT: 0, GST_5: 5, GST_12: 12, GST_18: 18, GST_28: 28 };
 
 @Injectable()
 export class ProductsService {
@@ -100,6 +82,290 @@ export class ProductsService {
     if (registry?.storeProduct) return registry.storeProduct;
 
     throw new NotFoundException(`Barcode ${barcode} not found in store ${storeId}`);
+  }
+
+  // =====================================================
+  // PRODUCT MASTER VIEW — COMPOSED ENDPOINT
+  // =====================================================
+
+  /**
+   * Returns a single ProductMasterView — every sub-table in one call.
+   * The UI gets one clean object. No waterfall fetches.
+   */
+  async findOneMaster(storeProductId: string) {
+    const sp = await this.prisma.storeProduct.findUnique({
+      where: { id: storeProductId },
+      include: {
+        product: {
+          include: {
+            brand: true,
+            manufacturer: true,
+            category: true,
+            group: true,
+          },
+        },
+        pricing: { orderBy: { effectiveFrom: 'desc' }, take: 1 },
+        taxProfile: { orderBy: { effectiveFrom: 'desc' }, take: 1 },
+        inventoryPolicy: true,
+        discountPolicy: true,
+        schemes: { where: { isActive: true } },
+        rackLocations: true,
+        productBarcodes: { where: { isActive: true } },
+        priceHistory: { orderBy: { createdAt: 'desc' }, take: 20 },
+        costHistory: { orderBy: { createdAt: 'desc' }, take: 10 },
+        stockBalances: true,
+      },
+    });
+    if (!sp) throw new NotFoundException(`StoreProduct ${storeProductId} not found`);
+    return sp;
+  }
+
+  /**
+   * Validates a product payload WITHOUT saving.
+   * Returns field errors + a live GST calculation preview.
+   * Used by the UI before showing the save confirmation.
+   */
+  validateMaster(data: ProductMasterPayload): ProductValidationResult {
+    const errors: string[] = [];
+
+    const cgst = Number(data.taxProfile?.cgstRate ?? 0);
+    const sgst = Number(data.taxProfile?.sgstRate ?? 0);
+    const igst = Number(data.taxProfile?.igstRate ?? 0);
+    const gstTotal = cgst + sgst;
+
+    if (cgst > 0 && sgst > 0 && Math.abs(cgst - sgst) > 0.001) {
+      errors.push('CGST and SGST should be equal for local sales (each = GST/2).');
+    }
+    if (igst > 0 && Math.abs(igst - gstTotal) > 0.001) {
+      errors.push('IGST must equal CGST + SGST for interstate transactions.');
+    }
+
+    const mrp = Number(data.pricing?.mrp ?? 0);
+    const selling = Number(data.pricing?.sellingPrice ?? mrp);
+    const purchaseRate = Number(data.pricing?.purchaseRate ?? 0);
+
+    if (mrp > 0 && selling > mrp) {
+      errors.push('Selling price cannot exceed MRP unless rate override is explicitly allowed.');
+    }
+    if (purchaseRate > 0 && mrp > 0 && purchaseRate > mrp) {
+      errors.push('Purchase rate is higher than MRP — confirm this is intentional.');
+    }
+
+    if (data.taxProfile?.hsnSacCode && /^\d+$/.test(data.taxProfile.hsnSacCode) === false) {
+      errors.push('HSN/SAC code should contain only digits (stored as a string to preserve leading zeros).');
+    }
+
+    // GST Preview Calculation
+    let gstPreview: GstPreview | null = null;
+    if (mrp > 0 && gstTotal > 0) {
+      const taxInclusive = data.taxProfile?.taxInclusive !== false; // default true
+      if (taxInclusive) {
+        const taxableValue = mrp / (1 + gstTotal / 100);
+        const gstAmount = mrp - taxableValue;
+        gstPreview = {
+          mrp,
+          taxInclusive,
+          gstRate: gstTotal,
+          cgstRate: cgst,
+          sgstRate: sgst,
+          igstRate: igst,
+          taxableValue: Math.round(taxableValue * 100) / 100,
+          gstAmount: Math.round(gstAmount * 100) / 100,
+          finalSalePrice: mrp,
+        };
+      } else {
+        const gstAmount = mrp * gstTotal / 100;
+        gstPreview = {
+          mrp,
+          taxInclusive,
+          gstRate: gstTotal,
+          cgstRate: cgst,
+          sgstRate: sgst,
+          igstRate: igst,
+          taxableValue: mrp,
+          gstAmount: Math.round(gstAmount * 100) / 100,
+          finalSalePrice: Math.round((mrp + gstAmount) * 100) / 100,
+        };
+      }
+    }
+
+    return { valid: errors.length === 0, errors, gstPreview };
+  }
+
+  /**
+   * Full transactional fan-out update of all sub-tables.
+   * Appends price history on any pricing change.
+   */
+  async updateMaster(storeProductId: string, data: ProductMasterPayload, updatedBy: string) {
+    return this.prisma.$transaction(async (tx) => {
+      const existing = await tx.storeProduct.findUnique({ where: { id: storeProductId } });
+      if (!existing) throw new NotFoundException('StoreProduct not found');
+
+      // 1. StoreProduct core fields
+      if (data.storeProduct) {
+        await tx.storeProduct.update({
+          where: { id: storeProductId },
+          data: {
+            displayName: data.storeProduct.displayName,
+            status: data.storeProduct.status,
+            type: data.storeProduct.type,
+            itemType: data.storeProduct.itemType,
+            isHidden: data.storeProduct.isHidden,
+            allowDecimalQty: data.storeProduct.allowDecimalQty,
+            packagingText: data.storeProduct.packagingText,
+            colorType: data.storeProduct.colorType,
+            manufacturerLegacyRef: data.storeProduct.manufacturerLegacyRef,
+            updatedBy,
+          },
+        });
+      }
+
+      // 2. Global Product (name, HSN, unit)
+      if (data.product) {
+        await tx.product.update({
+          where: { id: existing.productId },
+          data: {
+            name: data.product.name,
+            baseUnit: data.product.baseUnit,
+            hsnSacCode: data.taxProfile?.hsnSacCode ?? data.product.hsnSacCode,
+            allowDecimalQuantity: data.storeProduct?.allowDecimalQty,
+          },
+        });
+      }
+
+      // 3. Pricing — append a new versioned row, record history
+      if (data.pricing) {
+        const prevPricing = await tx.storeProductPricing.findFirst({
+          where: { storeProductId },
+          orderBy: { effectiveFrom: 'desc' },
+        });
+
+        await tx.storeProductPricing.create({
+          data: {
+            storeProductId,
+            mrp: data.pricing.mrp != null ? new Decimal(data.pricing.mrp) : undefined,
+            sellingPrice: data.pricing.sellingPrice != null ? new Decimal(data.pricing.sellingPrice) : undefined,
+            rateA: data.pricing.rateA != null ? new Decimal(data.pricing.rateA) : undefined,
+            rateB: data.pricing.rateB != null ? new Decimal(data.pricing.rateB) : undefined,
+            rateC: data.pricing.rateC != null ? new Decimal(data.pricing.rateC) : undefined,
+            purchaseRate: data.pricing.purchaseRate != null ? new Decimal(data.pricing.purchaseRate) : undefined,
+            costPerPiece: data.pricing.costPerPiece != null ? new Decimal(data.pricing.costPerPiece) : undefined,
+            landingCost: data.pricing.landingCost != null ? new Decimal(data.pricing.landingCost) : undefined,
+            createdBy: updatedBy,
+          },
+        });
+
+        // Append to price history for audit
+        const fields: Array<keyof typeof data.pricing> = ['mrp', 'sellingPrice', 'rateA', 'rateB', 'rateC'];
+        for (const field of fields) {
+          const newVal = data.pricing[field];
+          const oldVal = prevPricing ? Number((prevPricing as any)[field] ?? 0) : null;
+          if (newVal != null && oldVal != null && Number(newVal) !== oldVal) {
+            await tx.productPriceHistory.create({
+              data: {
+                storeProductId,
+                changedField: field as string,
+                oldValue: new Decimal(oldVal),
+                newValue: new Decimal(newVal),
+                reason: 'manual_master_edit',
+                changedBy: updatedBy,
+              },
+            });
+          }
+        }
+      }
+
+      // 4. Tax Profile — append versioned row
+      if (data.taxProfile) {
+        const cgst = data.taxProfile.cgstRate ?? 0;
+        const sgst = data.taxProfile.sgstRate ?? 0;
+        await tx.productTaxProfile.create({
+          data: {
+            storeProductId,
+            hsnSacCode: data.taxProfile.hsnSacCode,
+            localTaxabilityStatus: data.taxProfile.localTaxabilityStatus,
+            centralTaxabilityStatus: data.taxProfile.centralTaxabilityStatus,
+            isTaxable: data.taxProfile.isTaxable ?? cgst > 0,
+            taxInclusive: data.taxProfile.taxInclusive ?? true,
+            gstRate: cgst + sgst > 0 ? new Decimal(cgst + sgst) : undefined,
+            cgstRate: cgst > 0 ? new Decimal(cgst) : undefined,
+            sgstRate: sgst > 0 ? new Decimal(sgst) : undefined,
+            igstRate: data.taxProfile.igstRate != null ? new Decimal(data.taxProfile.igstRate) : undefined,
+            cessRate: data.taxProfile.cessRate != null ? new Decimal(data.taxProfile.cessRate) : undefined,
+            cessAmountPerUnit: data.taxProfile.cessAmountPerUnit != null ? new Decimal(data.taxProfile.cessAmountPerUnit) : undefined,
+            updatedBy,
+          },
+        });
+      }
+
+      // 5. Inventory Policy — upsert (one-to-one)
+      if (data.inventoryPolicy) {
+        const ip = {
+          allowNegativeStock: data.inventoryPolicy.allowNegativeStock,
+          minimumQty: data.inventoryPolicy.minimumQty != null ? new Decimal(data.inventoryPolicy.minimumQty) : undefined,
+          maximumQty: data.inventoryPolicy.maximumQty != null ? new Decimal(data.inventoryPolicy.maximumQty) : undefined,
+          reorderQty: data.inventoryPolicy.reorderQty != null ? new Decimal(data.inventoryPolicy.reorderQty) : undefined,
+          defaultSaleQty: data.inventoryPolicy.defaultSaleQty != null ? new Decimal(data.inventoryPolicy.defaultSaleQty) : undefined,
+          boxConversionQty: data.inventoryPolicy.boxConversionQty != null ? new Decimal(data.inventoryPolicy.boxConversionQty) : undefined,
+          shelfLifeDays: data.inventoryPolicy.shelfLifeDays,
+          trackBatch: data.inventoryPolicy.trackBatch,
+          trackExpiry: data.inventoryPolicy.trackExpiry,
+          trackSerial: data.inventoryPolicy.trackSerial,
+          stockUom: data.inventoryPolicy.stockUom,
+          saleUom: data.inventoryPolicy.saleUom,
+          purchaseUom: data.inventoryPolicy.purchaseUom,
+          updatedBy,
+        };
+        await tx.productInventoryPolicy.upsert({
+          where: { storeProductId },
+          create: { storeProductId, ...ip },
+          update: ip,
+        });
+      }
+
+      // 6. Discount Policy — upsert
+      if (data.discountPolicy) {
+        const dp = {
+          discountApplicable: data.discountPolicy.discountApplicable,
+          visibleDiscountOn: data.discountPolicy.visibleDiscountOn != null ? new Decimal(data.discountPolicy.visibleDiscountOn) : undefined,
+          itemDiscount1Percent: data.discountPolicy.itemDiscount1Percent != null ? new Decimal(data.discountPolicy.itemDiscount1Percent) : undefined,
+          itemDiscount2Percent: data.discountPolicy.itemDiscount2Percent != null ? new Decimal(data.discountPolicy.itemDiscount2Percent) : undefined,
+          specialDiscountPercent: data.discountPolicy.specialDiscountPercent != null ? new Decimal(data.discountPolicy.specialDiscountPercent) : undefined,
+          maximumDiscountPercent: data.discountPolicy.maximumDiscountPercent != null ? new Decimal(data.discountPolicy.maximumDiscountPercent) : undefined,
+          purchaseDiscountPercent: data.discountPolicy.purchaseDiscountPercent != null ? new Decimal(data.discountPolicy.purchaseDiscountPercent) : undefined,
+          discountLessPercent: data.discountPolicy.discountLessPercent != null ? new Decimal(data.discountPolicy.discountLessPercent) : undefined,
+          rateOverrideAllowed: data.discountPolicy.rateOverrideAllowed,
+          updatedBy,
+        };
+        await tx.productDiscountPolicy.upsert({
+          where: { storeProductId },
+          create: { storeProductId, ...dp },
+          update: dp,
+        });
+      }
+
+      // 7. Rack — upsert primary rack
+      if (data.rack) {
+        const existingRack = await tx.productRackLocation.findFirst({ where: { storeProductId } });
+        if (existingRack) {
+          await tx.productRackLocation.update({
+            where: { id: existingRack.id },
+            data: {
+              rackNo: data.rack.rackNo,
+              shelfNo: data.rack.shelfNo,
+              binNo: data.rack.binNo,
+              zone: data.rack.zone,
+            },
+          });
+        } else {
+          await tx.productRackLocation.create({
+            data: { storeProductId, ...data.rack },
+          });
+        }
+      }
+
+      return this.findOneMaster(storeProductId);
+    });
   }
 
   // =====================================================
@@ -535,3 +801,100 @@ export class ProductsService {
     });
   }
 }
+
+// =====================================================
+// PAYLOAD & RESULT TYPES
+// =====================================================
+
+export interface ProductMasterPayload {
+  storeProduct?: Partial<{
+    displayName: string;
+    legacyCode: string;
+    status: string;
+    type: string;
+    itemType: string;
+    isHidden: boolean;
+    allowDecimalQty: boolean;
+    packagingText: string;
+    colorType: string;
+    manufacturerLegacyRef: string;
+  }>;
+  product?: Partial<{
+    name: string;
+    baseUnit: string;
+    hsnSacCode: string;
+  }>;
+  pricing?: Partial<{
+    mrp: number;
+    sellingPrice: number;
+    rateA: number;
+    rateB: number;
+    rateC: number;
+    purchaseRate: number;
+    costPerPiece: number;
+    landingCost: number;
+  }>;
+  taxProfile?: Partial<{
+    hsnSacCode: string;
+    localTaxabilityStatus: string;
+    centralTaxabilityStatus: string;
+    isTaxable: boolean;
+    taxInclusive: boolean;
+    cgstRate: number;
+    sgstRate: number;
+    igstRate: number;
+    cessRate: number;
+    cessAmountPerUnit: number;
+  }>;
+  inventoryPolicy?: Partial<{
+    allowNegativeStock: boolean;
+    minimumQty: number;
+    maximumQty: number;
+    reorderQty: number;
+    defaultSaleQty: number;
+    boxConversionQty: number;
+    shelfLifeDays: number;
+    trackBatch: boolean;
+    trackExpiry: boolean;
+    trackSerial: boolean;
+    stockUom: string;
+    saleUom: string;
+    purchaseUom: string;
+  }>;
+  discountPolicy?: Partial<{
+    discountApplicable: boolean;
+    visibleDiscountOn: number;
+    itemDiscount1Percent: number;
+    itemDiscount2Percent: number;
+    specialDiscountPercent: number;
+    maximumDiscountPercent: number;
+    purchaseDiscountPercent: number;
+    discountLessPercent: number;
+    rateOverrideAllowed: boolean;
+  }>;
+  rack?: Partial<{
+    rackNo: string;
+    shelfNo: string;
+    binNo: string;
+    zone: string;
+  }>;
+}
+
+export interface GstPreview {
+  mrp: number;
+  taxInclusive: boolean;
+  gstRate: number;
+  cgstRate: number;
+  sgstRate: number;
+  igstRate: number;
+  taxableValue: number;
+  gstAmount: number;
+  finalSalePrice: number;
+}
+
+export interface ProductValidationResult {
+  valid: boolean;
+  errors: string[];
+  gstPreview: GstPreview | null;
+}
+

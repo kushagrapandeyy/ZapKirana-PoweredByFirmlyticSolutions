@@ -23,42 +23,42 @@ export declare class OcrService {
     extractProductMaster(rawText: string, storeId: string): Promise<{
         fields: {
             id: string;
-            extractionId: string;
             fieldKey: string;
             extractedValue: string | null;
             confidence: number | null;
             isEdited: boolean;
             finalValue: string | null;
+            extractionId: string;
         }[];
     } & {
         id: string;
-        status: string;
+        imageUrl: string | null;
         createdAt: Date;
         updatedAt: Date;
         storeId: string;
-        imageUrl: string | null;
         type: string;
+        status: string;
         rawText: string | null;
         confidenceScore: number | null;
     }>;
     extractSupplierLedger(rawText: string, storeId: string): Promise<{
         fields: {
             id: string;
-            extractionId: string;
             fieldKey: string;
             extractedValue: string | null;
             confidence: number | null;
             isEdited: boolean;
             finalValue: string | null;
+            extractionId: string;
         }[];
     } & {
         id: string;
-        status: string;
+        imageUrl: string | null;
         createdAt: Date;
         updatedAt: Date;
         storeId: string;
-        imageUrl: string | null;
         type: string;
+        status: string;
         rawText: string | null;
         confidenceScore: number | null;
     }>;

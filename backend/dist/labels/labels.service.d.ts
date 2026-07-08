@@ -4,7 +4,7 @@ export declare class LabelsService {
     constructor(prisma: PrismaService);
     generateBarcode(data: {
         storeId: string;
-        storeProductId: string;
+        productId: string;
         barcodeType: 'INTERNAL_FIXED_PACK' | 'INTERNAL_VARIABLE_WEIGHT';
         storeCode?: string;
         productCode?: string;
@@ -16,43 +16,43 @@ export declare class LabelsService {
         barcodeRegistryId: string;
         alreadyExisted: boolean;
         scope?: undefined;
-        storeProductId?: undefined;
+        productId?: undefined;
     } | {
         barcode: string;
         barcodeRegistryId: string;
         scope: "INTERNAL_FIXED_PACK" | "INTERNAL_VARIABLE_WEIGHT";
-        storeProductId: string;
+        productId: string;
         alreadyExisted: boolean;
     }>;
     registerExternalBarcode(data: {
-        storeProductId: string;
+        productId: string;
         barcodeValue: string;
         symbology?: string;
         storeId?: string;
         isPrimary?: boolean;
     }): Promise<{
         id: string;
+        isActive: boolean;
         createdAt: Date;
         storeId: string | null;
-        isActive: boolean;
         storeProductId: string | null;
-        isPrimary: boolean;
-        symbology: string;
         barcodeValue: string;
+        symbology: string;
         barcodeScope: import(".prisma/client").$Enums.BarcodeScope;
         isInternal: boolean;
+        isPrimary: boolean;
     }>;
-    getBarcodesForProduct(storeProductId: string): Promise<{
+    getBarcodesForProduct(productId: string): Promise<{
         id: string;
+        isActive: boolean;
         createdAt: Date;
         storeId: string | null;
-        isActive: boolean;
         storeProductId: string | null;
-        isPrimary: boolean;
-        symbology: string;
         barcodeValue: string;
+        symbology: string;
         barcodeScope: import(".prisma/client").$Enums.BarcodeScope;
         isInternal: boolean;
+        isPrimary: boolean;
     }[]>;
     createPrintJob(data: {
         storeId: string;
@@ -87,14 +87,14 @@ export declare class LabelsService {
         } | null;
     } & {
         id: string;
-        status: import(".prisma/client").$Enums.PrintJobStatus;
         createdAt: Date;
         updatedAt: Date;
         storeId: string;
-        requestedById: string | null;
+        status: import(".prisma/client").$Enums.PrintJobStatus;
         templateType: string;
         labelDataJson: import("@prisma/client/runtime/library").JsonValue;
         r2PdfPath: string | null;
+        requestedById: string | null;
     }>;
     listPrintJobs(storeId: string): Promise<({
         requestedBy: {
@@ -103,13 +103,13 @@ export declare class LabelsService {
         } | null;
     } & {
         id: string;
-        status: import(".prisma/client").$Enums.PrintJobStatus;
         createdAt: Date;
         updatedAt: Date;
         storeId: string;
-        requestedById: string | null;
+        status: import(".prisma/client").$Enums.PrintJobStatus;
         templateType: string;
         labelDataJson: import("@prisma/client/runtime/library").JsonValue;
         r2PdfPath: string | null;
+        requestedById: string | null;
     })[]>;
 }

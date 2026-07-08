@@ -11,16 +11,14 @@ export declare class AdminController {
         recentOrders: ({
             store: {
                 id: string;
-                name: string;
-                gstin: string | null;
-                pan: string | null;
-                createdAt: Date;
-                updatedAt: Date;
                 organizationId: string | null;
+                name: string;
+                location: string | null;
                 latitude: number | null;
                 longitude: number | null;
-                location: string | null;
                 operatingRadiusKm: number;
+                gstin: string | null;
+                pan: string | null;
                 fssaiLicenseNo: string | null;
                 isActive: boolean;
                 imageUrl: string | null;
@@ -34,19 +32,21 @@ export declare class AdminController {
                 taxId: string | null;
                 stateCode: string | null;
                 stateName: string | null;
+                createdAt: Date;
+                updatedAt: Date;
             };
             customer: {
                 id: string;
+                organizationId: string | null;
                 name: string | null;
                 createdAt: Date;
                 updatedAt: Date;
-                organizationId: string | null;
-                storeId: string | null;
-                role: import(".prisma/client").$Enums.Role;
                 email: string;
                 password: string | null;
                 pin: string | null;
                 phone: string | null;
+                role: import(".prisma/client").$Enums.Role;
+                storeId: string | null;
                 avatarUrl: string | null;
                 isVerified: boolean;
                 pushToken: string | null;
@@ -54,11 +54,11 @@ export declare class AdminController {
             };
         } & {
             id: string;
-            status: import(".prisma/client").$Enums.OrderStatus;
             createdAt: Date;
             updatedAt: Date;
             storeId: string;
             staffId: string | null;
+            status: import(".prisma/client").$Enums.OrderStatus;
             discount: import("@prisma/client/runtime/library").Decimal;
             customerId: string;
             totalAmount: import("@prisma/client/runtime/library").Decimal;
@@ -76,202 +76,57 @@ export declare class AdminController {
     }>;
     getStaffList(storeId: string): Promise<{
         id: string;
+        organizationId: string | null;
         name: string | null;
         createdAt: Date;
         updatedAt: Date;
-        organizationId: string | null;
-        storeId: string | null;
-        role: import(".prisma/client").$Enums.Role;
         email: string;
         password: string | null;
         pin: string | null;
         phone: string | null;
+        role: import(".prisma/client").$Enums.Role;
+        storeId: string | null;
         avatarUrl: string | null;
         isVerified: boolean;
         pushToken: string | null;
         zapCreditBalance: import("@prisma/client/runtime/library").Decimal;
     }[]>;
     getAlerts(storeId: string): Promise<{
-        lowStock: ({
-            storeProduct: {
-                product: {
-                    id: string;
-                    name: string;
-                    createdAt: Date;
-                    updatedAt: Date;
-                    imageUrl: string | null;
-                    normalizedName: string | null;
-                    metadata: import("@prisma/client/runtime/library").JsonValue | null;
-                    baseUnit: string | null;
-                    brandId: string | null;
-                    manufacturerId: string | null;
-                    categoryId: string | null;
-                    hsnSacCode: string | null;
-                    itemType: string | null;
-                    productType: string | null;
-                    packagingDescription: string | null;
-                    allowDecimalQuantity: boolean;
-                };
-            } & {
-                id: string;
-                status: string;
-                createdAt: Date;
-                updatedAt: Date;
-                storeId: string;
-                metadata: import("@prisma/client/runtime/library").JsonValue | null;
-                itemType: string | null;
-                productId: string;
-                legacyCode: string | null;
-                displayName: string | null;
-                type: string | null;
-                isHidden: boolean;
-                allowDecimalQty: boolean;
-                packagingText: string | null;
-                colorType: string | null;
-                groupId: string | null;
-                manufacturerLegacyRef: string | null;
-                createdBy: string | null;
-                updatedBy: string | null;
-                source: string | null;
-            };
-        } & {
+        lowStock: {
             id: string;
             createdAt: Date;
             updatedAt: Date;
             storeId: string;
             storeProductId: string;
-            rackNo: string | null;
             batchNo: string | null;
             mfgDate: Date | null;
             expiryDate: Date | null;
+            rackNo: string | null;
             quantityBase: import("@prisma/client/runtime/library").Decimal;
             reservedQty: import("@prisma/client/runtime/library").Decimal;
             blockedQty: import("@prisma/client/runtime/library").Decimal;
-        })[];
-        expiringSoon: ({
-            storeProduct: {
-                product: {
-                    id: string;
-                    name: string;
-                    createdAt: Date;
-                    updatedAt: Date;
-                    imageUrl: string | null;
-                    normalizedName: string | null;
-                    metadata: import("@prisma/client/runtime/library").JsonValue | null;
-                    baseUnit: string | null;
-                    brandId: string | null;
-                    manufacturerId: string | null;
-                    categoryId: string | null;
-                    hsnSacCode: string | null;
-                    itemType: string | null;
-                    productType: string | null;
-                    packagingDescription: string | null;
-                    allowDecimalQuantity: boolean;
-                };
-            } & {
-                id: string;
-                status: string;
-                createdAt: Date;
-                updatedAt: Date;
-                storeId: string;
-                metadata: import("@prisma/client/runtime/library").JsonValue | null;
-                itemType: string | null;
-                productId: string;
-                legacyCode: string | null;
-                displayName: string | null;
-                type: string | null;
-                isHidden: boolean;
-                allowDecimalQty: boolean;
-                packagingText: string | null;
-                colorType: string | null;
-                groupId: string | null;
-                manufacturerLegacyRef: string | null;
-                createdBy: string | null;
-                updatedBy: string | null;
-                source: string | null;
-            };
-        } & {
+        }[];
+        expiringSoon: {
             id: string;
             createdAt: Date;
             updatedAt: Date;
             storeId: string;
             storeProductId: string;
-            rackNo: string | null;
             batchNo: string | null;
             mfgDate: Date | null;
             expiryDate: Date | null;
+            rackNo: string | null;
             quantityBase: import("@prisma/client/runtime/library").Decimal;
             reservedQty: import("@prisma/client/runtime/library").Decimal;
             blockedQty: import("@prisma/client/runtime/library").Decimal;
-        })[];
-        damagedGoods: ({
-            inventory: ({
-                storeProduct: {
-                    product: {
-                        id: string;
-                        name: string;
-                        createdAt: Date;
-                        updatedAt: Date;
-                        imageUrl: string | null;
-                        normalizedName: string | null;
-                        metadata: import("@prisma/client/runtime/library").JsonValue | null;
-                        baseUnit: string | null;
-                        brandId: string | null;
-                        manufacturerId: string | null;
-                        categoryId: string | null;
-                        hsnSacCode: string | null;
-                        itemType: string | null;
-                        productType: string | null;
-                        packagingDescription: string | null;
-                        allowDecimalQuantity: boolean;
-                    };
-                } & {
-                    id: string;
-                    status: string;
-                    createdAt: Date;
-                    updatedAt: Date;
-                    storeId: string;
-                    metadata: import("@prisma/client/runtime/library").JsonValue | null;
-                    itemType: string | null;
-                    productId: string;
-                    legacyCode: string | null;
-                    displayName: string | null;
-                    type: string | null;
-                    isHidden: boolean;
-                    allowDecimalQty: boolean;
-                    packagingText: string | null;
-                    colorType: string | null;
-                    groupId: string | null;
-                    manufacturerLegacyRef: string | null;
-                    createdBy: string | null;
-                    updatedBy: string | null;
-                    source: string | null;
-                };
-            } & {
-                id: string;
-                createdAt: Date;
-                updatedAt: Date;
-                storeId: string;
-                storeProductId: string;
-                rackNo: string | null;
-                batchNo: string | null;
-                mfgDate: Date | null;
-                expiryDate: Date | null;
-                quantityBase: import("@prisma/client/runtime/library").Decimal;
-                reservedQty: import("@prisma/client/runtime/library").Decimal;
-                blockedQty: import("@prisma/client/runtime/library").Decimal;
-            }) | null;
-        } & {
+        }[];
+        damagedGoods: {
             id: string;
             createdAt: Date;
             storeId: string;
-            type: import(".prisma/client").$Enums.MovementType;
-            createdBy: string | null;
             storeProductId: string;
-            reason: string | null;
-            sourceType: string | null;
-            sourceId: string | null;
             inventoryId: string | null;
+            type: import(".prisma/client").$Enums.MovementType;
             quantityDelta: import("@prisma/client/runtime/library").Decimal;
             previousQty: import("@prisma/client/runtime/library").Decimal | null;
             newQty: import("@prisma/client/runtime/library").Decimal | null;
@@ -279,28 +134,24 @@ export declare class AdminController {
             inputUnit: string | null;
             conversionToBase: import("@prisma/client/runtime/library").Decimal | null;
             supplierId: string | null;
+            sourceType: string | null;
+            sourceId: string | null;
             note: string | null;
+            reason: string | null;
+            createdBy: string | null;
             staffId: string | null;
-        })[];
+        }[];
     }>;
-    getStores(): Promise<({
-        _count: {
-            users: number;
-            storeProducts: number;
-            orders: number;
-        };
-    } & {
+    getStores(): Promise<{
         id: string;
-        name: string;
-        gstin: string | null;
-        pan: string | null;
-        createdAt: Date;
-        updatedAt: Date;
         organizationId: string | null;
+        name: string;
+        location: string | null;
         latitude: number | null;
         longitude: number | null;
-        location: string | null;
         operatingRadiusKm: number;
+        gstin: string | null;
+        pan: string | null;
         fssaiLicenseNo: string | null;
         isActive: boolean;
         imageUrl: string | null;
@@ -314,19 +165,19 @@ export declare class AdminController {
         taxId: string | null;
         stateCode: string | null;
         stateName: string | null;
-    })[]>;
+        createdAt: Date;
+        updatedAt: Date;
+    }[]>;
     createStore(body: any, req: any): Promise<{
         id: string;
-        name: string;
-        gstin: string | null;
-        pan: string | null;
-        createdAt: Date;
-        updatedAt: Date;
         organizationId: string | null;
+        name: string;
+        location: string | null;
         latitude: number | null;
         longitude: number | null;
-        location: string | null;
         operatingRadiusKm: number;
+        gstin: string | null;
+        pan: string | null;
         fssaiLicenseNo: string | null;
         isActive: boolean;
         imageUrl: string | null;
@@ -340,6 +191,8 @@ export declare class AdminController {
         taxId: string | null;
         stateCode: string | null;
         stateName: string | null;
+        createdAt: Date;
+        updatedAt: Date;
     }>;
     approveStoreOnboarding(id: string, req: any): {
         message: string;
@@ -347,16 +200,14 @@ export declare class AdminController {
     };
     updateStore(id: string, body: any, req: any): Promise<{
         id: string;
-        name: string;
-        gstin: string | null;
-        pan: string | null;
-        createdAt: Date;
-        updatedAt: Date;
         organizationId: string | null;
+        name: string;
+        location: string | null;
         latitude: number | null;
         longitude: number | null;
-        location: string | null;
         operatingRadiusKm: number;
+        gstin: string | null;
+        pan: string | null;
         fssaiLicenseNo: string | null;
         isActive: boolean;
         imageUrl: string | null;
@@ -370,6 +221,8 @@ export declare class AdminController {
         taxId: string | null;
         stateCode: string | null;
         stateName: string | null;
+        createdAt: Date;
+        updatedAt: Date;
     }>;
     archiveStore(id: string, req: any): Promise<{
         success: boolean;
@@ -382,16 +235,14 @@ export declare class AdminController {
     getVendors(): Promise<({
         store: {
             id: string;
-            name: string;
-            gstin: string | null;
-            pan: string | null;
-            createdAt: Date;
-            updatedAt: Date;
             organizationId: string | null;
+            name: string;
+            location: string | null;
             latitude: number | null;
             longitude: number | null;
-            location: string | null;
             operatingRadiusKm: number;
+            gstin: string | null;
+            pan: string | null;
             fssaiLicenseNo: string | null;
             isActive: boolean;
             imageUrl: string | null;
@@ -405,19 +256,21 @@ export declare class AdminController {
             taxId: string | null;
             stateCode: string | null;
             stateName: string | null;
+            createdAt: Date;
+            updatedAt: Date;
         } | null;
     } & {
         id: string;
+        organizationId: string | null;
         name: string | null;
         createdAt: Date;
         updatedAt: Date;
-        organizationId: string | null;
-        storeId: string | null;
-        role: import(".prisma/client").$Enums.Role;
         email: string;
         password: string | null;
         pin: string | null;
         phone: string | null;
+        role: import(".prisma/client").$Enums.Role;
+        storeId: string | null;
         avatarUrl: string | null;
         isVerified: boolean;
         pushToken: string | null;
@@ -425,16 +278,16 @@ export declare class AdminController {
     })[]>;
     createVendor(body: any, req: any): Promise<{
         id: string;
+        organizationId: string | null;
         name: string | null;
         createdAt: Date;
         updatedAt: Date;
-        organizationId: string | null;
-        storeId: string | null;
-        role: import(".prisma/client").$Enums.Role;
         email: string;
         password: string | null;
         pin: string | null;
         phone: string | null;
+        role: import(".prisma/client").$Enums.Role;
+        storeId: string | null;
         avatarUrl: string | null;
         isVerified: boolean;
         pushToken: string | null;
@@ -443,28 +296,28 @@ export declare class AdminController {
     getSuppliers(): Promise<({
         _count: {
             purchaseOrders: number;
-            supplierProducts: number;
             storeConnections: number;
+            supplierProducts: number;
         };
     } & {
         id: string;
         name: string;
         gstin: string | null;
         pan: string | null;
+        isActive: boolean;
         createdAt: Date;
         updatedAt: Date;
-        storeId: string;
         email: string | null;
         phone: string | null;
+        storeId: string;
+        address: string | null;
+        ledgerName: string | null;
+        accountGroup: string | null;
+        mobile: string | null;
         city: string | null;
         state: string | null;
         pincode: string | null;
-        address: string | null;
-        isActive: boolean;
         country: string | null;
-        accountGroup: string | null;
-        mobile: string | null;
-        ledgerName: string | null;
         openingBalance: import("@prisma/client/runtime/library").Decimal | null;
         openingBalanceType: string | null;
         contactPerson: string | null;
@@ -472,131 +325,24 @@ export declare class AdminController {
         importBatchId: string | null;
     })[]>;
     getSupplier(id: string): Promise<{
-        purchaseOrders: ({
-            store: {
-                id: string;
-                name: string;
-                gstin: string | null;
-                pan: string | null;
-                createdAt: Date;
-                updatedAt: Date;
-                organizationId: string | null;
-                latitude: number | null;
-                longitude: number | null;
-                location: string | null;
-                operatingRadiusKm: number;
-                fssaiLicenseNo: string | null;
-                isActive: boolean;
-                imageUrl: string | null;
-                logoUrl: string | null;
-                bannerUrl: string | null;
-                operatingHours: import("@prisma/client/runtime/library").JsonValue | null;
-                rating: number;
-                description: string | null;
-                bankAccountNumber: string | null;
-                bankRoutingNumber: string | null;
-                taxId: string | null;
-                stateCode: string | null;
-                stateName: string | null;
-            };
-        } & {
-            id: string;
-            status: import(".prisma/client").$Enums.POStatus;
-            createdAt: Date;
-            updatedAt: Date;
-            storeId: string;
-            supplierId: string;
-            notes: string | null;
-            totalAmount: import("@prisma/client/runtime/library").Decimal;
-            expectedDeliveryDate: Date | null;
-            shareToken: string | null;
-            shareTokenExpiresAt: Date | null;
-        })[];
-        supplierProducts: ({
-            storeProduct: {
-                id: string;
-                status: string;
-                createdAt: Date;
-                updatedAt: Date;
-                storeId: string;
-                metadata: import("@prisma/client/runtime/library").JsonValue | null;
-                itemType: string | null;
-                productId: string;
-                legacyCode: string | null;
-                displayName: string | null;
-                type: string | null;
-                isHidden: boolean;
-                allowDecimalQty: boolean;
-                packagingText: string | null;
-                colorType: string | null;
-                groupId: string | null;
-                manufacturerLegacyRef: string | null;
-                createdBy: string | null;
-                updatedBy: string | null;
-                source: string | null;
-            };
-        } & {
-            id: string;
-            createdAt: Date;
-            updatedAt: Date;
-            storeProductId: string;
-            supplierId: string;
-            price: import("@prisma/client/runtime/library").Decimal;
-        })[];
-        storeConnections: ({
-            store: {
-                id: string;
-                name: string;
-                gstin: string | null;
-                pan: string | null;
-                createdAt: Date;
-                updatedAt: Date;
-                organizationId: string | null;
-                latitude: number | null;
-                longitude: number | null;
-                location: string | null;
-                operatingRadiusKm: number;
-                fssaiLicenseNo: string | null;
-                isActive: boolean;
-                imageUrl: string | null;
-                logoUrl: string | null;
-                bannerUrl: string | null;
-                operatingHours: import("@prisma/client/runtime/library").JsonValue | null;
-                rating: number;
-                description: string | null;
-                bankAccountNumber: string | null;
-                bankRoutingNumber: string | null;
-                taxId: string | null;
-                stateCode: string | null;
-                stateName: string | null;
-            };
-        } & {
-            id: string;
-            status: import(".prisma/client").$Enums.ConnectionStatus;
-            createdAt: Date;
-            updatedAt: Date;
-            storeId: string;
-            supplierId: string;
-        })[];
-    } & {
         id: string;
         name: string;
         gstin: string | null;
         pan: string | null;
+        isActive: boolean;
         createdAt: Date;
         updatedAt: Date;
-        storeId: string;
         email: string | null;
         phone: string | null;
+        storeId: string;
+        address: string | null;
+        ledgerName: string | null;
+        accountGroup: string | null;
+        mobile: string | null;
         city: string | null;
         state: string | null;
         pincode: string | null;
-        address: string | null;
-        isActive: boolean;
         country: string | null;
-        accountGroup: string | null;
-        mobile: string | null;
-        ledgerName: string | null;
         openingBalance: import("@prisma/client/runtime/library").Decimal | null;
         openingBalanceType: string | null;
         contactPerson: string | null;
@@ -608,20 +354,20 @@ export declare class AdminController {
         name: string;
         gstin: string | null;
         pan: string | null;
+        isActive: boolean;
         createdAt: Date;
         updatedAt: Date;
-        storeId: string;
         email: string | null;
         phone: string | null;
+        storeId: string;
+        address: string | null;
+        ledgerName: string | null;
+        accountGroup: string | null;
+        mobile: string | null;
         city: string | null;
         state: string | null;
         pincode: string | null;
-        address: string | null;
-        isActive: boolean;
         country: string | null;
-        accountGroup: string | null;
-        mobile: string | null;
-        ledgerName: string | null;
         openingBalance: import("@prisma/client/runtime/library").Decimal | null;
         openingBalanceType: string | null;
         contactPerson: string | null;
@@ -633,104 +379,39 @@ export declare class AdminController {
         name: string;
         gstin: string | null;
         pan: string | null;
+        isActive: boolean;
         createdAt: Date;
         updatedAt: Date;
-        storeId: string;
         email: string | null;
         phone: string | null;
+        storeId: string;
+        address: string | null;
+        ledgerName: string | null;
+        accountGroup: string | null;
+        mobile: string | null;
         city: string | null;
         state: string | null;
         pincode: string | null;
-        address: string | null;
-        isActive: boolean;
         country: string | null;
-        accountGroup: string | null;
-        mobile: string | null;
-        ledgerName: string | null;
         openingBalance: import("@prisma/client/runtime/library").Decimal | null;
         openingBalanceType: string | null;
         contactPerson: string | null;
         foodLicenseNo: string | null;
         importBatchId: string | null;
     }>;
-    uploadSuppliersImport(body: any, req: any): Promise<{
-        id: string;
-        status: string;
-        createdAt: Date;
-        storeId: string;
-        uploadedBy: string | null;
-        fileName: string | null;
-        totalRows: number;
-        validRows: number;
-        invalidRows: number;
-        duplicateRows: number;
-        confirmedAt: Date | null;
-    }>;
-    getSupplierImportPreview(batchId: string): Promise<{
-        rows: {
-            id: string;
-            createdAt: Date;
-            storeId: string;
-            batchId: string;
-            rowNumber: number | null;
-            rawData: import("@prisma/client/runtime/library").JsonValue | null;
-            parsedData: import("@prisma/client/runtime/library").JsonValue | null;
-            validationStatus: string;
-            validationErrors: import("@prisma/client/runtime/library").JsonValue | null;
-            matchedSupplierId: string | null;
-        }[];
-    } & {
-        id: string;
-        status: string;
-        createdAt: Date;
-        storeId: string;
-        uploadedBy: string | null;
-        fileName: string | null;
-        totalRows: number;
-        validRows: number;
-        invalidRows: number;
-        duplicateRows: number;
-        confirmedAt: Date | null;
-    }>;
-    confirmSupplierImport(batchId: string): Promise<{
-        id: string;
-        status: string;
-        createdAt: Date;
-        storeId: string;
-        uploadedBy: string | null;
-        fileName: string | null;
-        totalRows: number;
-        validRows: number;
-        invalidRows: number;
-        duplicateRows: number;
-        confirmedAt: Date | null;
-    }>;
-    cancelSupplierImport(batchId: string): Promise<{
-        id: string;
-        status: string;
-        createdAt: Date;
-        storeId: string;
-        uploadedBy: string | null;
-        fileName: string | null;
-        totalRows: number;
-        validRows: number;
-        invalidRows: number;
-        duplicateRows: number;
-        confirmedAt: Date | null;
-    }>;
     getAudits(limit?: string): Promise<({
         user: {
             id: string;
+            organizationId: string | null;
             name: string | null;
             createdAt: Date;
             updatedAt: Date;
-            organizationId: string | null;
-            storeId: string | null;
-            role: import(".prisma/client").$Enums.Role;
             email: string;
             password: string | null;
             pin: string | null;
             phone: string | null;
+            role: import(".prisma/client").$Enums.Role;
+            storeId: string | null;
             avatarUrl: string | null;
             isVerified: boolean;
             pushToken: string | null;

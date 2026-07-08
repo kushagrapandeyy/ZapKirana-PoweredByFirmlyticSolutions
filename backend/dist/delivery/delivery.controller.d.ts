@@ -20,11 +20,11 @@ export declare class DeliveryController {
         staffId: string;
     }): Promise<{
         id: string;
-        status: import(".prisma/client").$Enums.OrderStatus;
         createdAt: Date;
         updatedAt: Date;
         storeId: string;
         staffId: string | null;
+        status: import(".prisma/client").$Enums.OrderStatus;
         discount: import("@prisma/client/runtime/library").Decimal;
         customerId: string;
         totalAmount: import("@prisma/client/runtime/library").Decimal;

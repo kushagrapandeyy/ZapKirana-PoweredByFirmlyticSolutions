@@ -11,8 +11,8 @@ export declare class GstController {
         id: string;
         createdAt: Date;
         updatedAt: Date;
-        gstRate: import("@prisma/client/runtime/library").Decimal;
         category: string;
+        gstRate: import("@prisma/client/runtime/library").Decimal;
         gstClass: import(".prisma/client").$Enums.GSTClass;
     }[]>;
     upsertRule(body: {
@@ -23,39 +23,35 @@ export declare class GstController {
         id: string;
         createdAt: Date;
         updatedAt: Date;
-        gstRate: import("@prisma/client/runtime/library").Decimal;
         category: string;
+        gstRate: import("@prisma/client/runtime/library").Decimal;
         gstClass: import(".prisma/client").$Enums.GSTClass;
     }>;
     deleteRule(id: string): Promise<{
         id: string;
         createdAt: Date;
         updatedAt: Date;
-        gstRate: import("@prisma/client/runtime/library").Decimal;
         category: string;
+        gstRate: import("@prisma/client/runtime/library").Decimal;
         gstClass: import(".prisma/client").$Enums.GSTClass;
     }>;
     classifyProduct(productId: string): Promise<{
         id: string;
+        name: string;
+        imageUrl: string | null;
         createdAt: Date;
         updatedAt: Date;
+        normalizedName: string | null;
+        baseUnit: string | null;
+        brandId: string | null;
+        manufacturerId: string | null;
+        categoryId: string | null;
         hsnSacCode: string | null;
-        createdBy: string | null;
-        updatedBy: string | null;
-        source: string | null;
-        storeProductId: string;
-        effectiveFrom: Date;
-        effectiveTo: Date | null;
-        localTaxabilityStatus: string | null;
-        centralTaxabilityStatus: string | null;
-        isTaxable: boolean;
-        gstRate: import("@prisma/client/runtime/library").Decimal | null;
-        cgstRate: import("@prisma/client/runtime/library").Decimal | null;
-        sgstRate: import("@prisma/client/runtime/library").Decimal | null;
-        igstRate: import("@prisma/client/runtime/library").Decimal | null;
-        cessRate: import("@prisma/client/runtime/library").Decimal | null;
-        cessAmountPerUnit: import("@prisma/client/runtime/library").Decimal | null;
-        taxInclusive: boolean;
+        itemType: string | null;
+        productType: string | null;
+        packagingDescription: string | null;
+        allowDecimalQuantity: boolean;
+        metadata: import("@prisma/client/runtime/library").JsonValue | null;
     }>;
     bulkClassify(storeId: string): Promise<{
         total: number;

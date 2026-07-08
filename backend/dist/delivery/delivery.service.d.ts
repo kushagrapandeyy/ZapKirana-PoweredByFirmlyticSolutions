@@ -4,11 +4,11 @@ export declare class DeliveryService {
     constructor(prisma: PrismaService);
     updateLastLocation(orderId: string, lat: number, lng: number): Promise<{
         id: string;
-        status: import(".prisma/client").$Enums.OrderStatus;
         createdAt: Date;
         updatedAt: Date;
         storeId: string;
         staffId: string | null;
+        status: import(".prisma/client").$Enums.OrderStatus;
         discount: import("@prisma/client/runtime/library").Decimal;
         customerId: string;
         totalAmount: import("@prisma/client/runtime/library").Decimal;

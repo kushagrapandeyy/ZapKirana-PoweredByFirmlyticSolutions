@@ -21,13 +21,13 @@ export declare class AdminGovernanceService {
         storeId: string | null;
         reason: string;
         action: string;
-        beforeSnapshot: import("@prisma/client/runtime/library").JsonValue | null;
-        afterSnapshot: import("@prisma/client/runtime/library").JsonValue | null;
-        adminUserId: string;
         targetType: string;
         targetId: string;
+        beforeSnapshot: import("@prisma/client/runtime/library").JsonValue | null;
+        afterSnapshot: import("@prisma/client/runtime/library").JsonValue | null;
         ipAddress: string | null;
         deviceInfo: string | null;
         requiresStoreNotification: boolean;
+        adminUserId: string;
     }>;
 }

@@ -13,20 +13,7 @@ exports.ProductsService = void 0;
 const common_1 = require("@nestjs/common");
 const prisma_service_1 = require("../prisma.service");
 const library_1 = require("@prisma/client/runtime/library");
-const OPEN_FOOD_FACTS_URL = 'https://world.openfoodfacts.org/api/v2/product';
-function inferGstClass(categories) {
-    const c = categories.toLowerCase();
-    if (c.includes('beverage') || c.includes('aerated') || c.includes('cola') || c.includes('soda'))
-        return 'GST_28';
-    if (c.includes('biscuit') || c.includes('pasta') || c.includes('noodle') || c.includes('ice cream') || c.includes('chocolate'))
-        return 'GST_18';
-    if (c.includes('juice') || c.includes('butter') || c.includes('cheese') || c.includes('ghee') || c.includes('namkeen'))
-        return 'GST_12';
-    if (c.includes('oil') || c.includes('sugar') || c.includes('spice') || c.includes('tea') || c.includes('coffee'))
-        return 'GST_5';
-    return 'EXEMPT';
-}
-const GST_RATE_MAP = { EXEMPT: 0, GST_5: 5, GST_12: 12, GST_18: 18, GST_28: 28 };
+const gst_utils_1 = require("../common/gst/gst.utils");
 let ProductsService = class ProductsService {
     prisma;
     constructor(prisma) {
@@ -98,6 +85,248 @@ let ProductsService = class ProductsService {
         if (registry?.storeProduct)
             return registry.storeProduct;
         throw new common_1.NotFoundException(`Barcode ${barcode} not found in store ${storeId}`);
+    }
+    async findOneMaster(storeProductId) {
+        const sp = await this.prisma.storeProduct.findUnique({
+            where: { id: storeProductId },
+            include: {
+                product: {
+                    include: {
+                        brand: true,
+                        manufacturer: true,
+                        category: true,
+                        group: true,
+                    },
+                },
+                pricing: { orderBy: { effectiveFrom: 'desc' }, take: 1 },
+                taxProfile: { orderBy: { effectiveFrom: 'desc' }, take: 1 },
+                inventoryPolicy: true,
+                discountPolicy: true,
+                schemes: { where: { isActive: true } },
+                rackLocations: true,
+                productBarcodes: { where: { isActive: true } },
+                priceHistory: { orderBy: { createdAt: 'desc' }, take: 20 },
+                costHistory: { orderBy: { createdAt: 'desc' }, take: 10 },
+                stockBalances: true,
+            },
+        });
+        if (!sp)
+            throw new common_1.NotFoundException(`StoreProduct ${storeProductId} not found`);
+        return sp;
+    }
+    validateMaster(data) {
+        const errors = [];
+        const cgst = Number(data.taxProfile?.cgstRate ?? 0);
+        const sgst = Number(data.taxProfile?.sgstRate ?? 0);
+        const igst = Number(data.taxProfile?.igstRate ?? 0);
+        const gstTotal = cgst + sgst;
+        if (cgst > 0 && sgst > 0 && Math.abs(cgst - sgst) > 0.001) {
+            errors.push('CGST and SGST should be equal for local sales (each = GST/2).');
+        }
+        if (igst > 0 && Math.abs(igst - gstTotal) > 0.001) {
+            errors.push('IGST must equal CGST + SGST for interstate transactions.');
+        }
+        const mrp = Number(data.pricing?.mrp ?? 0);
+        const selling = Number(data.pricing?.sellingPrice ?? mrp);
+        const purchaseRate = Number(data.pricing?.purchaseRate ?? 0);
+        if (mrp > 0 && selling > mrp) {
+            errors.push('Selling price cannot exceed MRP unless rate override is explicitly allowed.');
+        }
+        if (purchaseRate > 0 && mrp > 0 && purchaseRate > mrp) {
+            errors.push('Purchase rate is higher than MRP — confirm this is intentional.');
+        }
+        if (data.taxProfile?.hsnSacCode && /^\d+$/.test(data.taxProfile.hsnSacCode) === false) {
+            errors.push('HSN/SAC code should contain only digits (stored as a string to preserve leading zeros).');
+        }
+        let gstPreview = null;
+        if (mrp > 0 && gstTotal > 0) {
+            const taxInclusive = data.taxProfile?.taxInclusive !== false;
+            if (taxInclusive) {
+                const taxableValue = mrp / (1 + gstTotal / 100);
+                const gstAmount = mrp - taxableValue;
+                gstPreview = {
+                    mrp,
+                    taxInclusive,
+                    gstRate: gstTotal,
+                    cgstRate: cgst,
+                    sgstRate: sgst,
+                    igstRate: igst,
+                    taxableValue: Math.round(taxableValue * 100) / 100,
+                    gstAmount: Math.round(gstAmount * 100) / 100,
+                    finalSalePrice: mrp,
+                };
+            }
+            else {
+                const gstAmount = mrp * gstTotal / 100;
+                gstPreview = {
+                    mrp,
+                    taxInclusive,
+                    gstRate: gstTotal,
+                    cgstRate: cgst,
+                    sgstRate: sgst,
+                    igstRate: igst,
+                    taxableValue: mrp,
+                    gstAmount: Math.round(gstAmount * 100) / 100,
+                    finalSalePrice: Math.round((mrp + gstAmount) * 100) / 100,
+                };
+            }
+        }
+        return { valid: errors.length === 0, errors, gstPreview };
+    }
+    async updateMaster(storeProductId, data, updatedBy) {
+        return this.prisma.$transaction(async (tx) => {
+            const existing = await tx.storeProduct.findUnique({ where: { id: storeProductId } });
+            if (!existing)
+                throw new common_1.NotFoundException('StoreProduct not found');
+            if (data.storeProduct) {
+                await tx.storeProduct.update({
+                    where: { id: storeProductId },
+                    data: {
+                        displayName: data.storeProduct.displayName,
+                        status: data.storeProduct.status,
+                        type: data.storeProduct.type,
+                        itemType: data.storeProduct.itemType,
+                        isHidden: data.storeProduct.isHidden,
+                        allowDecimalQty: data.storeProduct.allowDecimalQty,
+                        packagingText: data.storeProduct.packagingText,
+                        colorType: data.storeProduct.colorType,
+                        manufacturerLegacyRef: data.storeProduct.manufacturerLegacyRef,
+                        updatedBy,
+                    },
+                });
+            }
+            if (data.product) {
+                await tx.product.update({
+                    where: { id: existing.productId },
+                    data: {
+                        name: data.product.name,
+                        baseUnit: data.product.baseUnit,
+                        hsnSacCode: data.taxProfile?.hsnSacCode ?? data.product.hsnSacCode,
+                        allowDecimalQuantity: data.storeProduct?.allowDecimalQty,
+                    },
+                });
+            }
+            if (data.pricing) {
+                const prevPricing = await tx.storeProductPricing.findFirst({
+                    where: { storeProductId },
+                    orderBy: { effectiveFrom: 'desc' },
+                });
+                await tx.storeProductPricing.create({
+                    data: {
+                        storeProductId,
+                        mrp: data.pricing.mrp != null ? new library_1.Decimal(data.pricing.mrp) : undefined,
+                        sellingPrice: data.pricing.sellingPrice != null ? new library_1.Decimal(data.pricing.sellingPrice) : undefined,
+                        rateA: data.pricing.rateA != null ? new library_1.Decimal(data.pricing.rateA) : undefined,
+                        rateB: data.pricing.rateB != null ? new library_1.Decimal(data.pricing.rateB) : undefined,
+                        rateC: data.pricing.rateC != null ? new library_1.Decimal(data.pricing.rateC) : undefined,
+                        purchaseRate: data.pricing.purchaseRate != null ? new library_1.Decimal(data.pricing.purchaseRate) : undefined,
+                        costPerPiece: data.pricing.costPerPiece != null ? new library_1.Decimal(data.pricing.costPerPiece) : undefined,
+                        landingCost: data.pricing.landingCost != null ? new library_1.Decimal(data.pricing.landingCost) : undefined,
+                        createdBy: updatedBy,
+                    },
+                });
+                const fields = ['mrp', 'sellingPrice', 'rateA', 'rateB', 'rateC'];
+                for (const field of fields) {
+                    const newVal = data.pricing[field];
+                    const oldVal = prevPricing ? Number(prevPricing[field] ?? 0) : null;
+                    if (newVal != null && oldVal != null && Number(newVal) !== oldVal) {
+                        await tx.productPriceHistory.create({
+                            data: {
+                                storeProductId,
+                                changedField: field,
+                                oldValue: new library_1.Decimal(oldVal),
+                                newValue: new library_1.Decimal(newVal),
+                                reason: 'manual_master_edit',
+                                changedBy: updatedBy,
+                            },
+                        });
+                    }
+                }
+            }
+            if (data.taxProfile) {
+                const cgst = data.taxProfile.cgstRate ?? 0;
+                const sgst = data.taxProfile.sgstRate ?? 0;
+                await tx.productTaxProfile.create({
+                    data: {
+                        storeProductId,
+                        hsnSacCode: data.taxProfile.hsnSacCode,
+                        localTaxabilityStatus: data.taxProfile.localTaxabilityStatus,
+                        centralTaxabilityStatus: data.taxProfile.centralTaxabilityStatus,
+                        isTaxable: data.taxProfile.isTaxable ?? cgst > 0,
+                        taxInclusive: data.taxProfile.taxInclusive ?? true,
+                        gstRate: cgst + sgst > 0 ? new library_1.Decimal(cgst + sgst) : undefined,
+                        cgstRate: cgst > 0 ? new library_1.Decimal(cgst) : undefined,
+                        sgstRate: sgst > 0 ? new library_1.Decimal(sgst) : undefined,
+                        igstRate: data.taxProfile.igstRate != null ? new library_1.Decimal(data.taxProfile.igstRate) : undefined,
+                        cessRate: data.taxProfile.cessRate != null ? new library_1.Decimal(data.taxProfile.cessRate) : undefined,
+                        cessAmountPerUnit: data.taxProfile.cessAmountPerUnit != null ? new library_1.Decimal(data.taxProfile.cessAmountPerUnit) : undefined,
+                        updatedBy,
+                    },
+                });
+            }
+            if (data.inventoryPolicy) {
+                const ip = {
+                    allowNegativeStock: data.inventoryPolicy.allowNegativeStock,
+                    minimumQty: data.inventoryPolicy.minimumQty != null ? new library_1.Decimal(data.inventoryPolicy.minimumQty) : undefined,
+                    maximumQty: data.inventoryPolicy.maximumQty != null ? new library_1.Decimal(data.inventoryPolicy.maximumQty) : undefined,
+                    reorderQty: data.inventoryPolicy.reorderQty != null ? new library_1.Decimal(data.inventoryPolicy.reorderQty) : undefined,
+                    defaultSaleQty: data.inventoryPolicy.defaultSaleQty != null ? new library_1.Decimal(data.inventoryPolicy.defaultSaleQty) : undefined,
+                    boxConversionQty: data.inventoryPolicy.boxConversionQty != null ? new library_1.Decimal(data.inventoryPolicy.boxConversionQty) : undefined,
+                    shelfLifeDays: data.inventoryPolicy.shelfLifeDays,
+                    trackBatch: data.inventoryPolicy.trackBatch,
+                    trackExpiry: data.inventoryPolicy.trackExpiry,
+                    trackSerial: data.inventoryPolicy.trackSerial,
+                    stockUom: data.inventoryPolicy.stockUom,
+                    saleUom: data.inventoryPolicy.saleUom,
+                    purchaseUom: data.inventoryPolicy.purchaseUom,
+                    updatedBy,
+                };
+                await tx.productInventoryPolicy.upsert({
+                    where: { storeProductId },
+                    create: { storeProductId, ...ip },
+                    update: ip,
+                });
+            }
+            if (data.discountPolicy) {
+                const dp = {
+                    discountApplicable: data.discountPolicy.discountApplicable,
+                    visibleDiscountOn: data.discountPolicy.visibleDiscountOn != null ? new library_1.Decimal(data.discountPolicy.visibleDiscountOn) : undefined,
+                    itemDiscount1Percent: data.discountPolicy.itemDiscount1Percent != null ? new library_1.Decimal(data.discountPolicy.itemDiscount1Percent) : undefined,
+                    itemDiscount2Percent: data.discountPolicy.itemDiscount2Percent != null ? new library_1.Decimal(data.discountPolicy.itemDiscount2Percent) : undefined,
+                    specialDiscountPercent: data.discountPolicy.specialDiscountPercent != null ? new library_1.Decimal(data.discountPolicy.specialDiscountPercent) : undefined,
+                    maximumDiscountPercent: data.discountPolicy.maximumDiscountPercent != null ? new library_1.Decimal(data.discountPolicy.maximumDiscountPercent) : undefined,
+                    purchaseDiscountPercent: data.discountPolicy.purchaseDiscountPercent != null ? new library_1.Decimal(data.discountPolicy.purchaseDiscountPercent) : undefined,
+                    discountLessPercent: data.discountPolicy.discountLessPercent != null ? new library_1.Decimal(data.discountPolicy.discountLessPercent) : undefined,
+                    rateOverrideAllowed: data.discountPolicy.rateOverrideAllowed,
+                    updatedBy,
+                };
+                await tx.productDiscountPolicy.upsert({
+                    where: { storeProductId },
+                    create: { storeProductId, ...dp },
+                    update: dp,
+                });
+            }
+            if (data.rack) {
+                const existingRack = await tx.productRackLocation.findFirst({ where: { storeProductId } });
+                if (existingRack) {
+                    await tx.productRackLocation.update({
+                        where: { id: existingRack.id },
+                        data: {
+                            rackNo: data.rack.rackNo,
+                            shelfNo: data.rack.shelfNo,
+                            binNo: data.rack.binNo,
+                            zone: data.rack.zone,
+                        },
+                    });
+                }
+                else {
+                    await tx.productRackLocation.create({
+                        data: { storeProductId, ...data.rack },
+                    });
+                }
+            }
+            return this.findOneMaster(storeProductId);
+        });
     }
     async createStoreProduct(data) {
         return this.prisma.$transaction(async (tx) => {
@@ -262,13 +491,13 @@ let ProductsService = class ProductsService {
         }
         catch { }
         try {
-            const res = await fetch(`${OPEN_FOOD_FACTS_URL}/${barcode}.json?fields=product_name,brands,categories,image_url`);
+            const res = await fetch(`${gst_utils_1.OPEN_FOOD_FACTS_URL}/${barcode}.json?fields=product_name,brands,categories,image_url`);
             if (res.ok) {
                 const data = await res.json();
                 if (data.status === 1 && data.product) {
                     const p = data.product;
                     const categoriesRaw = p.categories ?? '';
-                    const gstClass = inferGstClass(categoriesRaw);
+                    const gstClass = (0, gst_utils_1.inferGstClass)(categoriesRaw);
                     return {
                         source: 'open_food_facts',
                         barcode,
@@ -279,7 +508,7 @@ let ProductsService = class ProductsService {
                         mrp: 0,
                         sellingPrice: 0,
                         gstClass,
-                        gstRate: GST_RATE_MAP[gstClass],
+                        gstRate: gst_utils_1.GST_RATE_MAP[gstClass],
                     };
                 }
             }

@@ -6,21 +6,18 @@ export declare class CampaignsController {
         storeId: string;
         title: string;
         description?: string;
-        type?: string;
-        imageUrl?: string;
-        displayOrder?: number;
         discountPercentage: number;
         animationType?: string;
         endsAt?: Date;
         productIds: string[];
     }): Promise<{
         id: string;
-        createdAt: Date;
-        updatedAt: Date;
-        storeId: string;
         isActive: boolean;
         imageUrl: string | null;
         description: string | null;
+        createdAt: Date;
+        updatedAt: Date;
+        storeId: string;
         type: string;
         title: string;
         displayOrder: number;
@@ -32,34 +29,34 @@ export declare class CampaignsController {
     getActiveCampaigns(storeId: string): Promise<({
         products: {
             id: string;
-            status: string;
             createdAt: Date;
             updatedAt: Date;
             storeId: string;
-            metadata: import("@prisma/client/runtime/library").JsonValue | null;
-            itemType: string | null;
             productId: string;
+            itemType: string | null;
+            metadata: import("@prisma/client/runtime/library").JsonValue | null;
+            type: string | null;
+            createdBy: string | null;
+            status: string;
+            source: string | null;
             legacyCode: string | null;
             displayName: string | null;
-            type: string | null;
             isHidden: boolean;
             allowDecimalQty: boolean;
             packagingText: string | null;
             colorType: string | null;
             groupId: string | null;
             manufacturerLegacyRef: string | null;
-            createdBy: string | null;
             updatedBy: string | null;
-            source: string | null;
         }[];
     } & {
         id: string;
-        createdAt: Date;
-        updatedAt: Date;
-        storeId: string;
         isActive: boolean;
         imageUrl: string | null;
         description: string | null;
+        createdAt: Date;
+        updatedAt: Date;
+        storeId: string;
         type: string;
         title: string;
         displayOrder: number;
@@ -70,12 +67,12 @@ export declare class CampaignsController {
     })[]>;
     endCampaign(id: string): Promise<{
         id: string;
-        createdAt: Date;
-        updatedAt: Date;
-        storeId: string;
         isActive: boolean;
         imageUrl: string | null;
         description: string | null;
+        createdAt: Date;
+        updatedAt: Date;
+        storeId: string;
         type: string;
         title: string;
         displayOrder: number;

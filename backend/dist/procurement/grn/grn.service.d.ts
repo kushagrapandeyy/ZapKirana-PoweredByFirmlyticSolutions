@@ -13,6 +13,7 @@ export declare class GrnService {
             createdAt: Date;
             updatedAt: Date;
             storeProductId: string;
+            purchasePrice: import("@prisma/client/runtime/library").Decimal;
             quantity: import("@prisma/client/runtime/library").Decimal;
             productNameSnapshot: string | null;
             hsnSacCodeSnapshot: string | null;
@@ -20,18 +21,17 @@ export declare class GrnService {
             sgstRateSnapshot: import("@prisma/client/runtime/library").Decimal | null;
             igstRateSnapshot: import("@prisma/client/runtime/library").Decimal | null;
             cessRateSnapshot: import("@prisma/client/runtime/library").Decimal | null;
-            poId: string;
             acceptedQuantity: import("@prisma/client/runtime/library").Decimal;
             receivedQuantity: import("@prisma/client/runtime/library").Decimal;
-            purchasePrice: import("@prisma/client/runtime/library").Decimal;
+            poId: string;
         }[];
     } & {
         id: string;
-        status: import(".prisma/client").$Enums.POStatus;
         createdAt: Date;
         updatedAt: Date;
         storeId: string;
         supplierId: string;
+        status: import(".prisma/client").$Enums.POStatus;
         notes: string | null;
         totalAmount: import("@prisma/client/runtime/library").Decimal;
         expectedDeliveryDate: Date | null;

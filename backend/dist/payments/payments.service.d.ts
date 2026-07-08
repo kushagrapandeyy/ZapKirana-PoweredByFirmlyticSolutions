@@ -33,28 +33,28 @@ export declare class PaymentsService {
         events: {
             id: string;
             provider: string;
-            paymentId: string;
+            receivedAt: Date;
             eventType: string;
             payloadJson: import("@prisma/client/runtime/library").JsonValue;
             signatureValid: boolean;
             processedAt: Date | null;
-            receivedAt: Date;
+            paymentId: string;
         }[];
     } & {
         id: string;
-        status: import(".prisma/client").$Enums.PaymentStatus;
         createdAt: Date;
         storeId: string;
-        source: import(".prisma/client").$Enums.PaymentSource;
-        currency: string;
-        amount: import("@prisma/client/runtime/library").Decimal;
+        status: import(".prisma/client").$Enums.PaymentStatus;
         billId: string | null;
+        amount: import("@prisma/client/runtime/library").Decimal;
         method: string | null;
         orderId: string | null;
+        source: import(".prisma/client").$Enums.PaymentSource;
         provider: import(".prisma/client").$Enums.PaymentProvider;
         providerOrderId: string | null;
         providerPaymentId: string | null;
         providerQrId: string | null;
+        currency: string;
         paidAt: Date | null;
     }>;
     handleWebhook(rawBody: string, signature: string): Promise<{

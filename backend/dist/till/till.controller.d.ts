@@ -13,8 +13,8 @@ export declare class TillController {
         }[];
     } & {
         id: string;
-        status: import(".prisma/client").$Enums.TillStatus;
         storeId: string;
+        status: import(".prisma/client").$Enums.TillStatus;
         openingBalance: import("@prisma/client/runtime/library").Decimal;
         expectedBalance: import("@prisma/client/runtime/library").Decimal;
         closingBalance: import("@prisma/client/runtime/library").Decimal | null;
@@ -27,8 +27,8 @@ export declare class TillController {
         openingBalance: number;
     }): Promise<{
         id: string;
-        status: import(".prisma/client").$Enums.TillStatus;
         storeId: string;
+        status: import(".prisma/client").$Enums.TillStatus;
         openingBalance: import("@prisma/client/runtime/library").Decimal;
         expectedBalance: import("@prisma/client/runtime/library").Decimal;
         closingBalance: import("@prisma/client/runtime/library").Decimal | null;
@@ -51,8 +51,8 @@ export declare class TillController {
         }[];
     } & {
         id: string;
-        status: import(".prisma/client").$Enums.TillStatus;
         storeId: string;
+        status: import(".prisma/client").$Enums.TillStatus;
         openingBalance: import("@prisma/client/runtime/library").Decimal;
         expectedBalance: import("@prisma/client/runtime/library").Decimal;
         closingBalance: import("@prisma/client/runtime/library").Decimal | null;
@@ -64,8 +64,8 @@ export declare class TillController {
         actualClosingBalance: number;
     }): Promise<{
         id: string;
-        status: import(".prisma/client").$Enums.TillStatus;
         storeId: string;
+        status: import(".prisma/client").$Enums.TillStatus;
         openingBalance: import("@prisma/client/runtime/library").Decimal;
         expectedBalance: import("@prisma/client/runtime/library").Decimal;
         closingBalance: import("@prisma/client/runtime/library").Decimal | null;
