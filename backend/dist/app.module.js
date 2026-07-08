@@ -37,6 +37,7 @@ const catalog_module_1 = require("./catalog/catalog.module");
 const addresses_module_1 = require("./addresses/addresses.module");
 const jwt_auth_guard_1 = require("./auth/jwt-auth.guard");
 const roles_guard_1 = require("./common/guards/roles.guard");
+const store_scope_guard_1 = require("./common/guards/store-scope.guard");
 const audit_interceptor_1 = require("./common/audit/audit.interceptor");
 const global_exception_filter_1 = require("./common/filters/global-exception.filter");
 const scanner_management_module_1 = require("./scanner-management/scanner-management.module");
@@ -53,6 +54,7 @@ const offline_sync_module_1 = require("./offline-sync/offline-sync.module");
 const admin_governance_module_1 = require("./admin-governance/admin-governance.module");
 const erp_import_module_1 = require("./erp-import/erp-import.module");
 const gemini_module_1 = require("./gemini/gemini.module");
+const fulfillment_module_1 = require("./fulfillment/fulfillment.module");
 const queueDriver = process.env.QUEUE_DRIVER || 'memory';
 const conditionalModules = [];
 if (queueDriver === 'redis') {
@@ -109,6 +111,7 @@ exports.AppModule = AppModule = __decorate([
             admin_governance_module_1.AdminGovernanceModule,
             erp_import_module_1.ErpImportModule,
             gemini_module_1.GeminiModule,
+            fulfillment_module_1.FulfillmentModule,
         ],
         controllers: [app_controller_1.AppController],
         providers: [
@@ -133,6 +136,10 @@ exports.AppModule = AppModule = __decorate([
             {
                 provide: core_1.APP_GUARD,
                 useClass: roles_guard_1.RolesGuard,
+            },
+            {
+                provide: core_1.APP_GUARD,
+                useClass: store_scope_guard_1.StoreScopeGuard,
             },
         ],
     })

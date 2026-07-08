@@ -12,12 +12,33 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.RolesGuard = void 0;
 const common_1 = require("@nestjs/common");
 const core_1 = require("@nestjs/core");
+const roles_decorator_1 = require("../decorators/roles.decorator");
+const public_decorator_1 = require("../decorators/public.decorator");
 let RolesGuard = class RolesGuard {
     reflector;
     constructor(reflector) {
         this.reflector = reflector;
     }
     canActivate(context) {
+        const isPublic = this.reflector.getAllAndOverride(public_decorator_1.IS_PUBLIC_KEY, [
+            context.getHandler(),
+            context.getClass(),
+        ]);
+        if (isPublic)
+            return true;
+        const requiredRoles = this.reflector.getAllAndOverride(roles_decorator_1.ROLES_KEY, [
+            context.getHandler(),
+            context.getClass(),
+        ]);
+        if (!requiredRoles || requiredRoles.length === 0)
+            return true;
+        const { user } = context.switchToHttp().getRequest();
+        if (!user)
+            throw new common_1.ForbiddenException('Authentication required');
+        const hasRole = requiredRoles.some((role) => user.role === role);
+        if (!hasRole) {
+            throw new common_1.ForbiddenException(`Access denied. Required roles: [${requiredRoles.join(', ')}]. Your role: ${user.role ?? 'unknown'}.`);
+        }
         return true;
     }
 };

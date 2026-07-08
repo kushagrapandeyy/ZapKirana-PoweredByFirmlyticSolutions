@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException, BadRequestException, ConflictException } from '@nestjs/common';
+import { Injectable, UnauthorizedException, BadRequestException, ConflictException, Logger } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { PrismaService } from '../prisma.service';
@@ -7,6 +7,7 @@ import * as crypto from 'crypto';
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
   constructor(
     private prisma: PrismaService,
     private jwtService: JwtService
@@ -95,7 +96,7 @@ export class AuthService {
     } else {
       // In dev environment where keys aren't set, just log it.
       // NEVER return the OTP in the JSON response.
-      console.log(`📱 [DEV MODE] OTP for ${phone}: ${code}`);
+      this.logger.warn(`[DEV MODE] OTP for ${phone}: ${code} — configure MSG91_API_KEY for production SMS delivery`);
     }
 
     return {

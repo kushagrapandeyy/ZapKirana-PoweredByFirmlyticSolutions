@@ -3,6 +3,7 @@ import { PrismaService } from '../prisma.service';
 export declare class AuthService {
     private prisma;
     private jwtService;
+    private readonly logger;
     constructor(prisma: PrismaService, jwtService: JwtService);
     register(data: {
         email: string;
@@ -55,20 +56,20 @@ export declare class AuthService {
     }>;
     updatePushToken(userId: string, pushToken: string): Promise<{
         id: string;
-        organizationId: string | null;
-        name: string | null;
-        createdAt: Date;
-        updatedAt: Date;
         email: string;
         password: string | null;
         pin: string | null;
+        name: string | null;
         phone: string | null;
         role: import(".prisma/client").$Enums.Role;
-        storeId: string | null;
         avatarUrl: string | null;
         isVerified: boolean;
         pushToken: string | null;
+        createdAt: Date;
+        updatedAt: Date;
         zapCreditBalance: import("@prisma/client/runtime/library").Decimal;
+        organizationId: string | null;
+        storeId: string | null;
     }>;
     scannerLogin(deviceCode: string, pin: string): Promise<{
         token: string;
@@ -87,33 +88,33 @@ export declare class AuthService {
     getProfile(userId: string): Promise<{
         savedAddresses: {
             id: string;
-            latitude: number;
-            longitude: number;
             createdAt: Date;
             updatedAt: Date;
             userId: string;
-            address: string;
-            city: string | null;
-            state: string | null;
-            pincode: string | null;
             label: string;
             streetAddress: string | null;
             landmark: string | null;
+            city: string | null;
+            state: string | null;
+            pincode: string | null;
+            address: string;
+            latitude: number;
+            longitude: number;
             isDefault: boolean;
         }[];
         id: string;
-        organizationId: string | null;
-        name: string | null;
-        createdAt: Date;
-        updatedAt: Date;
         email: string;
         pin: string | null;
+        name: string | null;
         phone: string | null;
         role: import(".prisma/client").$Enums.Role;
-        storeId: string | null;
         avatarUrl: string | null;
         isVerified: boolean;
         pushToken: string | null;
+        createdAt: Date;
+        updatedAt: Date;
         zapCreditBalance: import("@prisma/client/runtime/library").Decimal;
+        organizationId: string | null;
+        storeId: string | null;
     }>;
 }

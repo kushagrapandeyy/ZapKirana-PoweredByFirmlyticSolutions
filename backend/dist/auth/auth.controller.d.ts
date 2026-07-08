@@ -79,52 +79,52 @@ export declare class AuthController {
     getProfile(req: any): Promise<{
         savedAddresses: {
             id: string;
-            latitude: number;
-            longitude: number;
             createdAt: Date;
             updatedAt: Date;
             userId: string;
-            address: string;
-            city: string | null;
-            state: string | null;
-            pincode: string | null;
             label: string;
             streetAddress: string | null;
             landmark: string | null;
+            city: string | null;
+            state: string | null;
+            pincode: string | null;
+            address: string;
+            latitude: number;
+            longitude: number;
             isDefault: boolean;
         }[];
         id: string;
-        organizationId: string | null;
-        name: string | null;
-        createdAt: Date;
-        updatedAt: Date;
         email: string;
         pin: string | null;
+        name: string | null;
         phone: string | null;
         role: import(".prisma/client").$Enums.Role;
-        storeId: string | null;
         avatarUrl: string | null;
         isVerified: boolean;
         pushToken: string | null;
+        createdAt: Date;
+        updatedAt: Date;
         zapCreditBalance: import("@prisma/client/runtime/library").Decimal;
+        organizationId: string | null;
+        storeId: string | null;
     }>;
     updatePushToken(req: any, body: {
         pushToken: string;
     }): Promise<{
         id: string;
-        organizationId: string | null;
-        name: string | null;
-        createdAt: Date;
-        updatedAt: Date;
         email: string;
         password: string | null;
         pin: string | null;
+        name: string | null;
         phone: string | null;
         role: import(".prisma/client").$Enums.Role;
-        storeId: string | null;
         avatarUrl: string | null;
         isVerified: boolean;
         pushToken: string | null;
+        createdAt: Date;
+        updatedAt: Date;
         zapCreditBalance: import("@prisma/client/runtime/library").Decimal;
+        organizationId: string | null;
+        storeId: string | null;
     }>;
 }

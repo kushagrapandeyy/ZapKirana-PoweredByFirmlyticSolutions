@@ -12,12 +12,34 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.StoreScopeGuard = void 0;
 const common_1 = require("@nestjs/common");
 const core_1 = require("@nestjs/core");
+const public_decorator_1 = require("../decorators/public.decorator");
 let StoreScopeGuard = class StoreScopeGuard {
     reflector;
     constructor(reflector) {
         this.reflector = reflector;
     }
     canActivate(context) {
+        const isPublic = this.reflector.getAllAndOverride(public_decorator_1.IS_PUBLIC_KEY, [
+            context.getHandler(),
+            context.getClass(),
+        ]);
+        if (isPublic)
+            return true;
+        const request = context.switchToHttp().getRequest();
+        const user = request.user;
+        if (!user)
+            return false;
+        if (user.role === 'PLATFORM_ADMIN' || user.role === 'SUPPORT')
+            return true;
+        const storeId = request.query?.storeId ??
+            request.body?.storeId ??
+            request.params?.storeId;
+        if (!storeId)
+            return true;
+        const accessibleStoreIds = user.storeIds ?? [];
+        if (!accessibleStoreIds.includes(storeId)) {
+            throw new common_1.ForbiddenException(`Store ${storeId} is not accessible to your account.`);
+        }
         return true;
     }
 };

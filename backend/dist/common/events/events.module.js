@@ -13,6 +13,7 @@ const event_bus_service_1 = require("./event-bus.service");
 const queueDriver = process.env.QUEUE_DRIVER || 'memory';
 const imports = [];
 const providers = [event_bus_service_1.EventBusService];
+const memoryQueueLogger = new common_1.Logger('MemoryQueue');
 if (queueDriver === 'redis') {
     imports.push(bullmq_1.BullModule.registerQueue({ name: 'basko-events' }));
 }
@@ -21,7 +22,7 @@ else {
         provide: (0, bullmq_1.getQueueToken)('basko-events'),
         useValue: {
             add: async (name) => {
-                console.log(`[Memory Queue] Job ${name} executed in memory (Redis disabled).`);
+                memoryQueueLogger.debug(`Job "${name}" queued in-memory (set QUEUE_DRIVER=redis for production).`);
             }
         }
     });

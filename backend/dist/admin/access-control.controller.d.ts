@@ -5,11 +5,11 @@ export declare class AccessControlController {
     constructor(prisma: PrismaService);
     getPlatformStaff(): Promise<{
         id: string;
-        name: string | null;
-        createdAt: Date;
         email: string;
+        name: string | null;
         phone: string | null;
         role: import(".prisma/client").$Enums.Role;
+        createdAt: Date;
     }[]>;
     inviteStaff(body: {
         name: string;
@@ -18,18 +18,18 @@ export declare class AccessControlController {
     }, req: any): Promise<{
         id: string;
         organizationId: string | null;
-        name: string | null;
-        createdAt: Date;
-        updatedAt: Date;
         email: string;
         password: string | null;
         pin: string | null;
+        name: string | null;
         phone: string | null;
         role: import(".prisma/client").$Enums.Role;
         storeId: string | null;
         avatarUrl: string | null;
         isVerified: boolean;
         pushToken: string | null;
+        createdAt: Date;
+        updatedAt: Date;
         zapCreditBalance: import("@prisma/client/runtime/library").Decimal;
     }>;
     updateRole(id: string, body: {
@@ -37,18 +37,18 @@ export declare class AccessControlController {
     }, req: any): Promise<{
         id: string;
         organizationId: string | null;
-        name: string | null;
-        createdAt: Date;
-        updatedAt: Date;
         email: string;
         password: string | null;
         pin: string | null;
+        name: string | null;
         phone: string | null;
         role: import(".prisma/client").$Enums.Role;
         storeId: string | null;
         avatarUrl: string | null;
         isVerified: boolean;
         pushToken: string | null;
+        createdAt: Date;
+        updatedAt: Date;
         zapCreditBalance: import("@prisma/client/runtime/library").Decimal;
     }>;
 }

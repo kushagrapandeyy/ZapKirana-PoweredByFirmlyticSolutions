@@ -41,6 +41,7 @@ var __importStar = (this && this.__importStar) || (function () {
 var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
+var AuthService_1;
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.AuthService = void 0;
 const common_1 = require("@nestjs/common");
@@ -48,9 +49,10 @@ const jwt_1 = require("@nestjs/jwt");
 const prisma_service_1 = require("../prisma.service");
 const bcrypt = __importStar(require("bcryptjs"));
 const crypto = __importStar(require("crypto"));
-let AuthService = class AuthService {
+let AuthService = AuthService_1 = class AuthService {
     prisma;
     jwtService;
+    logger = new common_1.Logger(AuthService_1.name);
     constructor(prisma, jwtService) {
         this.prisma = prisma;
         this.jwtService = jwtService;
@@ -126,7 +128,7 @@ let AuthService = class AuthService {
             }
         }
         else {
-            console.log(`📱 [DEV MODE] OTP for ${phone}: ${code}`);
+            this.logger.warn(`[DEV MODE] OTP for ${phone}: ${code} — configure MSG91_API_KEY for production SMS delivery`);
         }
         return {
             message: 'OTP sent successfully',
@@ -275,7 +277,7 @@ let AuthService = class AuthService {
     }
 };
 exports.AuthService = AuthService;
-exports.AuthService = AuthService = __decorate([
+exports.AuthService = AuthService = AuthService_1 = __decorate([
     (0, common_1.Injectable)(),
     __metadata("design:paramtypes", [prisma_service_1.PrismaService,
         jwt_1.JwtService])

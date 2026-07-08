@@ -114,7 +114,7 @@ export class GeminiService {
   // ERP Import Mapping Suggestion
   // =====================================================
   async suggestImportColumnMapping(headers: string[]): Promise<Record<string, string> | null> {
-    const prompt = `I am importing a CSV into a modern ERP system. The CSV has the following headers:\n${headers.join(', ')}\n\nMap these to standard ZapKirnana ERP fields: name, legacyCode, mrp, sellingPrice, category, brand, hsnSacCode, cgstRate, sgstRate, barcode, packSize. Only map if confident.`;
+    const prompt = `I am importing a CSV into a modern ERP system called Basko. The CSV has the following headers:\n${headers.join(', ')}\n\nMap these to standard Basko ERP fields: name, legacyCode, mrp, sellingPrice, category, brand, hsnSacCode, cgstRate, sgstRate, barcode, packSize. Only map if confident.`;
     
     const schema = {
       type: 'OBJECT',

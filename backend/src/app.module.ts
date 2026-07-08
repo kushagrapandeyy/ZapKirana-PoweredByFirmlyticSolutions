@@ -47,6 +47,7 @@ import { OfflineSyncModule } from './offline-sync/offline-sync.module';
 import { AdminGovernanceModule } from './admin-governance/admin-governance.module';
 import { ErpImportModule } from './erp-import/erp-import.module';
 import { GeminiModule } from './gemini/gemini.module';
+import { FulfillmentModule } from './fulfillment/fulfillment.module';
 
 const queueDriver = process.env.QUEUE_DRIVER || 'memory';
 const conditionalModules = [];
@@ -103,6 +104,7 @@ if (queueDriver === 'redis') {
     AdminGovernanceModule,
     ErpImportModule,
     GeminiModule,
+    FulfillmentModule,
   ],
   controllers: [AppController],
   providers: [
@@ -127,6 +129,10 @@ if (queueDriver === 'redis') {
     {
       provide: APP_GUARD,
       useClass: RolesGuard,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: StoreScopeGuard,
     },
   ],
 })
