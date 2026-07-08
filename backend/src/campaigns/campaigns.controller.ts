@@ -7,7 +7,7 @@ export class CampaignsController {
   constructor(private readonly campaignsService: CampaignsService) {}
 
   @Post()
-  async createCampaign(@Body() body: { storeId: string; title: string; description?: string; discountPercentage: number; animationType?: string; endsAt?: Date; productIds: string[] }) {
+  async createCampaign(@Body() body: { storeId: string; title: string; description?: string; type?: string; imageUrl?: string; displayOrder?: number; discountPercentage: number; animationType?: string; endsAt?: Date; productIds: string[] }) {
     if (!body.storeId || !body.title || !body.discountPercentage || !body.productIds) {
       throw new BadRequestException('storeId, title, discountPercentage, and productIds are required');
     }

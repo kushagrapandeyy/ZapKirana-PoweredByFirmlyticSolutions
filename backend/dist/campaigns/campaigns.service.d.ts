@@ -5,6 +5,9 @@ export declare class CampaignsService {
     createCampaign(storeId: string, data: {
         title: string;
         description?: string;
+        type?: string;
+        imageUrl?: string;
+        displayOrder?: number;
         discountPercentage: number;
         animationType?: string;
         endsAt?: Date;
@@ -15,8 +18,11 @@ export declare class CampaignsService {
         updatedAt: Date;
         storeId: string;
         isActive: boolean;
+        imageUrl: string | null;
         description: string | null;
+        type: string;
         title: string;
+        displayOrder: number;
         discountPercentage: import("@prisma/client/runtime/library").Decimal;
         animationType: string;
         startsAt: Date;
@@ -51,8 +57,11 @@ export declare class CampaignsService {
         updatedAt: Date;
         storeId: string;
         isActive: boolean;
+        imageUrl: string | null;
         description: string | null;
+        type: string;
         title: string;
+        displayOrder: number;
         discountPercentage: import("@prisma/client/runtime/library").Decimal;
         animationType: string;
         startsAt: Date;
@@ -64,8 +73,11 @@ export declare class CampaignsService {
         updatedAt: Date;
         storeId: string;
         isActive: boolean;
+        imageUrl: string | null;
         description: string | null;
+        type: string;
         title: string;
+        displayOrder: number;
         discountPercentage: import("@prisma/client/runtime/library").Decimal;
         animationType: string;
         startsAt: Date;

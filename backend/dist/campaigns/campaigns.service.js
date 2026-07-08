@@ -18,12 +18,29 @@ let CampaignsService = class CampaignsService {
         this.prisma = prisma;
     }
     async createCampaign(storeId, data) {
+        const activeCampaigns = await this.prisma.storeCampaign.findMany({
+            where: { storeId, isActive: true },
+            select: { type: true },
+        });
+        if (activeCampaigns.length >= 15) {
+            throw new common_1.BadRequestException('Maximum limit of 15 active campaigns reached for this store.');
+        }
+        const campaignType = data.type || 'OFFER';
+        if (campaignType === 'BANNER') {
+            const activeBanners = activeCampaigns.filter(c => c.type === 'BANNER').length;
+            if (activeBanners >= 3) {
+                throw new common_1.BadRequestException('Maximum limit of 3 active banners reached. End an existing banner to create a new one.');
+            }
+        }
         return this.prisma.$transaction(async (tx) => {
             const campaign = await tx.storeCampaign.create({
                 data: {
                     storeId,
                     title: data.title,
                     description: data.description,
+                    type: campaignType,
+                    imageUrl: data.imageUrl,
+                    displayOrder: data.displayOrder || 0,
                     discountPercentage: data.discountPercentage,
                     animationType: data.animationType || 'DEFAULT',
                     endsAt: data.endsAt,

@@ -5,7 +5,25 @@ import { PrismaService } from '../prisma.service';
 export class CampaignsService {
   constructor(private prisma: PrismaService) {}
 
-  async createCampaign(storeId: string, data: { title: string; description?: string; discountPercentage: number; animationType?: string; endsAt?: Date; productIds: string[] }) {
+  async createCampaign(storeId: string, data: { title: string; description?: string; type?: string; imageUrl?: string; displayOrder?: number; discountPercentage: number; animationType?: string; endsAt?: Date; productIds: string[] }) {
+    // Enforce limits
+    const activeCampaigns = await this.prisma.storeCampaign.findMany({
+      where: { storeId, isActive: true },
+      select: { type: true },
+    });
+
+    if (activeCampaigns.length >= 15) {
+      throw new BadRequestException('Maximum limit of 15 active campaigns reached for this store.');
+    }
+
+    const campaignType = data.type || 'OFFER';
+    if (campaignType === 'BANNER') {
+      const activeBanners = activeCampaigns.filter(c => c.type === 'BANNER').length;
+      if (activeBanners >= 3) {
+        throw new BadRequestException('Maximum limit of 3 active banners reached. End an existing banner to create a new one.');
+      }
+    }
+
     return this.prisma.$transaction(async (tx) => {
       // 1. Create the campaign
       const campaign = await tx.storeCampaign.create({
@@ -13,6 +31,9 @@ export class CampaignsService {
           storeId,
           title: data.title,
           description: data.description,
+          type: campaignType,
+          imageUrl: data.imageUrl,
+          displayOrder: data.displayOrder || 0,
           discountPercentage: data.discountPercentage,
           animationType: data.animationType || 'DEFAULT',
           endsAt: data.endsAt,

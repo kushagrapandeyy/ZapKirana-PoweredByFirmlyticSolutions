@@ -2005,6 +2005,9 @@ model StoreCampaign {
   store              Store     @relation(fields: [storeId], references: [id])
   title              String
   description        String?
+  type               String    @default("OFFER")
+  imageUrl           String?
+  displayOrder       Int       @default(0)
   discountPercentage Decimal   @db.Decimal(5, 2)
   animationType      String    @default("DEFAULT")
   isActive           Boolean   @default(true)
