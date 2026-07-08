@@ -1,5 +1,10 @@
 import { PrismaService } from '../prisma.service';
-import { ScannerWorkflow, BarcodeScope } from '@prisma/client';
+import { CacheService } from '../cache/cache.service';
+import { RealtimeService } from '../realtime/realtime.service';
+import { InventoryService } from '../inventory/inventory.service';
+import { ProductsService } from '../products/products.service';
+import { BarcodeScope, Role } from '@prisma/client';
+import { Decimal } from '@prisma/client/runtime/library';
 export interface ClassifiedBarcode {
     scope: BarcodeScope;
     rawValue: string;
@@ -14,167 +19,142 @@ export interface ClassifiedBarcode {
 export declare function classifyBarcode(rawValue: string): ClassifiedBarcode;
 export declare class ScannerService {
     private prisma;
-    constructor(prisma: PrismaService);
-    resolveBarcode(data: {
+    private cacheService;
+    private realtimeService;
+    private inventoryService;
+    private productsService;
+    constructor(prisma: PrismaService, cacheService: CacheService, realtimeService: RealtimeService, inventoryService: InventoryService, productsService: ProductsService);
+    checkPermission(userId: string, storeId: string): Promise<Role>;
+    lookupBarcode(storeId: string, barcode: string, scanMode: string): Promise<any>;
+    updateProduct(userId: string, productId: string, data: {
         storeId: string;
-        workflow: ScannerWorkflow;
-        rawValue: string;
-        deviceId?: string;
-        scannedById?: string;
-        idempotencyKey: string;
-        quantity?: number;
-        metadata?: Record<string, unknown>;
+        mrp?: number;
+        saleRateBaseUnit?: number;
+        purchaseRateBaseUnit?: number;
+        rackNo?: string;
+        hsnSac?: string;
+        sgstPercent?: number;
+        cgstPercent?: number;
+        igstPercent?: number;
+        brand?: string;
+        category?: string;
+        name?: string;
     }): Promise<{
-        status: string;
-        barcodeScope: import(".prisma/client").$Enums.BarcodeScope;
-        isDuplicate: boolean;
-        product: {
-            productId: any;
-            name: any;
-            brand: any;
-            category: any;
-            barcode: any;
-            mrp: any;
-            sellingPrice: any;
-            gstRate: any;
-            gstClass: any;
-            imageUrl: any;
-            availableQty: number;
-        };
-        workflow: {
-            action: string;
-            requiresExpiry: boolean;
-            requiresBatch: boolean;
-        };
-        reference?: undefined;
+        draftId: string;
+        status: import(".prisma/client").$Enums.PendingProductStatus;
+        message: string;
+        success?: undefined;
     } | {
-        status: string;
-        barcodeScope: "INTERNAL_OPERATIONAL";
-        isDuplicate: boolean;
-        reference: {
-            type: "ORDER" | "PO" | "BIN" | "SUPPLIER_CRATE" | undefined;
-            id: string | undefined;
-        };
-        workflow: {
-            action: string;
-            requiresExpiry: boolean;
-            requiresBatch: boolean;
-        };
-        product?: undefined;
-    } | {
-        status: string;
-        barcodeScope: "GS1_EXTERNAL_PRODUCT" | "INTERNAL_FIXED_PACK" | "INTERNAL_VARIABLE_WEIGHT" | "UNKNOWN";
-        isDuplicate: boolean;
-        product: null;
-        workflow: {
-            action: string;
-            requiresExpiry: boolean;
-            requiresBatch: boolean;
-        };
-        reference?: undefined;
+        success: boolean;
+        draftId?: undefined;
+        status?: undefined;
+        message?: undefined;
     }>;
-    submitScanEvent(data: {
+    updateStock(userId: string, data: {
         storeId: string;
-        workflow: ScannerWorkflow;
-        rawValue: string;
-        symbology?: string;
-        productId?: string;
-        quantity?: number;
-        deviceId?: string;
-        scannedById?: string;
-        idempotencyKey: string;
-        metadata?: Record<string, unknown>;
+        productId: string;
+        movementType: string;
+        quantityInput: number;
+        inputUnit: string;
+        conversionToBase: number;
+        supplierId?: string;
+        batchNo?: string;
+        expiryDate?: string;
+        note?: string;
     }): Promise<{
-        status: string;
-        eventId: string;
+        success: boolean;
+        quantityBase: number;
+        newStockLevel: number;
     }>;
-    batchSync(storeId: string, deviceId: string, events: Array<{
-        idempotencyKey: string;
-        workflow: string;
-        rawValue: string;
-        symbology?: string;
-        quantity?: number;
-        scannedAt: string;
-        metadata?: Record<string, unknown>;
-    }>): Promise<{
+    createProductDraft(userId: string, data: {
+        storeId: string;
+        barcode: string;
+        productName: string;
+        brand?: string;
+        category?: string;
+        hsnSac?: string;
+        mrp: number;
+        gstRate: number;
+        baseUnit: string;
+        purchaseUnit?: string;
+        conversionToBase?: number;
+        supplierId?: string;
+    }): Promise<{
+        draftId: string;
+        status: import(".prisma/client").$Enums.PendingProductStatus;
+    }>;
+    confirmProductExtraction(userId: string, extractionId: string, storeId: string, finalData: any): Promise<{
+        id: string;
+        storeId: string;
+        productId: string;
+        legacyCode: string | null;
+        displayName: string | null;
+        status: string;
+        type: string | null;
+        itemType: string | null;
+        isHidden: boolean;
+        allowDecimalQty: boolean;
+        packagingText: string | null;
+        colorType: string | null;
+        groupId: string | null;
+        manufacturerLegacyRef: string | null;
+        createdBy: string | null;
+        updatedBy: string | null;
+        source: string | null;
+        metadata: import("@prisma/client/runtime/library").JsonValue | null;
+        createdAt: Date;
+        updatedAt: Date;
+    }>;
+    confirmSupplierExtraction(userId: string, extractionId: string, storeId: string, finalData: any): Promise<{
+        id: string;
+        storeId: string;
+        createdAt: Date;
+        updatedAt: Date;
+        isActive: boolean;
+        name: string;
+        country: string | null;
+        gstin: string | null;
+        email: string | null;
+        phone: string | null;
+        ledgerName: string | null;
+        accountGroup: string | null;
+        pan: string | null;
+        mobile: string | null;
+        address: string | null;
+        city: string | null;
+        state: string | null;
+        pincode: string | null;
+        openingBalance: Decimal | null;
+        openingBalanceType: string | null;
+        contactPerson: string | null;
+        foodLicenseNo: string | null;
+        importBatchId: string | null;
+    }>;
+    generateInternalBarcode(storeId: string): Promise<string>;
+    resolveBarcode(data: any): Promise<{
+        status: string;
+    }>;
+    submitScanEvent(data: any): Promise<{
+        status: string;
+    }>;
+    batchSync(storeId: string, deviceId: string, events: any[]): Promise<{
         processed: number;
         duplicates: number;
-        failed: string[];
+        failed: never[];
     }>;
     getWorkflows(): {
-        workflows: string[];
+        workflows: never[];
     };
-    registerDevice(data: {
-        storeId: string;
-        deviceName: string;
-        deviceType?: string;
-        assignedToId?: string;
-    }): Promise<{
-        id: string;
-        createdAt: Date;
-        updatedAt: Date;
-        storeId: string;
-        status: import(".prisma/client").$Enums.DeviceStatus;
-        deviceCode: string;
-        deviceName: string;
-        deviceType: import(".prisma/client").$Enums.DeviceType;
-        assignedToId: string | null;
-        lastSeenAt: Date | null;
+    registerDevice(data: any): Promise<{
+        success: boolean;
     }>;
-    getScannerActivity(storeId: string, limit?: number): Promise<({
-        device: {
-            id: string;
-            deviceName: string;
-            deviceType: import(".prisma/client").$Enums.DeviceType;
-        } | null;
-        scannedBy: {
-            id: string;
-            name: string | null;
-            role: import(".prisma/client").$Enums.Role;
-        } | null;
-    } & {
-        id: string;
-        createdAt: Date;
-        storeId: string;
-        metadata: import("@prisma/client/runtime/library").JsonValue | null;
-        symbology: string | null;
-        quantity: import("@prisma/client/runtime/library").Decimal | null;
-        deviceId: string | null;
-        idempotencyKey: string;
-        scannedById: string | null;
-        workflow: import(".prisma/client").$Enums.ScannerWorkflow;
-        rawValue: string;
-        parsedJson: import("@prisma/client/runtime/library").JsonValue | null;
-        resolutionStatus: import(".prisma/client").$Enums.ScanResolutionStatus;
-    })[]>;
-    getDevices(storeId: string): Promise<({
-        assignedTo: {
-            id: string;
-            name: string | null;
-            role: import(".prisma/client").$Enums.Role;
-        } | null;
-    } & {
-        id: string;
-        createdAt: Date;
-        updatedAt: Date;
-        storeId: string;
-        status: import(".prisma/client").$Enums.DeviceStatus;
-        deviceCode: string;
-        deviceName: string;
-        deviceType: import(".prisma/client").$Enums.DeviceType;
-        assignedToId: string | null;
-        lastSeenAt: Date | null;
-    })[]>;
+    getScannerActivity(storeId: string, limit?: number): Promise<never[]>;
+    getDevices(storeId: string): Promise<never[]>;
     deviceHeartbeat(deviceId: string): Promise<{
-        id: string;
-        createdAt: Date;
-        updatedAt: Date;
-        storeId: string;
-        status: import(".prisma/client").$Enums.DeviceStatus;
-        deviceCode: string;
-        deviceName: string;
-        deviceType: import(".prisma/client").$Enums.DeviceType;
-        assignedToId: string | null;
-        lastSeenAt: Date | null;
+        success: boolean;
+    }>;
+    archiveProduct(userId: string, productId: string, storeId: string): Promise<{
+        success: boolean;
+        status: string;
     }>;
 }

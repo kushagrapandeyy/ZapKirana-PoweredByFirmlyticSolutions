@@ -1,5 +1,6 @@
 import { Controller, Get, Post, Body, Param, Query, Patch } from '@nestjs/common';
-import { ProductsService, ProductMasterPayload } from './products.service';
+import { ProductsService } from './products.service';
+import type { ProductMasterPayload } from './products.service';
 
 @Controller('products')
 export class ProductsController {
